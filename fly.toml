@@ -1,0 +1,71 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Configuración de ejemplo para Fly.io — EduMWork Sistema TIC Escolar
+#
+# Este archivo despliega SOLO el backend Django.
+# Cambiar `app` por el nombre de tu app de Fly.io antes de desplegar.
+# El frontend Vite se despliega como app separada (ver fly.frontend.toml)
+# — o mejor: se sirve como estático desde Cloudflare Pages (más barato).
+#
+# Comandos claves:
+#   fly launch       — primera vez
+#   fly deploy       — actualizar
+#   fly logs         — ver logs
+#   fly ssh console  — entrar al contenedor
+#   fly secrets set NOMBRE=valor  — definir variables sensibles
+# ═══════════════════════════════════════════════════════════════════════════
+
+app = "edumwork-backend"
+primary_region = "scl"  # Santiago Chile — más cercano a Huánuco
+
+[build]
+  dockerfile = "backend/Dockerfile"
+
+[deploy]
+  release_command = "python manage.py migrate --noinput"
+
+[env]
+  PORT = "8000"
+  DJANGO_SETTINGS_MODULE = "proyecto_api.settings"
+  DEBUG = "False"
+  GUNICORN_WORKERS = "3"
+
+# El servicio HTTP público
+[[services]]
+  protocol = "tcp"
+  internal_port = 8000
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "requests"
+    hard_limit = 250
+    soft_limit = 200
+
+  [[services.http_checks]]
+    interval = "30s"
+    grace_period = "20s"
+    method = "get"
+    path = "/health/"
+    protocol = "http"
+    timeout = "5s"
+
+# Volumen persistente para uploads de media (fotos incidencias, adjuntos, etc.)
+[mounts]
+  source = "media_data"
+  destination = "/app/media"
+
+# Recursos (Fly free tier: 3 VMs shared-cpu-1x + 3GB storage total)
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

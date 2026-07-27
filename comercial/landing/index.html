@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Sistema web integral de gestión escolar peruano con inteligencia artificial. Cumple MINEDU, SIAGIE, Ley 29733. Desde S/ 80/mes.">
+<meta property="og:title" content="Sistematic — Sistema TIC Escolar para Perú">
+<meta property="og:description" content="Asistencia, notas, aula virtual e incidencias con IA. Todo en 1 plataforma. Desde S/ 80/mes.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sistematic-8z7.pages.dev">
+<meta name="twitter:card" content="summary_large_image">
+<title>Sistematic — Sistema TIC Escolar para Perú</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23312e81'/%3E%3Cpath d='M9 10h14v3H9zm0 5h10v3H9zm0 5h14v3H9z' fill='%23fff'/%3E%3Ccircle cx='23' cy='20' r='3' fill='%2310b981'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --indigo-950: #1e1b4b;
+    --indigo-900: #312e81;
+    --indigo-700: #4338ca;
+    --indigo-600: #4f46e5;
+    --indigo-100: #e0e7ff;
+    --indigo-50:  #eef2ff;
+    --emerald: #10b981;
+    --emerald-50: #ecfdf5;
+    --amber: #f59e0b;
+    --amber-50: #fffbeb;
+    --slate-900: #0f172a;
+    --slate-700: #334155;
+    --slate-500: #64748b;
+    --slate-300: #cbd5e1;
+    --slate-200: #e2e8f0;
+    --slate-100: #f1f5f9;
+    --slate-50:  #f8fafc;
+    --white: #ffffff;
+    --radius: 12px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 2px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.08);
+    --shadow-md: 0 4px 12px rgba(15,23,42,0.08), 0 2px 4px rgba(15,23,42,0.04);
+    --shadow-lg: 0 20px 40px -8px rgba(30,27,75,0.25);
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    color: var(--slate-900); background: var(--white); line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Nav */
+  nav.top {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--slate-200);
+  }
+  .nav-inner {
+    max-width: 1200px; margin: 0 auto; padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--indigo-900); text-decoration: none; }
+  .brand-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--indigo-900); display: grid; place-items: center; color: white; }
+  .nav-links { display: flex; gap: 28px; align-items: center; }
+  .nav-links a { color: var(--slate-700); text-decoration: none; font-size: 14px; font-weight: 500; }
+  .nav-links a:hover { color: var(--indigo-700); }
+  .nav-cta {
+    padding: 8px 16px; background: var(--indigo-900); color: white !important;
+    border-radius: 8px; font-weight: 600; transition: transform .15s;
+  }
+  .nav-cta:hover { transform: translateY(-1px); }
+  @media (max-width: 700px) { .nav-links a:not(.nav-cta) { display: none; } }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+    padding: 80px 24px 100px;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: ""; position: absolute; top: -100px; right: -100px;
+    width: 500px; height: 500px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(79,70,229,0.15), transparent 70%);
+    pointer-events: none;
+  }
+  .hero-inner {
+    max-width: 1200px; margin: 0 auto;
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 60px; align-items: center;
+    position: relative;
+  }
+  @media (max-width: 900px) { .hero-inner { grid-template-columns: 1fr; gap: 40px; } .hero { padding: 60px 24px 70px; } }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; background: var(--indigo-50); color: var(--indigo-700);
+    border-radius: 100px; font-size: 13px; font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .hero-badge .dot { width: 6px; height: 6px; background: var(--emerald); border-radius: 50%; }
+  .hero h1 {
+    font-size: clamp(32px, 5vw, 52px); font-weight: 800; line-height: 1.1;
+    letter-spacing: -1.5px; color: var(--slate-900); margin-bottom: 20px;
+  }
+  .hero h1 .grad {
+    background: linear-gradient(135deg, var(--indigo-700), var(--emerald));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero-sub { font-size: 18px; color: var(--slate-700); margin-bottom: 32px; max-width: 500px; }
+  .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 32px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 24px; border-radius: 10px; font-weight: 600; font-size: 15px;
+    text-decoration: none; transition: all .15s; border: none; cursor: pointer;
+  }
+  .btn-primary { background: var(--indigo-900); color: white; box-shadow: var(--shadow-md); }
+  .btn-primary:hover { background: var(--indigo-700); transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+  .btn-secondary { background: white; color: var(--slate-900); border: 1px solid var(--slate-200); }
+  .btn-secondary:hover { border-color: var(--indigo-600); color: var(--indigo-700); }
+  .hero-trust { display: flex; align-items: center; gap: 20px; font-size: 13px; color: var(--slate-500); flex-wrap: wrap; }
+  .hero-trust strong { color: var(--slate-900); }
+
+  /* Hero mockup */
+  .mockup {
+    background: white; border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--slate-200);
+    overflow: hidden; transform: rotate(-1deg);
+    transition: transform .3s;
+  }
+  .mockup:hover { transform: rotate(0deg); }
+  .mockup-bar { background: var(--slate-100); padding: 10px 14px; display: flex; gap: 6px; border-bottom: 1px solid var(--slate-200); }
+  .mockup-bar span { width: 10px; height: 10px; border-radius: 50%; background: var(--slate-300); }
+  .mockup-bar span:nth-child(1) { background: #ff5f56; }
+  .mockup-bar span:nth-child(2) { background: #ffbd2e; }
+  .mockup-bar span:nth-child(3) { background: #27c93f; }
+  .mockup-body { padding: 20px; background: white; }
+  .mock-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+  .mock-sub { font-size: 12px; color: var(--slate-500); margin-bottom: 16px; }
+  .mock-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .mock-kpi { background: var(--slate-50); border-radius: 8px; padding: 12px; border: 1px solid var(--slate-200); }
+  .mock-kpi .lbl { font-size: 10px; color: var(--slate-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .mock-kpi .val { font-size: 20px; font-weight: 700; color: var(--slate-900); }
+  .mock-kpi.ok .val { color: var(--emerald); }
+  .mock-kpi.warn .val { color: var(--amber); }
+  .mock-chart { height: 80px; background: linear-gradient(180deg, rgba(79,70,229,0.15), transparent); border-radius: 8px; position: relative; overflow: hidden; }
+  .mock-chart svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .mock-rows { margin-top: 16px; }
+  .mock-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--slate-100); font-size: 12px; }
+  .mock-row:last-child { border-bottom: none; }
+  .mock-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--indigo-100); color: var(--indigo-700); display: grid; place-items: center; font-weight: 700; font-size: 10px; }
+  .mock-tag { margin-left: auto; padding: 2px 8px; border-radius: 100px; font-size: 10px; font-weight: 600; }
+  .mock-tag.ok { background: var(--emerald-50); color: var(--emerald); }
+  .mock-tag.warn { background: var(--amber-50); color: var(--amber); }
+
+  /* Sections */
+  main { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 80px 0; }
+  .section-tag {
+    display: inline-block; font-size: 13px; font-weight: 700; color: var(--indigo-700);
+    text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;
+  }
+  h2 {
+    font-size: clamp(28px, 4vw, 40px); font-weight: 800; letter-spacing: -1px;
+    color: var(--slate-900); margin-bottom: 12px; max-width: 700px;
+  }
+  .section-sub { font-size: 17px; color: var(--slate-500); max-width: 640px; margin-bottom: 48px; }
+
+  /* Features */
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  @media (max-width: 900px) { .features { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 600px) { .features { grid-template-columns: 1fr; } }
+  .feat {
+    padding: 28px; border: 1px solid var(--slate-200); border-radius: var(--radius-lg);
+    background: white; transition: all .2s;
+  }
+  .feat:hover { border-color: var(--indigo-100); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  .feat-icon {
+    width: 44px; height: 44px; border-radius: 10px;
+    display: grid; place-items: center; margin-bottom: 20px;
+  }
+  .feat-icon.indigo { background: var(--indigo-50); color: var(--indigo-700); }
+  .feat-icon.emerald { background: var(--emerald-50); color: var(--emerald); }
+  .feat-icon.amber { background: var(--amber-50); color: var(--amber); }
+  .feat h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: var(--slate-900); }
+  .feat p { font-size: 14px; color: var(--slate-500); line-height: 1.6; }
+
+  /* Modules */
+  .modules-strip {
+    background: var(--slate-50); border-radius: var(--radius-lg); padding: 40px;
+    border: 1px solid var(--slate-200);
+  }
+  .modules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .module {
+    padding: 10px 14px; background: white; border-radius: 8px; font-size: 13px;
+    font-weight: 500; color: var(--slate-700); display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--slate-200);
+  }
+  .module svg { color: var(--emerald); flex-shrink: 0; }
+
+  /* How it works */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; position: relative; }
+  @media (max-width: 800px) { .steps { grid-template-columns: 1fr; } }
+  .step { position: relative; }
+  .step-num {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: var(--indigo-900); color: white;
+    display: grid; place-items: center; font-weight: 700; font-size: 18px;
+    margin-bottom: 20px; box-shadow: var(--shadow-md);
+  }
+  .step h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .step p { font-size: 14px; color: var(--slate-500); }
+
+  /* Pricing */
+  .pricing { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  @media (max-width: 1000px) { .pricing { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 500px) { .pricing { grid-template-columns: 1fr; } }
+  .plan {
+    background: white; border: 1px solid var(--slate-200); border-radius: var(--radius-lg);
+    padding: 28px 22px; position: relative; transition: all .2s;
+  }
+  .plan:hover { border-color: var(--indigo-600); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+  .plan.featured { border: 2px solid var(--indigo-900); background: linear-gradient(180deg, var(--indigo-50), white); }
+  .plan-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--indigo-900); color: white; padding: 4px 12px;
+    border-radius: 100px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .plan-nombre { font-size: 15px; font-weight: 700; color: var(--indigo-900); margin-bottom: 4px; }
+  .plan-target { font-size: 12px; color: var(--slate-500); margin-bottom: 20px; }
+  .plan-precio { font-size: 40px; font-weight: 800; color: var(--slate-900); line-height: 1; }
+  .plan-precio small { font-size: 14px; font-weight: 500; color: var(--slate-500); }
+  .plan-anual { font-size: 12px; color: var(--slate-500); margin-top: 4px; margin-bottom: 20px; }
+  .plan ul { list-style: none; margin: 0; padding: 0; font-size: 13px; color: var(--slate-700); }
+  .plan ul li { padding: 6px 0; display: flex; align-items: center; gap: 8px; }
+  .plan ul li svg { color: var(--emerald); flex-shrink: 0; }
+
+  /* Compliance */
+  .compliance {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px; margin-top: 32px;
+  }
+  .comp-card {
+    padding: 20px; background: white; border-radius: var(--radius);
+    border: 1px solid var(--slate-200);
+    border-left: 3px solid var(--emerald);
+  }
+  .comp-card strong { display: block; color: var(--indigo-900); font-size: 14px; margin-bottom: 6px; }
+  .comp-card p { font-size: 13px; color: var(--slate-500); }
+
+  /* CTA final */
+  .cta-final {
+    background: linear-gradient(135deg, var(--indigo-950), var(--indigo-700));
+    border-radius: var(--radius-lg); padding: 60px 40px;
+    text-align: center; color: white; margin: 40px 0;
+    position: relative; overflow: hidden;
+  }
+  .cta-final::before {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(16,185,129,0.2), transparent 50%);
+    pointer-events: none;
+  }
+  .cta-final h2 { color: white; margin: 0 auto 12px; }
+  .cta-final p { color: rgba(255,255,255,0.85); font-size: 17px; margin-bottom: 32px; max-width: 500px; margin-left: auto; margin-right: auto; }
+  .cta-final .btn { position: relative; }
+  .cta-final .btn-primary { background: white; color: var(--indigo-900); }
+  .cta-final .btn-primary:hover { background: var(--slate-50); }
+  .cta-final .btn-wa { background: var(--emerald); color: white; }
+  .cta-final .btn-wa:hover { background: #059669; }
+
+  /* Footer */
+  footer {
+    background: var(--slate-900); color: var(--slate-300); padding: 40px 24px;
+    text-align: center; font-size: 14px;
+  }
+  footer a { color: white; text-decoration: none; font-weight: 600; }
+  footer a:hover { color: var(--emerald); }
+  footer p { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="top">
+  <div class="nav-inner">
+    <a href="#" class="brand">
+      <div class="brand-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M4 4h16v4H4zM4 10h10v4H4zM4 16h16v4H4z" stroke-linecap="round"/>
+        </svg>
+      </div>
+      Sistematic
+    </a>
+    <div class="nav-links">
+      <a href="#features">Características</a>
+      <a href="#modulos">Módulos</a>
+      <a href="#precios">Precios</a>
+      <a href="#contacto" class="nav-cta">Solicitar demo</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <span class="hero-badge"><span class="dot"></span> 17 módulos · Deploy en 25 minutos</span>
+      <h1>El sistema TIC que tu colegio<br><span class="grad">merece de verdad</span></h1>
+      <p class="hero-sub">
+        Asistencia, notas, aula virtual, incidencias con IA y comunicados —
+        todo en una plataforma diseñada específicamente para colegios peruanos.
+      </p>
+      <div class="hero-ctas">
+        <a href="#contacto" class="btn btn-primary">
+          Solicitar demo gratis
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#precios" class="btn btn-secondary">Ver precios</a>
+      </div>
+      <div class="hero-trust">
+        <span><strong>Cumple</strong> MINEDU · SIAGIE · Ley 29733</span>
+        <span>·</span>
+        <span><strong>Desde</strong> S/ 80/mes</span>
+      </div>
+    </div>
+
+    <div class="mockup">
+      <div class="mockup-bar"><span></span><span></span><span></span></div>
+      <div class="mockup-body">
+        <div class="mock-title">Dashboard · Director</div>
+        <div class="mock-sub">Panel de asistencia semanal</div>
+        <div class="mock-kpis">
+          <div class="mock-kpi ok"><div class="lbl">Asistencia</div><div class="val">94%</div></div>
+          <div class="mock-kpi warn"><div class="lbl">Tardanzas</div><div class="val">12</div></div>
+          <div class="mock-kpi"><div class="lbl">Incidencias</div><div class="val">3</div></div>
+        </div>
+        <div class="mock-chart">
+          <svg viewBox="0 0 300 80" preserveAspectRatio="none">
+            <polyline points="0,60 40,45 80,50 120,30 160,35 200,20 240,25 300,15"
+                      fill="none" stroke="#4f46e5" stroke-width="2.5"/>
+            <polyline points="0,60 40,45 80,50 120,30 160,35 200,20 240,25 300,15 300,80 0,80"
+                      fill="url(#g)" opacity="0.3"/>
+            <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f46e5"/><stop offset="1" stop-color="#4f46e5" stop-opacity="0"/></linearGradient></defs>
+          </svg>
+        </div>
+        <div class="mock-rows">
+          <div class="mock-row">
+            <div class="mock-avatar">1A</div>
+            <div>1º "A" · Aula 205</div>
+            <span class="mock-tag ok">98%</span>
+          </div>
+          <div class="mock-row">
+            <div class="mock-avatar">3B</div>
+            <div>3º "B" · Aula 302</div>
+            <span class="mock-tag warn">82%</span>
+          </div>
+          <div class="mock-row">
+            <div class="mock-avatar">5A</div>
+            <div>5º "A" · Aula 405</div>
+            <span class="mock-tag ok">96%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main>
+
+<!-- Features -->
+<section id="features">
+  <span class="section-tag">Por qué Sistematic</span>
+  <h2>Todo lo que un colegio peruano necesita, sin lo que sobra</h2>
+  <p class="section-sub">
+    Diseñado desde cero pensando en directores, docentes y padres reales — no en manuales
+    de exportación de sistemas extranjeros adaptados a la fuerza.
+  </p>
+
+  <div class="features">
+    <div class="feat">
+      <div class="feat-icon indigo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2 4 4 .5-3 3 .7 4.2L12 11.8 8.3 13.7 9 9.5 6 6.5l4-.5z" stroke-linejoin="round"/><path d="M4 20h16" stroke-linecap="round"/></svg>
+      </div>
+      <h3>Inteligencia artificial integrada</h3>
+      <p>La IA clasifica incidencias, sugiere soluciones y redacta informes ejecutivos. Cada docente puede usar su propia API key (BYOK).</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon emerald">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2" stroke-linecap="round"/></svg>
+      </div>
+      <h3>Padres desde el celular</h3>
+      <p>Los padres consultan asistencia, notas y comunicados desde su móvil. Justifican faltas en 1 tap, sin instalar apps.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon amber">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke-linecap="round"/></svg>
+      </div>
+      <h3>Modo simple / completo</h3>
+      <p>Directores no técnicos usan la versión simple sin frustración. Los KPIs y gráficos están para quien los quiere ver.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon indigo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      </div>
+      <h3>QR en todo</h3>
+      <p>Asistencia por QR, portería con QR, ambientes con QR, inventario con QR. Menos papel, más agilidad, mejor trazabilidad.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon emerald">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L3 7v6c0 5 4 9 9 10 5-1 9-5 9-10V7l-9-5z"/><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h3>Cumple normativa peruana</h3>
+      <p>Escala AD/A/B/C, plazo SíseVe 30 días, formato SIAGIE, GPS en asistencia, consentimiento Ley 29733.</p>
+    </div>
+    <div class="feat">
+      <div class="feat-icon amber">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4" stroke-linecap="round"/></svg>
+      </div>
+      <h3>Tus datos, en Perú</h3>
+      <p>Datacenter peruano. HTTPS gratuito. Backup diario. Cifrado de credenciales. Auditoría de accesos.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Modules -->
+<section id="modulos">
+  <span class="section-tag">Los 17 módulos</span>
+  <h2>Todo integrado, nada suelto</h2>
+  <p class="section-sub">
+    Sin plugins, sin add-ons, sin integraciones que se rompen. Un solo sistema, un solo login.
+  </p>
+
+  <div class="modules-strip">
+    <div class="modules-grid">
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Asistencia (QR + GPS)</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Notas + Boletas PDF MINEDU</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Aula Virtual (videos + tareas)</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Incidencias TI con IA</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Inventario TI con QR</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Ambientes + Bitácora QR</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Reservas de espacios</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Visitas con gafete QR</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Convivencia (SíseVe)</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Comunicados masivos</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Panel familiar</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Justificaciones online</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Ficha completa (32 campos)</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Sesiones de clase</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Asistencia del personal</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Gestión de 11 roles</div>
+      <div class="module"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Auditoría de cambios</div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section>
+  <span class="section-tag">Cómo empezamos</span>
+  <h2>De la primera llamada al sistema andando en 3 pasos</h2>
+  <p class="section-sub">Sin consultores caros, sin proyectos de 6 meses. Instalación real en menos de una hora.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Demo de 20 minutos</h3>
+      <p>Videollamada con el director. Le mostramos el sistema real con datos de ejemplo. Sin PPT, sin humo.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Contratación y setup</h3>
+      <p>Firma contrato, contratamos VPS (S/ 35/mes) y en 25 minutos tu colegio tiene el sistema con dominio propio y HTTPS.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Capacitación remota</h3>
+      <p>2 sesiones online (director + admin TIC). Cargamos alumnos desde Excel/SIAGIE. Al día siguiente, funciona.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section id="precios">
+  <span class="section-tag">Precios</span>
+  <h2>Un pago mensual. Todo incluido. Sin sorpresas.</h2>
+  <p class="section-sub">Elegís el plan según cuántos alumnos tenés. Ampliaciones sin costo dentro del rango.</p>
+
+  <div class="pricing">
+    <div class="plan">
+      <div class="plan-nombre">Básico</div>
+      <div class="plan-target">Hasta 200 alumnos</div>
+      <div class="plan-precio">S/ 80<small>/mes</small></div>
+      <div class="plan-anual">o S/ 900 al año</div>
+      <ul>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> 17 módulos completos</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Hosting incluido</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Soporte por email</li>
+      </ul>
+    </div>
+    <div class="plan featured">
+      <div class="plan-badge">Más popular</div>
+      <div class="plan-nombre">Estándar</div>
+      <div class="plan-target">201 a 600 alumnos</div>
+      <div class="plan-precio">S/ 150<small>/mes</small></div>
+      <div class="plan-anual">o S/ 1 700 al año</div>
+      <ul>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Todo lo del plan Básico</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Soporte prioritario WhatsApp</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Capacitación extra sin costo</li>
+      </ul>
+    </div>
+    <div class="plan">
+      <div class="plan-nombre">Grande</div>
+      <div class="plan-target">601 a 1 500 alumnos</div>
+      <div class="plan-precio">S/ 250<small>/mes</small></div>
+      <div class="plan-anual">o S/ 2 800 al año</div>
+      <ul>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Todo lo del plan Estándar</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Servidor dedicado</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Backups cada 6 horas</li>
+      </ul>
+    </div>
+    <div class="plan">
+      <div class="plan-nombre">XL / Multi-sede</div>
+      <div class="plan-target">Más de 1 500 alumnos</div>
+      <div class="plan-precio">A medida</div>
+      <div class="plan-anual">Cotización personalizada</div>
+      <ul>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Todo lo del plan Grande</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> SLA con tiempos garantizados</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg> Integración a medida</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Compliance -->
+<section>
+  <span class="section-tag">Normativa</span>
+  <h2>Cumple con las normas que UGEL te pide</h2>
+  <p class="section-sub">Cada módulo fue diseñado revisando las normas vigentes. Nada de "eso lo ajustamos después".</p>
+
+  <div class="compliance">
+    <div class="comp-card">
+      <strong>RVM 094-2020-MINEDU</strong>
+      <p>Escala AD / A / B / C. Formato oficial de boletas exportable a PDF.</p>
+    </div>
+    <div class="comp-card">
+      <strong>Ley 29733</strong>
+      <p>Consentimiento explícito de padres. Auditoría de accesos. Cifrado de datos personales.</p>
+    </div>
+    <div class="comp-card">
+      <strong>Protocolo SíseVe</strong>
+      <p>Casos con plazo legal 30 días. Alertas automáticas. Trazabilidad completa.</p>
+    </div>
+    <div class="comp-card">
+      <strong>SIAGIE compatible</strong>
+      <p>Exporta al formato oficial. Campos alineados. Pega y listo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA final -->
+<div class="cta-final" id="contacto">
+  <h2>¿Vemos si Sistematic encaja en tu colegio?</h2>
+  <p>Coordinamos una demo online de 20 minutos. Es gratis, sin compromiso, y en 5 minutos sabés si te sirve.</p>
+  <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+    <a href="mailto:cmarkjhunior@gmail.com?subject=Demo Sistematic para mi colegio&body=Hola Mark,%0D%0A%0D%0AMe interesa una demo de Sistematic para mi colegio.%0D%0A%0D%0AColegio: %0D%0ACantidad de alumnos: %0D%0AUbicación: %0D%0A%0D%0AGracias." class="btn btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6" stroke-linecap="round"/></svg>
+      Solicitar demo por email
+    </a>
+    <a href="https://wa.me/51988783411?text=Hola%20Mark,%20quiero%20una%20demo%20de%20Sistematic%20para%20mi%20colegio" class="btn btn-wa">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1s-.5-.1-.7.1-.8 1-1 1.2-.4.2-.7.1c-1.6-.8-2.7-1.4-3.7-3.2-.3-.5.3-.5.8-1.5.1-.2 0-.3 0-.5s-.7-1.7-.9-2.3-.5-.5-.7-.5H8c-.2 0-.5.1-.8.4s-1 1-1 2.4 1 2.8 1.2 3 2 3 4.9 4.3c1.8.7 2.5.8 3.4.7.5-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.2-.3-.3-.6-.4zM12 2C6.5 2 2 6.5 2 12c0 1.7.4 3.4 1.3 4.9L2 22l5.3-1.4c1.4.8 3.1 1.2 4.7 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18c-1.5 0-3-.4-4.3-1.2l-.3-.2-3.2.8.8-3.1-.2-.3C4 14.7 3.5 13.4 3.5 12 3.5 7.3 7.3 3.5 12 3.5S20.5 7.3 20.5 12 16.7 20.5 12 20.5z"/></svg>
+      Escribir por WhatsApp
+    </a>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  <p><strong style="color: white; font-size: 16px;">Sistematic</strong> — Sistema TIC Escolar para Perú</p>
+  <p>Desarrollado por Mark Chávez Fabián · UNEHVAL Huánuco</p>
+  <p style="margin-top: 12px;">
+    <a href="mailto:cmarkjhunior@gmail.com">cmarkjhunior@gmail.com</a> ·
+    <a href="https://wa.me/51988783411">+51 988 783 411</a>
+  </p>
+</footer>
+
+</body>
+</html>

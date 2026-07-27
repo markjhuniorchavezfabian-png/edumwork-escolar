@@ -1,0 +1,63 @@
+server {
+    listen ${PORT} default_server;
+    listen [::]:${PORT} default_server;
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Compresión (los estáticos ya vienen gzip por Vite, pero por si acaso)
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 512;
+
+    # Headers de seguridad (además de los de Django hardening)
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Resolver Docker interno — resuelve "backend" en cada request, no al iniciar
+    resolver 127.0.0.11 valid=30s ipv6=off;
+
+    # Proxy al backend Django (variable de entorno API_UPSTREAM)
+    location /api/ {
+        set $api_upstream "${API_UPSTREAM}";
+        proxy_pass $api_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+
+        client_max_body_size 10M;  # subir fotos incidencias
+    }
+
+    # Media del backend (uploads) — servido directo desde volumen compartido
+    location /media/ {
+        alias /usr/share/nginx/html/media/;
+        expires 7d;
+        add_header Cache-Control "public";
+    }
+
+    # Estáticos con cache agresivo (Vite pone hash en el nombre)
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # SPA fallback: cualquier ruta no encontrada → index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # robots.txt y favicon: no loggear
+    location = /robots.txt { access_log off; log_not_found off; }
+    location = /favicon.svg { access_log off; log_not_found off; }
+
+    # Health check para Fly.io
+    location = /healthz {
+        access_log off;
+        return 200 "ok\n";
+        add_header Content-Type text/plain;
+    }
+}

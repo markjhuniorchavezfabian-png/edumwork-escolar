@@ -1,0 +1,114 @@
+{
+  "version": "CNEB 2016 (actualizado DS 007-2021-MINEDU)",
+  "fuente": "https://cnebminedu.pe/",
+  "niveles": [
+    {
+      "nivel": "primaria",
+      "areas": [
+        {
+          "nombre": "Comunicación",
+          "orden": 1,
+          "competencias": [
+            {
+              "numero": 1,
+              "nombre": "Se comunica oralmente en su lengua materna",
+              "capacidades": [
+                { "orden": 1, "nombre": "Obtiene información del texto oral" },
+                { "orden": 2, "nombre": "Infiere e interpreta información del texto oral" },
+                { "orden": 3, "nombre": "Adecúa, organiza y desarrolla las ideas de forma coherente y cohesionada" },
+                { "orden": 4, "nombre": "Utiliza recursos no verbales y paraverbales de forma estratégica" },
+                { "orden": 5, "nombre": "Interactúa estratégicamente con distintos interlocutores" },
+                { "orden": 6, "nombre": "Reflexiona y evalúa la forma, el contenido y contexto del texto oral" }
+              ],
+              "desempenos": [
+                { "grado": "p1", "orden": 1, "descripcion": "Recupera información explícita de textos orales que escucha, seleccionando datos específicos (nombres de personas y personajes, acciones, hechos, lugares y fechas), en los que el vocabulario es variado, de uso frecuente y cotidiano." },
+                { "grado": "p2", "orden": 1, "descripcion": "Recupera información explícita de los textos orales que escucha seleccionando datos específicos (características y cualidades de personas, personajes, animales u objetos), en los que el vocabulario es variado, de uso frecuente y cotidiano." },
+                { "grado": "p3", "orden": 1, "descripcion": "Recupera información explícita de los textos orales que escucha, seleccionando datos específicos, y que presentan vocabulario variado y especializado." },
+                { "grado": "p4", "orden": 1, "descripcion": "Recupera información explícita de los textos orales que escucha, seleccionando datos específicos, que presentan vocabulario variado y especializado." },
+                { "grado": "p5", "orden": 1, "descripcion": "Recupera información explícita de los textos orales que escucha, reconociendo datos específicos en textos con vocabulario variado y especializado." },
+                { "grado": "p6", "orden": 1, "descripcion": "Recupera información explícita de los textos orales que escucha, reconociendo datos específicos en textos con vocabulario variado y especializado, incluso en situaciones de mayor complejidad." }
+              ]
+            },
+            {
+              "numero": 2,
+              "nombre": "Lee diversos tipos de textos escritos en su lengua materna",
+              "capacidades": [
+                { "orden": 1, "nombre": "Obtiene información del texto escrito" },
+                { "orden": 2, "nombre": "Infiere e interpreta información del texto" },
+                { "orden": 3, "nombre": "Reflexiona y evalúa la forma, el contenido y contexto del texto" }
+              ],
+              "desempenos": [
+                { "grado": "p1", "orden": 1, "descripcion": "Identifica información explícita que se encuentra en distintas partes del texto. Distingue esta información de otra cercana y semejante, en la que selecciona datos específicos, en textos con palabras conocidas e ilustraciones." },
+                { "grado": "p2", "orden": 1, "descripcion": "Identifica información explícita que se encuentra en distintas partes del texto. Distingue esta información de otra cercana y semejante, en la que selecciona datos específicos, en textos con algunos elementos complejos en su estructura y con vocabulario variado." },
+                { "grado": "p3", "orden": 1, "descripcion": "Identifica información explícita, relevante y complementaria que se encuentra en distintas partes del texto. Selecciona datos específicos e integra información explícita cuando se encuentra en distintas partes del texto de estructura compleja y con vocabulario variado." },
+                { "grado": "p4", "orden": 1, "descripcion": "Identifica información explícita, relevante y complementaria que se encuentra en distintas partes del texto. Selecciona datos específicos e integra información explícita cuando se encuentra en distintas partes del texto de estructura compleja, con vocabulario variado y especializado." },
+                { "grado": "p5", "orden": 1, "descripcion": "Identifica información explícita, relevante y complementaria que se encuentra en distintas partes del texto. Selecciona datos específicos e integra información explícita cuando se encuentra en distintas partes del texto de estructura compleja, con vocabulario variado y especializado." },
+                { "grado": "p6", "orden": 1, "descripcion": "Identifica información explícita, relevante y complementaria que se encuentra en distintas partes del texto. Selecciona datos específicos e integra información explícita cuando se encuentra en distintas partes del texto de estructura compleja, con vocabulario variado y especializado, incluyendo figuras retóricas." }
+              ]
+            },
+            {
+              "numero": 3,
+              "nombre": "Escribe diversos tipos de textos en su lengua materna",
+              "capacidades": [
+                { "orden": 1, "nombre": "Adecúa el texto a la situación comunicativa" },
+                { "orden": 2, "nombre": "Organiza y desarrolla las ideas de forma coherente y cohesionada" },
+                { "orden": 3, "nombre": "Utiliza convenciones del lenguaje escrito de forma pertinente" },
+                { "orden": 4, "nombre": "Reflexiona y evalúa la forma, el contenido y contexto del texto escrito" }
+              ],
+              "desempenos": [
+                { "grado": "p1", "orden": 1, "descripcion": "Escribe textos en torno a un tema, aunque en ocasiones puede salirse de este o reiterar información innecesariamente. Establece relaciones entre las ideas, sobre todo de adición, usando algunos conectores." },
+                { "grado": "p2", "orden": 1, "descripcion": "Escribe textos en torno a un tema, aunque en ocasiones puede salirse de este o reiterar información innecesariamente. Establece relaciones entre las ideas, sobre todo de adición, causalidad y secuencia, usando algunos conectores." },
+                { "grado": "p3", "orden": 1, "descripcion": "Escribe textos en torno a un tema de manera comprensible. Agrupa la información en oraciones y párrafos; emplea vocabulario variado. Establece relaciones entre las ideas a través del uso adecuado de algunos conectores y referentes, sin contradicciones." },
+                { "grado": "p4", "orden": 1, "descripcion": "Escribe textos en torno a un tema de manera comprensible. Agrupa la información en oraciones y párrafos; emplea vocabulario variado. Establece relaciones lógicas entre las ideas a través del uso adecuado de algunos conectores y referentes, con contradicciones mínimas." },
+                { "grado": "p5", "orden": 1, "descripcion": "Escribe textos en torno a un tema de manera comprensible. Agrupa la información en oraciones y párrafos; emplea vocabulario variado. Establece relaciones lógicas entre las ideas, a través del uso adecuado de algunos tipos de conectores, referentes y signos de puntuación." },
+                { "grado": "p6", "orden": 1, "descripcion": "Escribe textos en torno a un tema de manera comprensible. Agrupa la información en oraciones y párrafos; emplea vocabulario variado. Establece relaciones lógicas entre las ideas, a través del uso adecuado de algunos tipos de conectores, referentes y signos de puntuación, con algunos errores que no afectan el sentido del texto." }
+              ]
+            }
+          ]
+        },
+        {
+          "nombre": "Matemática",
+          "orden": 2,
+          "competencias": [
+            {
+              "numero": 1,
+              "nombre": "Resuelve problemas de cantidad",
+              "capacidades": [
+                { "orden": 1, "nombre": "Traduce cantidades a expresiones numéricas" },
+                { "orden": 2, "nombre": "Comunica su comprensión sobre los números y las operaciones" },
+                { "orden": 3, "nombre": "Usa estrategias y procedimientos de estimación y cálculo" },
+                { "orden": 4, "nombre": "Argumenta afirmaciones sobre las relaciones numéricas y las operaciones" }
+              ],
+              "desempenos": [
+                { "grado": "p1", "orden": 1, "descripcion": "Establece relaciones entre datos y acciones de agregar, quitar, juntar, separar, igualar y comparar cantidades, y las transforma en expresiones numéricas (modelo) de adición o sustracción con números naturales hasta 20." },
+                { "grado": "p2", "orden": 1, "descripcion": "Establece relaciones entre datos y acciones de agregar, quitar, avanzar, retroceder, juntar, separar, comparar e igualar cantidades, y las transforma en expresiones numéricas (modelos) de adición o sustracción con números naturales hasta 100." },
+                { "grado": "p3", "orden": 1, "descripcion": "Establece relaciones entre datos y acciones de comparar, igualar, combinar, agregar y quitar cantidades, y las transforma en expresiones numéricas (modelos) de adición o sustracción con números naturales hasta 1000." },
+                { "grado": "p4", "orden": 1, "descripcion": "Establece relaciones entre datos y una o más acciones de agregar, quitar, comparar, igualar, reiterar e iterar grupos de igual cantidad, y las transforma en expresiones numéricas (modelos) de adición, sustracción, multiplicación y división con números naturales." },
+                { "grado": "p5", "orden": 1, "descripcion": "Establece relaciones entre datos y una o más acciones de agregar, quitar, comparar, igualar, repetir o repartir acciones, y las transforma en expresiones numéricas (modelos) de adición, sustracción, multiplicación y división con números naturales y fracciones." },
+                { "grado": "p6", "orden": 1, "descripcion": "Establece relaciones entre datos y una o más acciones de comparar, igualar, repartir, agrupar e interpretar datos y la tasa de cambio, y las transforma en expresiones numéricas (modelos) de adición, sustracción, multiplicación y división con números naturales, fracciones y decimales." }
+              ]
+            },
+            {
+              "numero": 2,
+              "nombre": "Resuelve problemas de regularidad, equivalencia y cambio",
+              "capacidades": [
+                { "orden": 1, "nombre": "Traduce datos y condiciones a expresiones algebraicas" },
+                { "orden": 2, "nombre": "Comunica su comprensión sobre las relaciones algebraicas" },
+                { "orden": 3, "nombre": "Usa estrategias y procedimientos para encontrar equivalencias y reglas generales" },
+                { "orden": 4, "nombre": "Argumenta afirmaciones sobre relaciones de cambio y equivalencia" }
+              ],
+              "desempenos": [
+                { "grado": "p1", "orden": 1, "descripcion": "Establece relaciones de equivalencia entre dos grupos de hasta 20 objetos y las transforma en igualdades que contienen adiciones o sustracciones." },
+                { "grado": "p2", "orden": 1, "descripcion": "Establece relaciones de equivalencia entre dos colecciones de objetos y las transforma en igualdades (modelo) que contienen adiciones de dos sumandos con números hasta 100." },
+                { "grado": "p3", "orden": 1, "descripcion": "Establece relaciones de equivalencia entre dos colecciones o representaciones de decenas, unidades y centenas y las transforma en igualdades que contienen adiciones y sustracciones." },
+                { "grado": "p4", "orden": 1, "descripcion": "Establece relaciones de equivalencia entre dos colecciones o representaciones de números y las transforma en igualdades que contienen operaciones de adición, sustracción y multiplicación o división." },
+                { "grado": "p5", "orden": 1, "descripcion": "Establece relaciones entre datos de un patrón de repetición o crecimiento y los expresa en igualdades con fracciones y decimales, así como en una tabla de valores y en lenguaje algebraico." },
+                { "grado": "p6", "orden": 1, "descripcion": "Establece relaciones entre datos de un patrón de repetición o crecimiento con números racionales y los transforma en igualdades con una variable, expresiones de proporcionalidad, gráficas de coordenadas cartesianas y una regla de formación." }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

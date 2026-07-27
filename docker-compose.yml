@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: p03_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-edumwork}
+      POSTGRES_USER: ${POSTGRES_USER:-edumwork}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-edumwork} -d ${POSTGRES_DB:-edumwork}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: p03_backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_DB: ${POSTGRES_DB:-edumwork}
+      POSTGRES_USER: ${POSTGRES_USER:-edumwork}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dev_password}
+      DEBUG: "True"
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
+      # Tunnel local (ngrok, cloudflared, etc.): agregar dominio en .env
+      CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    name: p03_postgres_data

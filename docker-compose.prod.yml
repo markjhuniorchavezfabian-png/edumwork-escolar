@@ -1,0 +1,96 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Stack de producción — se usa idéntico en:
+#   • Fly.io (fly launch --dockerfile)
+#   • DigitalOcean droplet / VPS
+#   • Servidor propio de la I.E.
+#
+# Uso:
+#   1. cp .env.prod.example .env.prod  # y llenar valores
+#   2. docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Actualizar:
+#   git pull && docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# ═══════════════════════════════════════════════════════════════════════════
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [interno]
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks: [interno]
+
+  backend:
+    image: ${DOCKER_REGISTRY:-docker.io}/${IMAGE_PREFIX:-edumwork}/edumwork-backend:${VERSION:-latest}
+    build:
+      context: ./backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DEBUG: "False"
+      SECRET_KEY: ${SECRET_KEY}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_URL: redis://redis:6379/0
+      CACHE_BACKEND: django.core.cache.backends.redis.RedisCache
+      CACHE_LOCATION: redis://redis:6379/1
+      IA_ENCRYPTION_KEY: ${IA_ENCRYPTION_KEY}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
+      SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-True}
+      GUNICORN_WORKERS: "3"
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    networks: [interno]
+
+  frontend:
+    image: ${DOCKER_REGISTRY:-docker.io}/${IMAGE_PREFIX:-edumwork}/edumwork-frontend:${VERSION:-latest}
+    build:
+      context: ./frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      API_UPSTREAM: http://backend:8000
+      PORT: "80"
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      # Los estáticos del backend también se sirven por nginx
+      - static_data:/usr/share/nginx/html/static:ro
+      - media_data:/usr/share/nginx/html/media:ro
+    networks: [interno]
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:
+  static_data:
+
+networks:
+  interno:
+    driver: bridge

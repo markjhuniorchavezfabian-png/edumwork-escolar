@@ -1,0 +1,4 @@
+# EduMWork — Sistema TIC Escolar
+# Aplicación privada; no debe ser indexada por buscadores.
+User-agent: *
+Disallow: /

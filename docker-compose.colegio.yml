@@ -1,0 +1,141 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# docker-compose.colegio.yml — archivo que recibe cada colegio cliente
+#
+# Este archivo NO requiere código fuente. Descarga las imágenes
+# pre-compiladas desde Docker Hub y las mantiene actualizadas con Watchtower.
+#
+# Uso:
+#   1. Completar .env (copiar de .env.ejemplo y llenar los valores)
+#   2. docker compose -f docker-compose.colegio.yml --env-file .env up -d
+#
+# Actualización automática: Watchtower revisa Docker Hub cada 24h.
+# Cuando el proveedor publique una nueva versión, todos los servicios
+# se actualizan solos en la próxima ventana nocturna (3:00 AM).
+# ═══════════════════════════════════════════════════════════════════════════
+
+services:
+
+  # ── Base de datos ─────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    restart: always
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=${PG_SHARED_BUFFERS:-128MB}"
+      - "-c"
+      - "effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-384MB}"
+      - "-c"
+      - "work_mem=${PG_WORK_MEM:-4MB}"
+      - "-c"
+      - "maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-32MB}"
+      - "-c"
+      - "max_connections=${PG_MAX_CONNECTIONS:-30}"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [interno]
+
+  # ── Backend Django ────────────────────────────────────────────────────────
+  backend:
+    image: ${DOCKER_REGISTRY:-docker.io}/${IMAGE_PREFIX:-edumwork}/edumwork-backend:${VERSION:-latest}
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.scope=edumwork"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DEBUG: "False"
+      SECRET_KEY: ${SECRET_KEY}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_URL: redis://redis:6379/0
+      CACHE_BACKEND: django.core.cache.backends.redis.RedisCache
+      CACHE_LOCATION: redis://redis:6379/1
+      IA_ENCRYPTION_KEY: ${IA_ENCRYPTION_KEY}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-True}
+      CORS_EXTRA_ORIGINS: ${CORS_EXTRA_ORIGINS:-}
+      SECURE_SSL_REDIRECT: ${SECURE_SSL_REDIRECT:-True}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+    networks: [interno]
+
+  # ── Redis (caché y tareas) ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks: [interno]
+
+  # ── Frontend React + Nginx ────────────────────────────────────────────────
+  frontend:
+    image: ${DOCKER_REGISTRY:-docker.io}/${IMAGE_PREFIX:-edumwork}/edumwork-frontend:${VERSION:-latest}
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.scope=edumwork"
+    depends_on:
+      - backend
+    environment:
+      API_UPSTREAM: http://backend:8000
+      PORT: "80"
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - static_data:/usr/share/nginx/html/static:ro
+      - media_data:/usr/share/nginx/html/media:ro
+    networks: [interno]
+
+  # ── Watchtower — auto-updates ─────────────────────────────────────────────
+  # Revisa Docker Hub cada 24h. Si hay una nueva imagen :latest,
+  # descarga y reinicia el contenedor con zero-downtime rolling update.
+  watchtower:
+    image: containrrr/watchtower:latest
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_CLEANUP: "true"           # borra imágenes viejas después de actualizar
+      WATCHTOWER_POLL_INTERVAL: "86400"    # revisa cada 24 horas (en segundos)
+      WATCHTOWER_SCHEDULE: "0 0 3 * * *"   # alternativa: cron a las 3:00 AM
+      WATCHTOWER_ROLLING_RESTART: "true"   # no baja el servicio completo al actualizar
+      WATCHTOWER_INCLUDE_STOPPED: "false"
+      # Solo actualiza contenedores de este colegio (evita tocar otros contenedores Docker)
+      WATCHTOWER_SCOPE: edumwork
+    command: --scope edumwork
+    networks: [interno]
+    labels:
+      - "com.centurylinklabs.watchtower.scope=edumwork"
+
+volumes:
+  postgres_data:
+  redis_data:
+  media_data:
+  static_data:
+
+networks:
+  interno:
+    driver: bridge
