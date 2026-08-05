@@ -144,8 +144,15 @@ El script pide: nombre corto/completo, **Edición (1/2)**, dominio, SMTP, (si Do
 ## Pendientes por orden de prioridad
 
 ### Bloqueantes para vender
-1. **Verificar/asegurar repo `sistema-tic-escolar` PRIVADO en GitHub**
-2. **Crear Personal Access Token** con permiso `repo` para usar en `install_colegio.sh`
+1. ✅ **Repo `sistema-tic-escolar` creado y PRIVADO** (2026-08-05) —
+   `https://github.com/etdherhwrahaerherahetar/sistema-tic-escolar`, ramas
+   `main` y `refactor/matricula-separada`. Hasta esa fecha el repo **no
+   existía**: todas las URLs de instalación apuntaban al vacío.
+2. ✅ **Token con scope `repo`** funcionando: la URL de la guía responde 200 y
+   el instalador clona con `TU_TOKEN` (correr con `sudo -E`). El token no
+   queda en el `.git/config` del VPS del cliente.
+   ⚠️ El token **no tiene scope `workflow`** — si algún día se agrega un
+   GitHub Action, el push se rechaza hasta ampliarlo.
 3. **Grabar video demo con Loom** (3-4 min) — sin esto la landing no convierte
 4. **Actualizar landing/COTIZADOR.md** con precios Completa vs Docente
 5. **Armar lista de 10 directores** a contactar esta semana
