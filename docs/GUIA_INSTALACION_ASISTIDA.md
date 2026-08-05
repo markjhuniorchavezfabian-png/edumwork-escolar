@@ -55,8 +55,12 @@ export TU_TOKEN="ghp_XXX..."  # tu token, no el del cliente
 curl -sSL -H "Authorization: token $TU_TOKEN" \
   https://raw.githubusercontent.com/etdherhwrahaerherahetar/sistema-tic-escolar/main/deploy/install_colegio.sh \
   -o install.sh
-sudo bash install.sh
+sudo -E bash install.sh   # -E conserva TU_TOKEN: el clone del repo privado lo necesita
 ```
+
+El instalador aborta si `TU_TOKEN` no llegó (sin token no puede clonar un repo
+privado). Al terminar limpia el token del `.git/config`, así que no queda tu
+credencial en el servidor del cliente.
 
 El script te pregunta:
 - Nombre corto y completo del colegio

@@ -163,15 +163,28 @@ ufw allow 443/tcp >/dev/null  # HTTPS
 ok "Firewall activo."
 
 # ── Paso 3: clonar el repo ─────────────────────────────────────────────────
+# El repo es PRIVADO: hace falta tu token de GitHub (el mismo que usaste para
+# bajar este script). El token se usa solo para el clone y NO queda guardado
+# en el VPS del cliente — se limpia del remote enseguida.
+REPO_URL="https://github.com/etdherhwrahaerherahetar/sistema-tic-escolar.git"
+if [ -z "${TU_TOKEN:-}" ]; then
+    err "Falta la variable TU_TOKEN (tu Personal Access Token de GitHub)."
+    err "El repo es privado, sin token el clone falla. Corré:"
+    err "  export TU_TOKEN=ghp_XXX && sudo -E bash $0"
+    exit 1
+fi
+REPO_URL_AUTH="https://x-access-token:${TU_TOKEN}@github.com/etdherhwrahaerherahetar/sistema-tic-escolar.git"
+
 INSTALL_DIR="/opt/sistematic-$NOMBRE_CORTO"
 log "[3/8] Clonando código en $INSTALL_DIR..."
 if [ -d "$INSTALL_DIR" ]; then
     warn "El directorio ya existe. Actualizando..."
-    cd "$INSTALL_DIR" && git pull
+    cd "$INSTALL_DIR" && git pull "$REPO_URL_AUTH"
 else
-    git clone https://github.com/etdherhwrahaerherahetar/sistema-tic-escolar.git "$INSTALL_DIR"
+    git clone "$REPO_URL_AUTH" "$INSTALL_DIR"
 fi
 cd "$INSTALL_DIR"
+git remote set-url origin "$REPO_URL"   # que el token no quede en .git/config
 ok "Código instalado."
 
 # ── Paso 4: generar .env.prod ──────────────────────────────────────────────

@@ -76,7 +76,7 @@ export TU_TOKEN="ghp_XXX"
 curl -sSL -H "Authorization: token $TU_TOKEN" \
   https://raw.githubusercontent.com/etdherhwrahaerherahetar/sistema-tic-escolar/main/deploy/install_colegio.sh \
   -o install.sh
-sudo bash install.sh
+sudo -E bash install.sh   # -E conserva TU_TOKEN para clonar el repo privado
 ```
 
 El `install_colegio.sh` de la raíz es **legacy** (bajaba imágenes de Docker Hub,
