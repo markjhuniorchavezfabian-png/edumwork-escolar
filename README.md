@@ -66,17 +66,21 @@ pytest
 
 ## Instalación en VPS de cliente
 
+Modelo vigente: **instalación asistida**. El código no se distribuye — Mark entra
+por SSH al VPS del cliente y corre el instalador, que clona este repo privado y
+construye desde el fuente. Paso a paso en `docs/GUIA_INSTALACION_ASISTIDA.md`.
+
 ```bash
-# En el VPS (Ubuntu 22.04+ como root)
-curl -fsSL https://raw.githubusercontent.com/TU_ORG/edumwork/main/install_colegio.sh -o install_colegio.sh
-bash install_colegio.sh
+# En el VPS del cliente (Ubuntu 22.04+ como root), con tu token de GitHub
+export TU_TOKEN="ghp_XXX"
+curl -sSL -H "Authorization: token $TU_TOKEN" \
+  https://raw.githubusercontent.com/etdherhwrahaerherahetar/sistema-tic-escolar/main/deploy/install_colegio.sh \
+  -o install.sh
+sudo bash install.sh
 ```
 
-Verificación:
-```bash
-cd /opt/edumwork
-bash scripts/qa_instalacion.sh
-```
+El `install_colegio.sh` de la raíz es **legacy** (bajaba imágenes de Docker Hub,
+eliminadas el 2026-07-24) y aborta si lo corrés.
 
 ## Endpoints API
 

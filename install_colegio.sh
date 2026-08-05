@@ -1,14 +1,25 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════════════════════════
-# install_colegio.sh — Instalador interactivo del Sistema TIC Escolar
+# install_colegio.sh — LEGACY. NO USAR PARA INSTALAR UN COLEGIO.
 #
-# Uso (como root o con sudo):
-#   bash install_colegio.sh
+# Este es el camino viejo: baja imágenes ya construidas desde un registry
+# (Docker Hub). Esas imágenes se eliminaron el 2026-07-24 al decidir el modelo
+# de instalación asistida, así que este script falla en un VPS limpio.
 #
-# Requisitos: Ubuntu 22.04+ / Debian 12+ con acceso a internet.
+# ► El instalador vigente es `deploy/install_colegio.sh`: clona el repo privado
+#   y construye desde el código fuente con docker-compose.prod.yml.
+#   Ver docs/GUIA_INSTALACION_ASISTIDA.md.
+#
+# Se conserva solo como referencia del flujo por registry, por si algún día
+# se vuelve a distribuir imágenes (decisión que hoy está descartada).
 # ═══════════════════════════════════════════════════════════════════════════
 
 set -euo pipefail
+
+echo "Este instalador es LEGACY (imágenes de registry) y no funciona hoy."
+echo "Usá: sudo bash deploy/install_colegio.sh"
+echo "Si aun así querés correrlo: INSTALL_LEGACY=1 bash install_colegio.sh"
+[ "${INSTALL_LEGACY:-0}" = "1" ] || exit 1
 
 VERDE="\033[0;32m"
 AMARILLO="\033[1;33m"
@@ -499,6 +510,18 @@ docker compose -f docker-compose.colegio.yml exec -T backend \
         --director-email "${DIRECTOR_EMAIL}" \
         --director-password "${DIRECTOR_PASSWORD}"
 ok "Colegio configurado"
+
+# Crear calendario escolar y feriados oficiales
+info "Creando calendario escolar..."
+docker compose -f docker-compose.colegio.yml exec -T backend \
+    python manage.py seed_calendario
+ok "Calendario escolar creado"
+
+# Cargar currículo nacional (CNEB) — áreas, competencias y capacidades
+info "Cargando currículo nacional CNEB..."
+docker compose -f docker-compose.colegio.yml exec -T backend \
+    python manage.py seed_cneb
+ok "Currículo nacional cargado"
 
 # Configurar backups automáticos en cron
 info "Configurando backups diarios..."

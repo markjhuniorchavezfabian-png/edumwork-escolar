@@ -1,9 +1,18 @@
-name: Build & Push to Docker Hub
+name: Build & Push to Docker Hub (DESACTIVADO)
 
-# Se dispara en cada push a main → nueva versión disponible para todos los colegios
+# ⚠️ DESACTIVADO el 2026-08-05.
+#
+# Este workflow publicaba las imágenes del sistema en Docker Hub en cada push a
+# main. El 2026-07-24 se decidió lo contrario: modelo de instalación asistida,
+# repo privado, cero distribución de imágenes (los repos mw0rk/* se eliminaron
+# justamente por ser públicos). Dejarlo con trigger en push significaba regalar
+# la app corriendo la primera vez que se subiera código con los secrets puestos.
+#
+# Queda solo con `workflow_dispatch` (arranque manual) por si algún día se
+# vuelve al modelo de registry. Si esa decisión ya no está en discusión,
+# borrar este archivo.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build-and-push:

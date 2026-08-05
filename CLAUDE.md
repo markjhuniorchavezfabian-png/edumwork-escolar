@@ -44,8 +44,8 @@ DOCKER_REGISTRY=docker.io IMAGE_PREFIX=edumwork VERSION=1.0.0 PUSH=true bash scr
 # Generar fly.toml para un cliente
 bash scripts/generar-fly-toml.sh edumwork-backend-cliente-a
 
-# Instalar en VPS del cliente
-sudo bash install_colegio.sh
+# Instalar en VPS del cliente (el de la raíz es legacy y aborta)
+sudo bash deploy/install_colegio.sh
 
 # QA de instalación
 bash scripts/qa_instalacion.sh
@@ -70,12 +70,12 @@ bash scripts/qa_instalacion.sh
 
 ## Fase de implementación actual
 - Fase 1: scaffolding + auth (tasks #6, #7) completados.
-- Módulos implementados: incidencias, asistencia, inventario, visitas, auditoría, usuarios, secciones, comunicados, convivencia, notas, ambientes, aula virtual, calendario, clases personales.
+- Módulos implementados: incidencias, asistencia, inventario, visitas, auditoría, usuarios, secciones, comunicados, convivencia, notas, ambientes, aula virtual, calendario.
 - Sprints de instalación completados:
   - Sprint 1: branding del cliente piloto removido del código ejecutable.
   - Sprint 2: configuración de marca (nombre, sigla, logo, email) desde la UI.
   - Sprint 3: build y release genérico con `scripts/build-release.sh` y `scripts/generar-fly-toml.sh`.
   - Sprint 4: instalador VPS con Caddy + SSL automático + backups cron.
-  - Sprint 5: sub-app docente personal lista para cliente.
+  - Sprint 5: ~~sub-app docente personal~~ suspendida y código eliminado 2026-07-26 (planes viejos en `docs/archivo/SUBAPP_*.md`). La edición reducida vigente es `EDICION=solo_docente` en el mismo sistema institucional.
   - Sprint 6: QA de instalación y checklist de entrega.
 - Próximo: validación en VPS real (según disponibilidad del usuario).
