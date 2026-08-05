@@ -20,7 +20,7 @@ const SECCIONES: { id: SecId; label: string; icon: typeof Building2; desc: strin
   { id: "email",    label: "Envío de correos",      icon: Mail,      desc: "SMTP para reset, alertas y notificaciones" },
   { id: "notas",    label: "Notas y calificación",  icon: BookOpen,  desc: "Escala de notas: letras AD/A/B/C o numérica 0-20" },
   { id: "modulos",  label: "Módulos activos",       icon: Puzzle,    desc: "Prender o apagar módulos según lo que usa tu I.E." },
-  { id: "backup",   label: "Backup y restauración", icon: Database,  desc: "Descargá una copia de seguridad o restaurá una anterior" },
+  { id: "backup",   label: "Backup y restauración", icon: Database,  desc: "Descarga una copia de seguridad o restaurá una anterior" },
 ];
 
 const CFG_VACIO: ConfigInstitucional = {
@@ -470,7 +470,7 @@ function SeccionEmail({ cfg, onSave, saving }: {
           : "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100"
       )}>
         {configurado ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
-        {configurado ? "SMTP configurado — los correos se enviarán." : "SMTP no configurado — completá los datos abajo."}
+        {configurado ? "SMTP configurado — los correos se enviarán." : "SMTP no configurado — completa los datos abajo."}
       </div>
 
       {/* Formulario SMTP */}
@@ -923,7 +923,7 @@ function SeccionBackup() {
       await descargarBackup();
       setMsg({ tipo: "ok", texto: "Backup descargado. Guardalo en un lugar seguro." });
     } catch {
-      setMsg({ tipo: "err", texto: "No se pudo generar el backup. Revisá que sos director/admin_tic." });
+      setMsg({ tipo: "err", texto: "No se pudo generar el backup. Revisa que sos director/admin_tic." });
     } finally { setDescargando(false); }
   }
 
@@ -950,7 +950,7 @@ function SeccionBackup() {
       <div>
         <h2 className="text-lg font-semibold">Backup y restauración</h2>
         <p className="text-sm text-muted-foreground">
-          Descargá una copia de seguridad completa (BD + estructura) o restaurá una copia anterior.
+          Descarga una copia de seguridad completa (BD + estructura) o restaurá una copia anterior.
         </p>
       </div>
 
@@ -1015,7 +1015,7 @@ function SeccionBackup() {
               Todo lo que hayas agregado después del backup se perderá.
             </div>
             <label className="block">
-              <span className="text-xs font-medium">Para confirmar, escribí <code className="bg-muted px-1 rounded">BORRAR TODO</code>:</span>
+              <span className="text-xs font-medium">Para confirmar, escribe <code className="bg-muted px-1 rounded">BORRAR TODO</code>:</span>
               <input
                 type="text"
                 value={confirmTexto}

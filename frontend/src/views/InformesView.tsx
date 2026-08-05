@@ -166,7 +166,7 @@ function VistaDocente({ secciones, anio }: { secciones: Seccion[]; anio: number 
   if (!seccionId) {
     return (
       <div>
-        <h3 style={{ marginBottom: 12, fontSize: 15, fontWeight: 600 }}>Seleccioná la sección:</h3>
+        <h3 style={{ marginBottom: 12, fontSize: 15, fontWeight: 600 }}>Selecciona la sección:</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
           {secciones.map(s => (
             <SeccionCard

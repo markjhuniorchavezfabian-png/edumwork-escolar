@@ -17,6 +17,7 @@ import { useConfirm, usePrompt } from "../components/ui/Confirm";
 import Card from "../components/ui/Card";
 import { EmptyState, Cargando } from "../components/ui/Spinner";
 import Icon from "../components/ui/Icon";
+import { fechaCorta } from "../utils/fechas";
 
 const ROLES_APROBADORES = ["director", "subdirector", "secretaria", "admin_tic"];
 const ROLES_PUEDEN_SOLICITAR = ["director", "subdirector", "docente", "auxiliar", "psicologa", "admin_tic", "secretaria"];
@@ -160,7 +161,7 @@ export default function ReservasView() {
                   {reservas.map((r) => (
                     <tr key={r.id} style={{ cursor: "default" }}>
                       <td><strong>{r.ambiente_nombre}</strong></td>
-                      <td>{new Date(r.fecha).toLocaleDateString("es-PE")}</td>
+                      <td>{fechaCorta(r.fecha)}</td>
                       <td style={{ fontSize: 12 }}>{r.hora_inicio.slice(0, 5)} — {r.hora_fin.slice(0, 5)}</td>
                       <td>{r.solicitante_nombre}</td>
                       <td style={{ fontSize: 12, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.motivo}</td>

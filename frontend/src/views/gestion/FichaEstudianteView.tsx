@@ -7,10 +7,12 @@ import Card from "../../components/ui/Card";
 import Icon from "../../components/ui/Icon";
 import { Cargando, EmptyState } from "../../components/ui/Spinner";
 import { useInstitucion } from "../../context/InstitucionContext";
+import { parseFecha } from "../../utils/fechas";
 
 function calcularEdad(fechaNac: string): number {
   const hoy = new Date();
-  const nac = new Date(fechaNac);
+  const nac = parseFecha(fechaNac);
+  if (!nac) return 0;
   let edad = hoy.getFullYear() - nac.getFullYear();
   if (hoy.getMonth() < nac.getMonth() || (hoy.getMonth() === nac.getMonth() && hoy.getDate() < nac.getDate())) edad--;
   return edad;

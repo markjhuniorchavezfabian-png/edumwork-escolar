@@ -17,6 +17,7 @@ import { useToast } from "../components/ui/Toast";
 import Card from "../components/ui/Card";
 import Icon from "../components/ui/Icon";
 import { EmptyState, Cargando } from "../components/ui/Spinner";
+import { fechaCorta } from "../utils/fechas";
 
 const ROLES_APROBADORES = ["director", "subdirector", "secretaria", "admin_tic"];
 const ROLES_STAFF = ["director", "subdirector", "docente", "admin_tic", "secretaria", "auxiliar", "psicologa", "conserje"];
@@ -220,7 +221,7 @@ export default function AsistenciaPersonalView({ modoGestion = false }: { modoGe
                 <tbody>
                   {registros.map((r) => (
                     <tr key={r.id} style={{ cursor: "default" }}>
-                      <td>{new Date(r.fecha).toLocaleDateString("es-PE")}</td>
+                      <td>{fechaCorta(r.fecha)}</td>
                       <td><strong>{r.usuario_nombre}</strong></td>
                       <td style={{ fontSize: 12 }}>{r.usuario_rol_label}</td>
                       <td>{r.hora_entrada?.slice(0, 5) || "—"}</td>

@@ -111,7 +111,7 @@ export default function AsistenteIA() {
         setMensajes([...nuevosM, { role: "assistant", content: `Error: ${data.error}` }]);
       }
     } catch {
-      setMensajes([...nuevosM, { role: "assistant", content: "No pude conectarme. Verificá tu conexión." }]);
+      setMensajes([...nuevosM, { role: "assistant", content: "No pude conectarme. Verifica tu conexión." }]);
     } finally {
       setCargando(false);
     }
@@ -121,7 +121,7 @@ export default function AsistenteIA() {
 
   const rol = usuario.rol ?? "docente";
   const label = LABEL_ROL[rol] ?? "Asistente IA";
-  const placeholder = PLACEHOLDER_ROL[rol] ?? "Escribí tu pregunta...";
+  const placeholder = PLACEHOLDER_ROL[rol] ?? "Escribe tu pregunta...";
 
   return (
     <div style={{ position: "fixed", bottom: pos.bottom, right: pos.right, zIndex: 300, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
@@ -166,7 +166,7 @@ export default function AsistenteIA() {
               <div style={{ textAlign: "center", color: "hsl(var(--muted-foreground))", fontSize: 12, padding: "20px 8px" }}>
                 <Bot size={28} style={{ margin: "0 auto 8px", opacity: 0.4 }} />
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
-                <div style={{ opacity: 0.7 }}>Hacé una pregunta para empezar.</div>
+                <div style={{ opacity: 0.7 }}>Haz una pregunta para empezar.</div>
               </div>
             )}
 

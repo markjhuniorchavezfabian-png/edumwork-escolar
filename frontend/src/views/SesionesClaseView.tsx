@@ -21,6 +21,7 @@ import Icon from "../components/ui/Icon";
 import { EmptyState, Cargando } from "../components/ui/Spinner";
 import { Sparkles, ExternalLink, Printer, Clipboard, Save, Trash2, Download } from "lucide-react";
 import { Link } from "react-router-dom";
+import { fechaCorta } from "../utils/fechas";
 
 const ROLES_DICTAN = ["docente", "auxiliar", "psicologa"];
 const ROLES_KPI = ["director", "subdirector", "admin_tic"];
@@ -235,7 +236,7 @@ export default function SesionesClaseView() {
                     <tr key={s.id} style={{ cursor: "default" }}>
                       <td><strong>{s.ambiente_nombre}</strong></td>
                       <td style={{ fontSize: 12 }}>{s.docente_nombre}</td>
-                      <td>{new Date(s.fecha).toLocaleDateString("es-PE")}</td>
+                      <td>{fechaCorta(s.fecha)}</td>
                       <td style={{ fontSize: 12 }}>
                         {s.hora_inicio.slice(0, 5)}{s.hora_fin ? ` – ${s.hora_fin.slice(0, 5)}` : " – …"}
                         {s.duracion_minutos && ` (${s.duracion_minutos}m)`}

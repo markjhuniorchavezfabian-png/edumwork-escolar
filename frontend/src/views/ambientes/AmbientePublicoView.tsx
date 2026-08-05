@@ -87,7 +87,7 @@ export default function AmbientePublicoView() {
     return (
       <div style={{ padding: 24 }}>
         <EmptyState icono="puerta" titulo="Ambiente no encontrado"
-          descripcion={`No hay ambiente con código "${codigo}". Verificá el QR o preguntá al equipo TIC.`}
+          descripcion={`No hay ambiente con código "${codigo}". Verifica el QR o preguntá al equipo TIC.`}
           accion={<Link to="/" className="btn btn-primario btn-icono" style={{ width: "auto" }}>
             <Icon name="casa" /> Ir al inicio
           </Link>} />
@@ -144,7 +144,7 @@ export default function AmbientePublicoView() {
             <Icon name="reproducir" /> {enviando ? "Iniciando..." : "Comenzar a usar este ambiente"}
           </button>
           <p className="form-hint" style={{ fontSize: 11, marginTop: 10 }}>
-            Al cerrar la sesión te pedirá reportar el estado del ambiente. Si algo no funciona, podés
+            Al cerrar la sesión te pedirá reportar el estado del ambiente. Si algo no funciona, puedes
             abrir una incidencia TIC directamente desde ahí.
           </p>
         </Card>

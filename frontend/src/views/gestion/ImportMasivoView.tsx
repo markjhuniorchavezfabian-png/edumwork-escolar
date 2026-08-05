@@ -190,7 +190,7 @@ function ImportarNotasHistoricas({ anioActivo }: { anioActivo: number }) {
   return (
     <Card titulo="Importar notas históricas (desde SIAGIE)">
       <p style={{ fontSize: 13, color: "var(--texto-mute)", marginBottom: 12 }}>
-        Cargá un Excel exportado de SIAGIE (o del módulo de notas de este sistema) para un año anterior.
+        Carga un Excel exportado de SIAGIE (o del módulo de notas de este sistema) para un año anterior.
         El sistema crea los registros de Bimestre 4 (nota final del año) por estudiante y área.
       </p>
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 12 }}>

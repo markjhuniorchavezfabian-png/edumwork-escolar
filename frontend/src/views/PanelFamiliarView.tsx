@@ -9,6 +9,7 @@ import api from "../services/api";
 import { useToast } from "../components/ui/Toast";
 import { useInstitucion } from "../context/InstitucionContext";
 import { cn } from "../lib/utils";
+import { parseFecha, fechaCorta } from "../utils/fechas";
 
 /* ═════════════════════════════════════════════════════════════════ TIPOS ════ */
 interface HijoResumen {
@@ -139,7 +140,7 @@ export default function PanelFamiliarView() {
       setTimeout(() => URL.revokeObjectURL(url), 1500);
       toast.ok(`Boleta bimestre ${bimestre} descargada.`);
     } catch {
-      toast.error("No se pudo descargar la boleta. Verificá que haya notas cargadas.");
+      toast.error("No se pudo descargar la boleta. Verifica que haya notas cargadas.");
     }
   }
 
@@ -268,9 +269,9 @@ export default function PanelFamiliarView() {
                     <div key={r.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/60">
                       <div className="w-12 text-center">
                         <div className="text-[10px] uppercase text-muted-foreground">
-                          {new Date(r.fecha).toLocaleDateString("es-PE", { weekday: "short" })}
+                          {parseFecha(r.fecha)!.toLocaleDateString("es-PE", { weekday: "short" })}
                         </div>
-                        <div className="text-lg font-bold">{new Date(r.fecha).getDate()}</div>
+                        <div className="text-lg font-bold">{parseFecha(r.fecha)!.getDate()}</div>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -322,7 +323,7 @@ export default function PanelFamiliarView() {
                     <div key={j.id} className="p-3 rounded-lg border border-border/60">
                       <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
                         <div className="text-sm font-medium">
-                          {new Date(j.fecha_falta).toLocaleDateString("es-PE")} · {j.motivo_label}
+                          {fechaCorta(j.fecha_falta)} · {j.motivo_label}
                         </div>
                         <span className={cn(
                           "text-[10px] font-semibold px-2 py-0.5 rounded uppercase",
@@ -552,7 +553,7 @@ function JustificacionModal({ estudianteId, fecha, motivos, onCerrar, onEnviada 
           <div>
             <h3 className="text-lg font-semibold">Justificar ausencia</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {new Date(fecha).toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
+              {parseFecha(fecha)!.toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
             </p>
           </div>
           <button onClick={onCerrar} className="p-1 rounded-md hover:bg-muted">

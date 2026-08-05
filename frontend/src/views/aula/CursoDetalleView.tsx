@@ -117,7 +117,7 @@ export default function CursoDetalleView() {
       }>
         {lecciones.length === 0 ? (
           <EmptyState icono="libro" titulo="Sin lecciones todavía"
-            descripcion={esDocente ? "Agregá la primera lección para empezar a compartir material." : "El docente aún no publicó contenido."} />
+            descripcion={esDocente ? "Agrega la primera lección para empezar a compartir material." : "El docente aún no publicó contenido."} />
         ) : (
           lecciones.map((l) => (
             <div key={l.id} style={{ borderBottom: "1px solid var(--borde)", padding: "16px 0" }}>
@@ -686,7 +686,7 @@ function EntregarTareaModal({ tarea, onCerrar, onEnviada }: {
     e.preventDefault();
     setError(null);
     if (!texto.trim() && !archivo) {
-      setError("Agregá texto o archivo antes de entregar.");
+      setError("Agrega texto o archivo antes de entregar.");
       return;
     }
     setEnviando(true);
@@ -714,7 +714,7 @@ function EntregarTareaModal({ tarea, onCerrar, onEnviada }: {
                 <label className="form-label">Respuesta escrita</label>
                 <textarea className="form-input" rows={6} value={texto}
                   onChange={(e) => setTexto(e.target.value)}
-                  placeholder="Escribí acá tu respuesta o comentario..." />
+                  placeholder="Escribe acá tu respuesta o comentario..." />
               </div>
             )}
             {tarea.permite_archivo && (

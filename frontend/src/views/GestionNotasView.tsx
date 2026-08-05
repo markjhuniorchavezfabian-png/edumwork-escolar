@@ -590,7 +590,7 @@ function ModalBoletas({ secciones, seccionInicialId, bimestreInicial, onCerrar }
       setTimeout(() => URL.revokeObjectURL(url), 1500);
       onCerrar();
     } catch {
-      toast.error("Error al generar boletas. Verificá que haya notas registradas.");
+      toast.error("Error al generar boletas. Verifica que haya notas registradas.");
     } finally { setDescargando(false); }
   }
 

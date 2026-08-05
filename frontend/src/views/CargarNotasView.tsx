@@ -11,6 +11,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useModoRol } from "../hooks/useModoRol";
 import { useModoUI } from "../hooks/useModoUI";
 import SiagieRellenarModal from "../components/notas/SiagieRellenarModal";
+import { parseFecha } from "../utils/fechas";
 
 interface Asignacion {
   id: number;
@@ -64,7 +65,7 @@ const CICLO_NL = ["AD", "A", "B", "C"];
 
 function badgeIngresoMitadAnio(fechaIngreso: string | null | undefined): string | null {
   if (!fechaIngreso) return null;
-  const d = new Date(fechaIngreso);
+  const d = parseFecha(fechaIngreso)!;
   const mes = d.getMonth() + 1; // 1-based
   if (mes <= 3) return null; // ingresó en B1 o antes — normal
   if (mes <= 5) return "Ingresó en B2";
@@ -813,7 +814,7 @@ export default function CargarNotasView() {
       );
       await guardarBlob(data, `boletas_${asigSeleccionada.seccion_nombre}_B${bimestre}.zip`, "application/zip");
       toast.ok("Boletas generadas.");
-    } catch { toast.error("Error al generar boletas. Verificá que haya notas cargadas."); }
+    } catch { toast.error("Error al generar boletas. Verifica que haya notas cargadas."); }
   }
 
   async function descargarLibretaAnual() {
@@ -825,7 +826,7 @@ export default function CargarNotasView() {
       );
       await guardarBlob(data, `libretas_anuales_${asigSeleccionada.seccion_nombre}.zip`, "application/zip");
       toast.ok("Libretas anuales generadas.");
-    } catch { toast.error("Error al generar libretas. Verificá que haya notas cargadas."); }
+    } catch { toast.error("Error al generar libretas. Verifica que haya notas cargadas."); }
   }
 
   async function exportarSIAGIE(bim?: string) {
@@ -903,7 +904,7 @@ export default function CargarNotasView() {
         ) : (
           <>
             <p style={{ color: "var(--muted-foreground)", marginBottom: 16, fontSize: 14 }}>
-              Seleccioná la sección para registrar notas:
+              Selecciona la sección para registrar notas:
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
               {seccionesUnicas.map((a) => {
@@ -949,8 +950,8 @@ export default function CargarNotasView() {
           {modoSimple
             ? "Elige sección y bimestre, toca las celdas para registrar AD/A/B/C y guarda. Las opciones SIAGIE están al final."
             : escala === "numerica"
-              ? "Escala numérica 0–20 (18-20=AD, 14-17=A, 11-13=B, 0-10=C). Hacé click en una celda para editar la conclusión descriptiva."
-              : "Niveles de logro AD / A / B / C según RVM 094-2020-MINEDU. Hacé click en una celda para editar la conclusión descriptiva."}
+              ? "Escala numérica 0–20 (18-20=AD, 14-17=A, 11-13=B, 0-10=C). Haz click en una celda para editar la conclusión descriptiva."
+              : "Niveles de logro AD / A / B / C según RVM 094-2020-MINEDU. Haz click en una celda para editar la conclusión descriptiva."}
         </p>
 
         {/* Selector */}
@@ -1219,7 +1220,7 @@ export default function CargarNotasView() {
                   RVM 048-2024: {conclusionesFaltantes} nota{conclusionesFaltantes !== 1 ? "s" : ""} con NL que requiere{conclusionesFaltantes !== 1 ? "n" : ""} conclusión descriptiva obligatoria y aún no la tiene{conclusionesFaltantes !== 1 ? "n" : ""}.
                 </span>
                 <span style={{ fontSize: 11, color: "var(--danger-text)", fontStyle: "italic" }}>
-                  Click en la celda con "!" → panel → escribí ≥20 caracteres
+                  Click en la celda con "!" → panel → escribe ≥20 caracteres
                 </span>
               </div>
             )}
@@ -1862,7 +1863,7 @@ function PanelConclusion({ estudiante, competencia, competenciaNombre, capacidad
   useEffect(() => { textareaRef.current?.focus(); }, [estudiante.id, competencia]);
 
   async function generarConIA() {
-    if (!nl) { toast.error("Seleccioná un nivel de logro primero."); return; }
+    if (!nl) { toast.error("Selecciona un nivel de logro primero."); return; }
     setGenerandoIA(true);
     try {
       const nombresActivos = compNombres.filter(n => n.trim());

@@ -3,6 +3,7 @@ import type { HijoAsistencia } from "../../types/asistencia";
 import { ESTADO_ASISTENCIA_LABEL, ESTADO_ASISTENCIA_COLOR } from "../../types/asistencia";
 import { misHijos } from "../../services/asistencia";
 import { Cargando } from "../../components/ui/Spinner";
+import { fechaCorta } from "../../utils/fechas";
 
 export default function PadreAsistenciaView() {
   const [hijos, setHijos] = useState<HijoAsistencia[]>([]);
@@ -65,7 +66,7 @@ export default function PadreAsistenciaView() {
               <tbody>
                 {hijo.ultimos_10.map((r) => (
                   <tr key={r.id} style={{ cursor: "default" }}>
-                    <td>{new Date(r.fecha).toLocaleDateString("es-PE")}</td>
+                    <td>{fechaCorta(r.fecha)}</td>
                     <td>
                       <span className="badge" style={{ background: "var(--slate-100)", color: ESTADO_ASISTENCIA_COLOR[r.estado] }}>
                         {ESTADO_ASISTENCIA_LABEL[r.estado]}

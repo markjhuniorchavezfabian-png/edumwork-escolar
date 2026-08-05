@@ -84,7 +84,7 @@ export default function AulaVirtualView() {
           titulo="Sin cursos todavía"
           descripcion={
             puedeCrear
-              ? "Creá tu primer curso para compartir material y tareas con tus estudiantes."
+              ? "Crea tu primer curso para compartir material y tareas con tus estudiantes."
               : "Aún no hay cursos disponibles para tu sección."
           }
           accion={puedeCrear ? (
@@ -297,7 +297,7 @@ function CursoModal({ cursoInicial, onCerrar, onGuardado }: CursoModalProps) {
                 <label className="form-label">Área</label>
                 <select className="form-input" value={datos.area}
                   onChange={(e) => setDatos({ ...datos, area: e.target.value })}>
-                  <option value="">— Seleccioná —</option>
+                  <option value="">— Selecciona —</option>
                   {AREAS.map((a) => <option key={a} value={a}>{a}</option>)}
                 </select>
               </div>

@@ -35,7 +35,7 @@ export default function RecuperarConCodigoView() {
       setTimeout(() => navigate("/login"), 2500);
     } catch (e: unknown) {
       const ee = e as { response?: { data?: { error?: string } } };
-      setErr(ee.response?.data?.error ?? "No se pudo actualizar. Verificá los datos.");
+      setErr(ee.response?.data?.error ?? "No se pudo actualizar. Verifica los datos.");
     } finally { setEnviando(false); }
   }
 
@@ -200,7 +200,7 @@ export default function RecuperarConCodigoView() {
               </form>
 
               <div className="pt-6 border-t border-border text-center text-[11px] text-muted-foreground">
-                ¿No tenés código? Contacta al Admin TIC o Secretaría de tu colegio.
+                ¿No tienes código? Contacta al Admin TIC o Secretaría de tu colegio.
               </div>
             </>
           )}

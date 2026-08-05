@@ -8,6 +8,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useInstitucion } from "../context/InstitucionContext";
 import api from "../services/api";
 import { cn } from "../lib/utils";
+import { parseFecha } from "../utils/fechas";
 
 interface RegistroAsis {
   id: number;
@@ -215,7 +216,7 @@ export default function EstudianteDashboardView() {
           <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-8 gap-2">
             {asistencias.map((a) => {
               const cfg = ESTADO_CFG[a.estado] ?? ESTADO_CFG.presente;
-              const d = new Date(a.fecha);
+              const d = parseFecha(a.fecha)!;
               return (
                 <div
                   key={a.id}

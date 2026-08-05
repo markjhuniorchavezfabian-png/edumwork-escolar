@@ -5,6 +5,7 @@ import { usePrompt } from "../components/ui/Confirm";
 import Card from "../components/ui/Card";
 import Icon from "../components/ui/Icon";
 import { EmptyState, Cargando } from "../components/ui/Spinner";
+import { fechaCorta } from "../utils/fechas";
 
 interface Justificacion {
   id: number;
@@ -98,7 +99,7 @@ export default function JustificacionesView() {
                       }}>{j.estado_label}</span>
                     </div>
                     <div style={{ fontSize: 13, marginTop: 6 }}>
-                      <strong>Fecha:</strong> {new Date(j.fecha_falta).toLocaleDateString("es-PE")} · <strong>Motivo:</strong> {j.motivo_label}
+                      <strong>Fecha:</strong> {fechaCorta(j.fecha_falta)} · <strong>Motivo:</strong> {j.motivo_label}
                     </div>
                     <p style={{ fontSize: 13, marginTop: 4 }}>{j.descripcion}</p>
                     <div style={{ fontSize: 11, color: "var(--texto-mute)", marginTop: 4 }}>

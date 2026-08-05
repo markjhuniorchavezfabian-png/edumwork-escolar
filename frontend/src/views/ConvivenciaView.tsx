@@ -13,6 +13,7 @@ import Card from "../components/ui/Card";
 import { EmptyState, Cargando } from "../components/ui/Spinner";
 import { useAuth } from "../hooks/useAuth";
 import Icon from "../components/ui/Icon";
+import { fechaCorta } from "../utils/fechas";
 
 // RM 383-2025-MINEDU — 7 protocolos oficiales
 const TIPOS = [
@@ -365,7 +366,7 @@ function DetalleCasoModal({ caso, onCerrar, onActualizado }: {
                     <span style={{ textDecoration: paso.completado ? "line-through" : "none", opacity: paso.completado ? 0.7 : 1 }}>{paso.accion}</span>
                     {paso.completado && paso.fecha && (
                       <span style={{ fontSize: 10, color: "var(--muted-foreground)", marginLeft: 6 }}>
-                        · {new Date(paso.fecha).toLocaleDateString("es-PE")} {paso.usuario ? `(${paso.usuario})` : ""}
+                        · {fechaCorta(paso.fecha)} {paso.usuario ? `(${paso.usuario})` : ""}
                       </span>
                     )}
                   </div>

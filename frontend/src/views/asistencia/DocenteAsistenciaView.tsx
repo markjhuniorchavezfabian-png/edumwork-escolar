@@ -156,12 +156,12 @@ export default function DocenteAsistenciaView() {
           <Cargando inline />
         ) : secciones.length === 0 ? (
           <div className="card card-body" style={{ textAlign: "center", color: "var(--muted-foreground)", padding: 40 }}>
-            No tenés secciones asignadas aún. Pedile al TIC que te asigne una sección.
+            No tienes secciones asignadas aún. Pedile al TIC que te asigne una sección.
           </div>
         ) : (
           <div>
             <p style={{ color: "var(--muted-foreground)", marginBottom: 16, fontSize: 14 }}>
-              Seleccioná la sección para marcar asistencia:
+              Selecciona la sección para marcar asistencia:
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
               {secciones.map((s) => (

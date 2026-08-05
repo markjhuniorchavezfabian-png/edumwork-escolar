@@ -42,7 +42,7 @@ export default function CostosIAView() {
               fontSize: 13,
             }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="alerta" size={14} style={{ color: "var(--amarillo-600)" }} /> El gasto mensual (US$ {datos.mes.costo_usd.toFixed(4)}) superó el umbral de referencia</span>
-              de US$ {UMBRAL_ALERTA_USD.toFixed(2)}. Revisá el volumen de requests.
+              de US$ {UMBRAL_ALERTA_USD.toFixed(2)}. Revisa el volumen de requests.
             </div>
           )}
 
