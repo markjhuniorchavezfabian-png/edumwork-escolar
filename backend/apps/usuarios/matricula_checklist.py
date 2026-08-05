@@ -6,6 +6,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.core.models import ConfiguracionInstitucional
+
 from .models import Estudiante
 
 
@@ -34,12 +36,12 @@ REQUISITOS = {
     "seccion_asignada": {
         "label": "Sección asignada",
         "critico": True,
-        "check": lambda e: e.seccion_obj_id is not None,
+        "check": lambda e: bool(e.matricula_actual and e.matricula_actual.seccion_id),
     },
     "codigo_matricula": {
         "label": "Código de matrícula",
         "critico": True,
-        "check": lambda e: bool(e.codigo_matricula),
+        "check": lambda e: bool(e.matricula_actual and e.matricula_actual.codigo_matricula),
     },
     "direccion": {
         "label": "Dirección",
@@ -105,7 +107,7 @@ def _evaluar_estudiante(est):
 def checklist_estudiante(request, estudiante_id):
     """Checklist detallado de un estudiante."""
     try:
-        est = Estudiante.objects.select_related("usuario", "seccion_obj").get(pk=estudiante_id)
+        est = Estudiante.objects.select_related("usuario").get(pk=estudiante_id)
     except Estudiante.DoesNotExist:
         return Response({"error": "Estudiante no encontrado"}, status=404)
     return Response(_evaluar_estudiante(est))
@@ -122,10 +124,12 @@ def reporte_cumplimiento_matricula(request):
     if request.user.rol not in ("director", "subdirector", "admin_tic", "secretaria"):
         return Response({"error": "Solo director/admin_tic/secretaria."}, status=403)
 
-    qs = Estudiante.objects.select_related("usuario", "seccion_obj")
+    cfg = ConfiguracionInstitucional.get_solo()
+    anio_lectivo = cfg.anio_lectivo_activo or 2026
+    qs = Estudiante.objects.select_related("usuario").prefetch_related("matriculas")
     seccion_id = request.GET.get("seccion")
     if seccion_id:
-        qs = qs.filter(seccion_obj_id=seccion_id)
+        qs = qs.filter(matriculas__seccion_id=seccion_id, matriculas__anio_lectivo=anio_lectivo).distinct()
 
     validos = 0
     invalidos = []

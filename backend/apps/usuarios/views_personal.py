@@ -27,6 +27,39 @@ from .models import InvitacionDocente, Rol, Usuario
 ROLES_INVITAR = ("director", "subdirector", "admin_tic", "secretaria")
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def mi_cuenta(request):
+    """Datos mínimos de modalidad de cuenta usados por Mi perfil."""
+    user = request.user
+    return Response({
+        "modo_cuenta": user.modo_cuenta,
+        "integrado_a_ie_en": user.integrado_a_ie_en.isoformat() if user.integrado_a_ie_en else None,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def mi_backup(request):
+    """Backup JSON básico de la cuenta del usuario autenticado."""
+    user = request.user
+    return Response({
+        "generado_en": timezone.now().isoformat(),
+        "usuario": {
+            "id": user.id,
+            "username": user.username,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "rol": user.rol,
+            "dni": user.dni,
+            "telefono": user.telefono,
+            "modo_cuenta": user.modo_cuenta,
+            "integrado_a_ie_en": user.integrado_a_ie_en.isoformat() if user.integrado_a_ie_en else None,
+        },
+    })
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def invitar_docente(request):

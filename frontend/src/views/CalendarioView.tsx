@@ -35,13 +35,13 @@ const TIPOS = [
 ];
 
 const TIPO_COLOR: Record<string, { bg: string; text: string }> = {
-  lectivo: { bg: "#DBEAFE", text: "#1E40AF" },
-  gestion: { bg: "#FEF3C7", text: "#92400E" },
-  feriado_nacional: { bg: "#FEE2E2", text: "#991B1B" },
-  feriado_regional: { bg: "#FEE2E2", text: "#991B1B" },
-  feriado_local: { bg: "#FEE2E2", text: "#991B1B" },
-  no_laborable: { bg: "#F3E8FF", text: "#6B21A8" },
-  suspendido: { bg: "#E5E7EB", text: "#374151" },
+  lectivo: { bg: "var(--info-bg-subtle)", text: "var(--info-text)" },
+  gestion: { bg: "var(--warning-bg-subtle)", text: "var(--warning-text)" },
+  feriado_nacional: { bg: "var(--danger-bg-subtle)", text: "var(--danger-text)" },
+  feriado_regional: { bg: "var(--danger-bg-subtle)", text: "var(--danger-text)" },
+  feriado_local: { bg: "var(--danger-bg-subtle)", text: "var(--danger-text)" },
+  no_laborable: { bg: "var(--empty-state-bg)", text: "var(--texto)" },
+  suspendido: { bg: "var(--empty-state-bg)", text: "var(--empty-state-text)" },
 };
 
 export default function CalendarioView() {
@@ -101,13 +101,13 @@ export default function CalendarioView() {
           {kpi && (
             <Card>
               <div style={{
-                background: kpi.cumple_norma ? "#F0FDF4" : "#FEF2F2",
-                border: `1px solid ${kpi.cumple_norma ? "#22C55E" : "#EF4444"}`,
+                background: kpi.cumple_norma ? "var(--success-bg-subtle)" : "var(--danger-bg-subtle)",
+                border: `1px solid ${kpi.cumple_norma ? "color-mix(in srgb, var(--success-text) 45%, transparent)" : "var(--danger-border-subtle)"}`,
                 borderRadius: 10, padding: 16, display: "flex", gap: 24, flexWrap: "wrap",
               }}>
                 <div style={{ flex: "1 0 200px" }}>
                   <div style={{ fontSize: 12, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: 0.5 }}>Estado</div>
-                  <div style={{ fontSize: 20, fontWeight: 700, color: kpi.cumple_norma ? "#166534" : "#991B1B" }}>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: kpi.cumple_norma ? "var(--success-text)" : "var(--danger-text)" }}>
                     {kpi.cumple_norma ? "Cumple RM 556-2024" : "No cumple todavía"}
                   </div>
                   <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginTop: 4 }}>{kpi.detalle}</div>
@@ -115,19 +115,19 @@ export default function CalendarioView() {
                 <div style={{ display: "flex", gap: 24 }}>
                   <div>
                     <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>Días lectivos</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: kpi.dias_lectivos_actuales >= kpi.minimo_lectivos ? "#166534" : "#991B1B" }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: kpi.dias_lectivos_actuales >= kpi.minimo_lectivos ? "var(--success-text)" : "var(--danger-text)" }}>
                       {kpi.dias_lectivos_actuales}<span style={{ fontSize: 12, opacity: 0.6 }}> / {kpi.minimo_lectivos}</span>
                     </div>
                   </div>
                   <div>
                     <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>Días gestión</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: kpi.dias_gestion_actuales >= kpi.minimo_gestion ? "#166534" : "#991B1B" }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: kpi.dias_gestion_actuales >= kpi.minimo_gestion ? "var(--success-text)" : "var(--danger-text)" }}>
                       {kpi.dias_gestion_actuales}<span style={{ fontSize: 12, opacity: 0.6 }}> / {kpi.minimo_gestion}</span>
                     </div>
                   </div>
                   <div>
                     <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>Feriados</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: "#7F1D1D" }}>{kpi.dias_feriado}</div>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: "var(--danger-text)" }}>{kpi.dias_feriado}</div>
                   </div>
                 </div>
               </div>
@@ -181,7 +181,7 @@ export default function CalendarioView() {
                 </thead>
                 <tbody>
                   {dias.map(d => {
-                    const col = TIPO_COLOR[d.tipo] ?? { bg: "#F1F5F9", text: "#334155" };
+                    const col = TIPO_COLOR[d.tipo] ?? { bg: "var(--empty-state-bg)", text: "var(--texto)" };
                     return (
                       <tr key={d.id}>
                         <td style={{ fontFamily: "monospace", fontSize: 12 }}>{d.fecha}</td>
@@ -193,7 +193,7 @@ export default function CalendarioView() {
                         <td style={{ fontSize: 13 }}>{d.descripcion}</td>
                         <td>
                           <button onClick={() => eliminar(d.id)}
-                            style={{ background: "none", border: "1px solid var(--rojo-300)", color: "var(--rojo-600)", padding: "3px 10px", borderRadius: 6, cursor: "pointer", fontSize: 11 }}>
+                            style={{ background: "none", border: "1px solid var(--danger-border-subtle)", color: "var(--danger-text)", padding: "3px 10px", borderRadius: 6, cursor: "pointer", fontSize: 11 }}>
                             Eliminar
                           </button>
                         </td>

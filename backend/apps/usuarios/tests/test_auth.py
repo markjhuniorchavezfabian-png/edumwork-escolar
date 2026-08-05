@@ -55,3 +55,28 @@ def test_refresh_token(client, director):
     resp = client.post("/api/auth/refresh/", {"refresh": refresh_token})
     assert resp.status_code == 200
     assert "access" in resp.data
+
+
+def test_mi_cuenta_con_token(client, director):
+    login = client.post("/api/auth/login/", {"username": "director_test", "password": "test2026"})
+    token = login.data["access"]
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    resp = client.get("/api/auth/mi-cuenta/")
+
+    assert resp.status_code == 200
+    assert resp.data["modo_cuenta"] == "institucional"
+    assert resp.data["integrado_a_ie_en"] is None
+
+
+def test_mi_backup_con_token(client, director):
+    login = client.post("/api/auth/login/", {"username": "director_test", "password": "test2026"})
+    token = login.data["access"]
+    client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    resp = client.get("/api/auth/mi-backup/")
+
+    assert resp.status_code == 200
+    assert resp.data["usuario"]["username"] == "director_test"
+    assert resp.data["usuario"]["rol"] == "director"
+    assert "generado_en" in resp.data

@@ -268,6 +268,12 @@ else
     docker compose -f docker-compose.prod.yml exec -T backend python manage.py seed_usuarios --produccion 2>&1 | grep -E "creado|Credenciales" | head -20 || true
 fi
 
+# Crear calendario escolar y feriados oficiales
+docker compose -f docker-compose.prod.yml exec -T backend python manage.py seed_calendario 2>&1 | grep -E "feriados|año escolar" || true
+
+# Cargar currículo nacional (CNEB) — áreas, competencias y capacidades
+docker compose -f docker-compose.prod.yml exec -T backend python manage.py seed_cneb 2>&1 | grep -E "CNEB cargado|áreas" || true
+
 # Personalizar la ConfiguracionInstitucional
 docker compose -f docker-compose.prod.yml exec -T backend python manage.py shell -c "
 from apps.core.models import ConfiguracionInstitucional

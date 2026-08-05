@@ -12,7 +12,8 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from apps.asistencia.models import EstadoAsistencia, RegistroAsistencia
-from apps.usuarios.models import Estudiante, Padre, Rol, Usuario
+from apps.core.models import ConfiguracionInstitucional
+from apps.usuarios.models import Estudiante, Matricula, Padre, Rol, Seccion, Usuario
 
 
 def _generar_password_unico(codigo_matricula: str) -> str:
@@ -49,6 +50,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR("Falta seed_usuarios primero."))
             return
 
+        cfg = ConfiguracionInstitucional.get_solo()
+        anio_lectivo = cfg.anio_lectivo_activo or 2026
+
         # 1. Crear estudiantes que falten (password único por estudiante → export CSV)
         estudiantes_existentes = Estudiante.objects.count()
         estudiantes_meta = 30
@@ -75,11 +79,21 @@ class Command(BaseCommand):
                 usuario.set_password(password)
                 usuario.save()
 
-                Estudiante.objects.create(
+                est = Estudiante.objects.create(
                     usuario=usuario,
                     grado=grado,
                     seccion=seccion,
+                )
+                seccion_obj, _ = Seccion.objects.get_or_create(
+                    grado=grado, letra=seccion,
+                    defaults={"nombre": f"{grado} {seccion}"},
+                )
+                Matricula.objects.create(
+                    estudiante=est,
+                    seccion=seccion_obj,
+                    anio_lectivo=anio_lectivo,
                     codigo_matricula=codigo,
+                    situacion="matriculado",
                 )
                 creados_con_password.append((username, f"{nombre} {apellido}", f"{grado} {seccion}", password))
 

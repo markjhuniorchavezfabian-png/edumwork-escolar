@@ -22,7 +22,7 @@ class DocenteAdmin(admin.ModelAdmin):
 
 @admin.register(Estudiante)
 class EstudianteAdmin(admin.ModelAdmin):
-    list_display = ("usuario", "grado", "seccion", "codigo_matricula")
+    list_display = ("usuario", "grado", "seccion")
 
 
 @admin.register(Padre)
@@ -41,5 +41,7 @@ class SeccionAdmin(admin.ModelAdmin):
     cantidad_docentes.short_description = "Docentes"
 
     def cantidad_estudiantes(self, obj):
-        return obj.estudiantes.count()
+        from apps.core.models import ConfiguracionInstitucional
+        cfg = ConfiguracionInstitucional.get_solo()
+        return obj.matriculas.filter(anio_lectivo=cfg.anio_lectivo_activo or 2026).count()
     cantidad_estudiantes.short_description = "Estudiantes"

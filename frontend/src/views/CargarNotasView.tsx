@@ -5,10 +5,11 @@ import Card from "../components/ui/Card";
 import { useToast } from "../components/ui/Toast";
 import { Cargando } from "../components/ui/Spinner";
 import Icon from "../components/ui/Icon";
-import { ChevronLeft, ChevronRight, Sparkles, X, FileSpreadsheet } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, X, FileSpreadsheet, Pencil, Eye } from "lucide-react";
 import SeccionCard from "../components/ui/SeccionCard";
 import { useAuth } from "../hooks/useAuth";
 import { useModoRol } from "../hooks/useModoRol";
+import { useModoUI } from "../hooks/useModoUI";
 import SiagieRellenarModal from "../components/notas/SiagieRellenarModal";
 
 interface Asignacion {
@@ -53,10 +54,10 @@ const CONCLUSIONES: Record<string, string> = {
 };
 
 const NL_COLOR: Record<string, { bg: string; text: string }> = {
-  AD: { bg: "#D1FAE5", text: "#065F46" },
-  A:  { bg: "#DBEAFE", text: "#1E40AF" },
-  B:  { bg: "#FEF3C7", text: "#92400E" },
-  C:  { bg: "#FEE2E2", text: "#991B1B" },
+  AD: { bg: "var(--success-bg-subtle)", text: "var(--success-text)" },
+  A:  { bg: "var(--info-bg-subtle)", text: "var(--info-text)" },
+  B:  { bg: "var(--warning-bg-subtle)", text: "var(--warning-text)" },
+  C:  { bg: "var(--danger-bg-subtle)", text: "var(--danger-text)" },
 };
 
 const CICLO_NL = ["AD", "A", "B", "C"];
@@ -136,10 +137,12 @@ export default function CargarNotasView() {
   const toast = useToast();
   useAuth();
   const { rolEfectivo } = useModoRol();
+  const { modo } = useModoUI();
+  const modoSimple = modo === "simple";
   const esDirector = rolEfectivo === "director" || rolEfectivo === "subdirector";
-  const [modoEdicionDirector, setModoEdicionDirector] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
   const [confirmarEdicion, setConfirmarEdicion] = useState(false);
-  const soloLectura = esDirector && !modoEdicionDirector;
+  const soloLectura = !modoEdicion;
   const [escala, setEscalaState] = useState<"letras" | "numerica">("letras");
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
   const [asigSeleccionada, setAsigSeleccionada] = useState<Asignacion | null>(null);
@@ -161,6 +164,8 @@ export default function CargarNotasView() {
   const [areaDirector, setAreaDirector] = useState("Matemática");
   const [compDirector, setCompDirector] = useState(1);
   const [modalSiagieTemplate, setModalSiagieTemplate] = useState(false);
+  const [publicandoNotas, setPublicandoNotas] = useState(false);
+  const [estadoPublicacion, setEstadoPublicacion] = useState<"borrador" | "publicado" | null>(null);
   const [archivo, setArchivo] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<{ creadas: number; actualizadas: number; errores: unknown[] } | null>(null);
@@ -236,7 +241,7 @@ export default function CargarNotasView() {
     setAsigSeleccionada(null);
     setAsignaciones([]);
     setCargandoAsignaciones(true);
-    setModoEdicionDirector(false);
+    setModoEdicion(false);
 
     if (esDirector) {
       // Director/subdirector: ve todas las secciones + elige área manualmente
@@ -323,6 +328,19 @@ export default function CargarNotasView() {
   }, [asigSeleccionada, bimestre, areaActual]);
 
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
+
+  useEffect(() => {
+    if (!esDirector || !asigSeleccionada) {
+      setEstadoPublicacion(null);
+      return;
+    }
+    api.get<{ publicaciones: { bimestre: string; estado: "borrador" | "publicado" }[] }>(
+      `/notas/publicaciones/?seccion_id=${asigSeleccionada.seccion_id}`
+    ).then(({ data }) => {
+      const pub = data.publicaciones.find(p => p.bimestre === bimestre);
+      setEstadoPublicacion(pub?.estado ?? "borrador");
+    }).catch(() => setEstadoPublicacion(null));
+  }, [esDirector, asigSeleccionada?.seccion_id, bimestre]);
 
   // Drag híbrido: mousedown lo maneja React onMouseDown de cada celda.
   // Solo document mousemove/mouseup para extender/terminar la selección.
@@ -819,6 +837,26 @@ export default function CargarNotasView() {
     await guardarBlob(data, nombre, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   }
 
+  async function cambiarPublicacionNotas(estado: "borrador" | "publicado") {
+    if (!asigSeleccionada) return;
+    setPublicandoNotas(true);
+    try {
+      const { data } = await api.post<{ estado: "borrador" | "publicado" }>("/notas/publicaciones/", {
+        seccion_id: asigSeleccionada.seccion_id,
+        bimestre,
+        estado,
+      });
+      setEstadoPublicacion(data.estado);
+      toast.ok(estado === "publicado"
+        ? `Bimestre ${bimestre} publicado para familias.`
+        : `Bimestre ${bimestre} oculto para familias.`);
+    } catch {
+      toast.error("No se pudo cambiar la publicación de notas.");
+    } finally {
+      setPublicandoNotas(false);
+    }
+  }
+
   // Sugerencias pendientes (sin nota real cargada)
   const sugerenciasPendientes = [...sugerencias.entries()].filter(
     ([key]) => !notasMap.get(key)?.calificacion
@@ -858,7 +896,7 @@ export default function CargarNotasView() {
       <div>
         <h2 className="page-title">Registro de notas</h2>
         {asignaciones.length === 0 ? (
-          <div style={{ background: "var(--amarillo-50)", border: "1px solid var(--amarillo-300)", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--warning-bg-subtle)", border: "1px solid var(--warning-border-subtle)", color: "var(--warning-text)", borderRadius: 12, padding: 16 }}>
             <strong>Sin asignaciones configuradas.</strong> El director debe asignarte en{" "}
             <strong>Administración → Asignaciones de docentes</strong>.
           </div>
@@ -908,22 +946,23 @@ export default function CargarNotasView() {
           Registro de notas
         </h2>
         <p style={{ color: "var(--muted-foreground)", marginBottom: 16, fontSize: 14 }}>
-          {escala === "numerica"
-            ? "Escala numérica 0–20 (18-20=AD, 14-17=A, 11-13=B, 0-10=C)."
-            : "Niveles de logro AD / A / B / C según RVM 094-2020-MINEDU."}
-          {" "}Hacé click en una celda para editar la conclusión descriptiva.
+          {modoSimple
+            ? "Elige sección y bimestre, toca las celdas para registrar AD/A/B/C y guarda. Las opciones SIAGIE están al final."
+            : escala === "numerica"
+              ? "Escala numérica 0–20 (18-20=AD, 14-17=A, 11-13=B, 0-10=C). Hacé click en una celda para editar la conclusión descriptiva."
+              : "Niveles de logro AD / A / B / C según RVM 094-2020-MINEDU. Hacé click en una celda para editar la conclusión descriptiva."}
         </p>
 
         {/* Selector */}
         {cargandoAsignaciones ? (
           <Cargando inline />
         ) : asignaciones.length === 0 ? (
-          <div style={{ background: "var(--amarillo-50)", border: "1px solid var(--amarillo-300)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ background: "var(--warning-bg-subtle)", border: "1px solid var(--warning-border-subtle)", color: "var(--warning-text)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
             <strong>Sin asignaciones configuradas.</strong> El director debe asignarte en{" "}
             <strong>Administración → Asignaciones de docentes</strong>.
           </div>
         ) : (
-          <Card titulo="Seleccionar asignación y bimestre">
+          <Card titulo={modoSimple ? "1. Elige sección y bimestre" : "Seleccionar asignación y bimestre"}>
             {/* Chips de asignaciones — docente ve sección·área de un vistazo */}
             {!esDirector && (
               <div style={{ marginBottom: 14 }}>
@@ -989,7 +1028,7 @@ export default function CargarNotasView() {
                   {["1","2","3","4"].map(b => <option key={b} value={b}>Bimestre {b}</option>)}
                 </select>
               </div>
-              {asigSeleccionada && (
+              {!modoSimple && asigSeleccionada && (
                 <div className="form-field">
                   <label className="form-label">Competencias</label>
                   <select className="form-input" value={numComp}
@@ -1002,7 +1041,7 @@ export default function CargarNotasView() {
                   </select>
                 </div>
               )}
-              <div className="form-field">
+              {!modoSimple && <div className="form-field">
                 <label className="form-label">Escala</label>
                 <button
                   type="button"
@@ -1021,8 +1060,8 @@ export default function CargarNotasView() {
                   {escala === "letras" ? "AD/A/B/C" : "0 – 20"}
                   <span style={{ fontSize: 10, opacity: 0.7 }}>⇄</span>
                 </button>
-              </div>
-              <div className="form-field">
+              </div>}
+              {!modoSimple && <div className="form-field">
                 <label className="form-label">Modo entrada</label>
                 <div style={{ display: "flex", height: 42, border: "1px solid var(--borde)", borderRadius: 8, overflow: "hidden" }}>
                   {(["ciclar", "panel"] as const).map(m => (
@@ -1043,47 +1082,48 @@ export default function CargarNotasView() {
                     </button>
                   ))}
                 </div>
-              </div>
+              </div>}
             </div>
           </Card>
         )}
 
-        {/* Banner solo lectura director */}
-        {esDirector && asigSeleccionada && (
+        {/* Banner solo lectura / edición — visible para docente y director */}
+        {asigSeleccionada && (
           <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-            background: modoEdicionDirector
-              ? "rgba(245,158,11,0.08)"
-              : "rgba(0,0,0,0.03)",
-            border: `1px solid ${modoEdicionDirector ? "rgba(245,158,11,0.3)" : "rgba(0,0,0,0.08)"}`,
-            borderRadius: 8, padding: "7px 12px", marginBottom: 10, fontSize: 12,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+            background: modoEdicion ? "var(--warning-bg-subtle)" : "var(--fondo-secundario)",
+            border: `1px solid ${modoEdicion ? "var(--warning-border-subtle)" : "var(--borde)"}`,
+            borderRadius: 10, padding: "10px 14px", marginBottom: 12, fontSize: 13,
           }}>
-            <span style={{ color: modoEdicionDirector ? "#92400E" : "var(--muted-foreground)", opacity: 0.9 }}>
-              {modoEdicionDirector
-                ? "⚠️ Edición directiva activa — cambios auditados"
-                : "👁 Solo lectura"}
+            <span style={{
+              color: modoEdicion ? "var(--warning-text)" : "var(--muted-foreground)",
+              display: "inline-flex", alignItems: "center", gap: 8, fontWeight: 500,
+            }}>
+              {modoEdicion ? <Pencil size={14} /> : <Eye size={14} />}
+              {modoEdicion
+                ? (esDirector
+                    ? "Edición directiva activa — cambios auditados"
+                    : "Edición activa")
+                : "Solo lectura — activá edición para modificar notas"}
             </span>
-            {modoEdicionDirector ? (
+            {modoEdicion ? (
               <button
-                onClick={() => setModoEdicionDirector(false)}
-                style={{
-                  padding: "3px 10px", borderRadius: 5, fontSize: 11,
-                  background: "transparent", border: "1px solid rgba(245,158,11,0.4)",
-                  color: "#92400E", cursor: "pointer", whiteSpace: "nowrap",
-                }}
+                className="btn btn-secundario"
+                onClick={() => setModoEdicion(false)}
+                style={{ padding: "8px 16px", fontSize: 13, whiteSpace: "nowrap" }}
               >
-                Salir
+                Salir de edición
               </button>
             ) : (
               <button
-                onClick={() => setConfirmarEdicion(true)}
+                className="btn btn-primario"
+                onClick={() => esDirector ? setConfirmarEdicion(true) : setModoEdicion(true)}
                 style={{
-                  padding: "3px 10px", borderRadius: 5, fontSize: 11,
-                  background: "transparent", border: "1px solid rgba(0,0,0,0.15)",
-                  color: "var(--muted-foreground)", cursor: "pointer", whiteSpace: "nowrap",
+                  padding: "9px 18px", fontSize: 13, whiteSpace: "nowrap",
+                  display: "inline-flex", alignItems: "center", gap: 6,
                 }}
               >
-                Editar
+                <Pencil size={14} /> Activar edición
               </button>
             )}
           </div>
@@ -1119,7 +1159,7 @@ export default function CargarNotasView() {
                   Cancelar
                 </button>
                 <button
-                  onClick={() => { setModoEdicionDirector(true); setConfirmarEdicion(false); }}
+                  onClick={() => { setModoEdicion(true); setConfirmarEdicion(false); }}
                   style={{
                     padding: "8px 18px", borderRadius: 8, fontSize: 13, fontWeight: 600,
                     background: "#1D4ED8", border: "none", color: "white", cursor: "pointer",
@@ -1134,31 +1174,31 @@ export default function CargarNotasView() {
 
         {/* Aviso si el CNEB no cargó */}
         {errorCNEB && asigSeleccionada && (
-          <div style={{ background: "#FEF3C7", border: "1px solid #F59E0B", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "#92400E" }}>
+          <div style={{ background: "var(--warning-bg-subtle)", border: "1px solid var(--warning-border-subtle)", borderRadius: 8, padding: "10px 14px", marginBottom: 12, fontSize: 13, color: "var(--warning-text)" }}>
             No se pudieron cargar las competencias del CNEB para esta área. Puedes editar los nombres manualmente en la cabecera de la grilla.
           </div>
         )}
 
         {/* Grilla compacta */}
         {asigSeleccionada && (
-          <Card titulo={`${asigSeleccionada.seccion_nombre} · ${areaActual} · B${bimestre}`}>
+          <Card titulo={modoSimple ? `2. Registra notas · ${asigSeleccionada.seccion_nombre} · B${bimestre}` : `${asigSeleccionada.seccion_nombre} · ${areaActual} · B${bimestre}`}>
             {/* Banner RVM 048-2024: C en 2+ periodos consecutivos sin sustento */}
             {ccSinSustentar > 0 && (
               <div style={{
                 display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-                background: "#FFF7ED", border: "1px solid #F97316",
+                background: "var(--warning-bg-subtle)", border: "1px solid var(--warning-border-subtle)",
                 borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13,
               }}>
                 <span style={{
-                  background: "#F97316", color: "white", borderRadius: "50%",
+                  background: "var(--warning-text)", color: "var(--warning-bg-subtle)", borderRadius: "50%",
                   width: 22, height: 22, fontSize: 13, fontWeight: 700,
                   display: "inline-flex", alignItems: "center", justifyContent: "center",
                   fontFamily: "monospace",
                 }}>!</span>
-                <span style={{ color: "#7C2D12", fontWeight: 600 }}>
+                <span style={{ color: "var(--warning-text)", fontWeight: 600 }}>
                   RVM 048-2024: {ccSinSustentar} estudiante{ccSinSustentar !== 1 ? "s" : ""} con nota C en 2 bimestres consecutivos sin sustento en la conclusión.
                 </span>
-                <span style={{ fontSize: 11, color: "#9A3412", fontStyle: "italic" }}>
+                <span style={{ fontSize: 11, color: "var(--warning-text)", fontStyle: "italic" }}>
                   Docente debe explicar por qué no hay avance (≥40 caracteres en cada bimestre).
                 </span>
               </div>
@@ -1167,18 +1207,18 @@ export default function CargarNotasView() {
             {conclusionesFaltantes > 0 && (
               <div style={{
                 display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-                background: "#FEE2E2", border: "1px solid #EF4444",
+                background: "var(--danger-bg-subtle)", border: "1px solid var(--danger-border-subtle)",
                 borderRadius: 8, padding: "8px 12px", marginBottom: 10, fontSize: 13,
               }}>
                 <span style={{
-                  background: "#EF4444", color: "white", borderRadius: "50%",
+                  background: "var(--danger-text)", color: "var(--danger-bg-subtle)", borderRadius: "50%",
                   width: 22, height: 22, fontSize: 12, fontWeight: 700,
                   display: "inline-flex", alignItems: "center", justifyContent: "center",
                 }}>!</span>
-                <span style={{ color: "#991B1B", fontWeight: 600 }}>
+                <span style={{ color: "var(--danger-text)", fontWeight: 600 }}>
                   RVM 048-2024: {conclusionesFaltantes} nota{conclusionesFaltantes !== 1 ? "s" : ""} con NL que requiere{conclusionesFaltantes !== 1 ? "n" : ""} conclusión descriptiva obligatoria y aún no la tiene{conclusionesFaltantes !== 1 ? "n" : ""}.
                 </span>
-                <span style={{ fontSize: 11, color: "#7F1D1D", fontStyle: "italic" }}>
+                <span style={{ fontSize: 11, color: "var(--danger-text)", fontStyle: "italic" }}>
                   Click en la celda con "!" → panel → escribí ≥20 caracteres
                 </span>
               </div>
@@ -1187,11 +1227,11 @@ export default function CargarNotasView() {
             {sugerenciasPendientes.length > 0 && (
               <div style={{
                 display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
-                background: sugerenciasRiesgo.length > 0 ? "#FEF3C7" : "#EFF6FF",
-                border: `1px solid ${sugerenciasRiesgo.length > 0 ? "#F59E0B" : "#BFDBFE"}`,
+                background: sugerenciasRiesgo.length > 0 ? "var(--warning-bg-subtle)" : "var(--info-bg-subtle)",
+                border: `1px solid ${sugerenciasRiesgo.length > 0 ? "var(--warning-border-subtle)" : "color-mix(in srgb, var(--info-text) 45%, transparent)"}`,
                 borderRadius: 8, padding: "8px 12px", marginBottom: 12, fontSize: 13,
               }}>
-                <span style={{ color: sugerenciasRiesgo.length > 0 ? "#92400E" : "#1E40AF", fontWeight: 600 }}>
+                <span style={{ color: sugerenciasRiesgo.length > 0 ? "var(--warning-text)" : "var(--info-text)", fontWeight: 600 }}>
                   {sugerenciasRiesgo.length > 0
                     ? `${sugerenciasRiesgo.length} estudiantes con riesgo B/C según historial`
                     : `${sugerenciasPendientes.length} celdas con sugerencia del historial`}
@@ -1200,15 +1240,15 @@ export default function CargarNotasView() {
                   onClick={() => setMostrarSugerencias(v => !v)}
                   style={{
                     padding: "3px 10px", borderRadius: 6, fontSize: 12, cursor: "pointer",
-                    border: "1px solid #93C5FD", background: mostrarSugerencias ? "#BFDBFE" : "transparent",
-                    color: "#1E40AF", fontWeight: mostrarSugerencias ? 700 : 400,
+                    border: "1px solid color-mix(in srgb, var(--info-text) 45%, transparent)", background: mostrarSugerencias ? "var(--info-bg-subtle)" : "transparent",
+                    color: "var(--info-text)", fontWeight: mostrarSugerencias ? 700 : 400,
                   }}>
                   {mostrarSugerencias ? "Ocultar" : "Ver"} sugerencias
                 </button>
                 {mostrarSugerencias && (
                   <button
                     onClick={aplicarTodasSugerencias}
-                    style={{ padding: "3px 12px", borderRadius: 6, border: "1px solid #3B82F6", background: "#3B82F6", color: "white", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
+                    style={{ padding: "3px 12px", borderRadius: 6, border: "1px solid var(--info-text)", background: "var(--info-text)", color: "var(--info-bg-subtle)", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>
                     Aplicar todas
                   </button>
                 )}
@@ -1326,8 +1366,8 @@ export default function CargarNotasView() {
                             {badgeIngresoMitadAnio(est.fecha_ingreso) && (
                               <span style={{
                                 marginLeft: 6, fontSize: 10, fontWeight: 600,
-                                background: "#FEF3C7", color: "#92400E",
-                                border: "1px solid #FDE68A", borderRadius: 4,
+                                background: "var(--warning-bg-subtle)", color: "var(--warning-text)",
+                                border: "1px solid var(--warning-border-subtle)", borderRadius: 4,
                                 padding: "1px 5px", verticalAlign: "middle",
                               }} title={`Fecha de ingreso: ${est.fecha_ingreso}`}>
                                 {badgeIngresoMitadAnio(est.fecha_ingreso)}
@@ -1502,15 +1542,15 @@ export default function CargarNotasView() {
                                     }}
                                     style={{
                                       textAlign: "center", cursor: "pointer", padding: "6px 3px",
-                                      background: desEnSel ? "var(--azul-100)" : (desCol?.bg ?? "#F0FDF4"),
+                                      background: desEnSel ? "var(--azul-100)" : (desCol?.bg ?? "var(--success-bg-subtle)"),
                                       outline: desEnSel ? "2px solid var(--azul-500)" : "none",
                                       outlineOffset: -2,
-                                      borderLeft: "1px dashed #6EE7B7",
+                                      borderLeft: "1px dashed color-mix(in srgb, var(--success-text) 45%, transparent)",
                                       transition: "background .1s",
                                     }}>
                                     <span style={{
                                       fontWeight: desNl ? 700 : 600, fontSize: 13,
-                                      color: desEnSel ? "var(--azul-700)" : (desCol?.text ?? (desSug ? sugCol?.text : "#6EE7B7")),
+                                      color: desEnSel ? "var(--azul-700)" : (desCol?.text ?? (desSug ? sugCol?.text : "var(--success-text)")),
                                       opacity: !desNl && desSug ? 0.5 : 1,
                                       fontStyle: !desNl && desSug ? "italic" : "normal",
                                     }}>
@@ -1573,8 +1613,8 @@ export default function CargarNotasView() {
                 )}
                 {/* Selección múltiple — capacidades */}
                 {capSeleccionadas.size > 1 && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "8px 12px", background: "#ECFDF5", borderRadius: 8, border: "1px solid #6EE7B7" }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#065F46" }}>{capSeleccionadas.size} desempeños seleccionados — Aplicar:</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, padding: "8px 12px", background: "var(--success-bg-subtle)", borderRadius: 8, border: "1px solid color-mix(in srgb, var(--success-text) 45%, transparent)" }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--success-text)" }}>{capSeleccionadas.size} desempeños seleccionados — Aplicar:</span>
                     {CICLO_NL.map(nl => {
                       const col = NL_COLOR[nl];
                       return (
@@ -1617,9 +1657,11 @@ export default function CargarNotasView() {
                     }}>{nl}</span>
                   ))}
                   <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
-                    {modoInput === "ciclar"
-                      ? "Click → cicla AD→A→B→C · Shift+Click → rango · Ctrl+Click → agregar/quitar · Arrastrar → selección · Click en nombre → panel"
-                      : "Click → abre panel · Shift+Click → rango · Ctrl+Click → agregar/quitar · Arrastrar → selección"}
+                    {modoSimple
+                      ? "Toca una celda para cambiar AD→A→B→C. Toca el nombre para escribir la conclusión."
+                      : modoInput === "ciclar"
+                        ? "Click → cicla AD→A→B→C · Shift+Click → rango · Ctrl+Click → agregar/quitar · Arrastrar → selección · Click en nombre → panel"
+                        : "Click → abre panel · Shift+Click → rango · Ctrl+Click → agregar/quitar · Arrastrar → selección"}
                   </span>
                 </div>
               </>
@@ -1628,12 +1670,44 @@ export default function CargarNotasView() {
         )}
 
         {/* Excel */}
-        <Card titulo="Excel — Plantilla / Importar / SIAGIE / Boletas">
+        <Card titulo={modoSimple ? "3. Reportes y SIAGIE" : "Excel — Plantilla / Importar / SIAGIE / Boletas"}>
+          {esDirector && asigSeleccionada && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+              background: estadoPublicacion === "publicado" ? "var(--success-bg-subtle)" : "var(--warning-bg-subtle)",
+              border: `1px solid ${estadoPublicacion === "publicado" ? "color-mix(in srgb, var(--success-text) 35%, transparent)" : "var(--warning-border-subtle)"}`,
+              borderRadius: 10, padding: 12, marginBottom: 12, flexWrap: "wrap",
+            }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: estadoPublicacion === "publicado" ? "var(--success-text)" : "var(--warning-text)" }}>
+                  {estadoPublicacion === "publicado" ? "Notas visibles para familias" : "Notas en borrador interno"}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>
+                  Sección {asigSeleccionada.seccion_nombre} · Bimestre {bimestre}. Padres y estudiantes solo ven notas/boletas cuando esté publicado.
+                </div>
+              </div>
+              <button
+                className={estadoPublicacion === "publicado" ? "btn btn-secundario" : "btn btn-primario"}
+                onClick={() => cambiarPublicacionNotas(estadoPublicacion === "publicado" ? "borrador" : "publicado")}
+                disabled={publicandoNotas}
+                style={{ width: "auto", fontSize: 12, padding: "7px 12px" }}
+              >
+                {publicandoNotas
+                  ? "Actualizando..."
+                  : estadoPublicacion === "publicado" ? "Ocultar a familias" : "Publicar para familias"}
+              </button>
+            </div>
+          )}
+          {modoSimple && (
+            <p style={{ fontSize: 13, color: "var(--muted-foreground)", marginBottom: 12, lineHeight: 1.6 }}>
+              Flujo seguro con SIAGIE: descarga el Excel oficial desde SIAGIE, súbelo aquí para leer o rellenar datos, y descarga el archivo listo para cargarlo nuevamente en SIAGIE.
+            </p>
+          )}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 12 }}>
-            <button className="btn btn-secundario" onClick={descargarTemplate}
+            {!modoSimple && <button className="btn btn-secundario" onClick={descargarTemplate}
               disabled={!asigSeleccionada} style={{ width: "auto" }}>
               ↓ Plantilla Excel
-            </button>
+            </button>}
             {asigSeleccionada && (
               <button className="btn btn-secundario btn-icono" onClick={descargarBoletasSeccion}
                 style={{ width: "auto" }}
@@ -1641,23 +1715,24 @@ export default function CargarNotasView() {
                 <Icon name="pdf" size={13} /> Boletas B{bimestre}
               </button>
             )}
-            {asigSeleccionada && (
+            {!modoSimple && asigSeleccionada && (
               <button className="btn btn-secundario btn-icono" onClick={descargarLibretaAnual}
                 style={{ width: "auto" }}
                 title={`Libreta anual de ${asigSeleccionada.seccion_nombre} — todos los bimestres`}>
                 <Icon name="pdf" size={13} /> Libreta anual
               </button>
             )}
-            <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
+              {modoSimple && <span style={{ flexBasis: "100%", fontSize: 12, fontWeight: 600 }}>Importar notas desde Excel/SIAGIE</span>}
               <input type="file" accept=".xlsx" className="form-input" style={{ fontSize: 12 }}
                 onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
               <button className="btn btn-primario" onClick={subirExcel}
                 disabled={!archivo || enviando} style={{ width: "auto" }}>
-                {enviando ? "Subiendo..." : "↑ Subir Excel"}
+                {enviando ? "Subiendo..." : modoSimple ? "Leer y cargar" : "↑ Subir Excel"}
               </button>
             </div>
           </div>
-          <div style={{ borderTop: "1px solid var(--borde)", paddingTop: 12 }}>
+          {!modoSimple && <div style={{ borderTop: "1px solid var(--borde)", paddingTop: 12 }}>
             <p style={{ fontSize: 12, color: "var(--slate-500)", marginBottom: 8 }}>
               Exportar al formato SIAGIE (Excel del sistema):
             </p>
@@ -1673,18 +1748,23 @@ export default function CargarNotasView() {
                 Todo
               </button>
             </div>
-          </div>
+          </div>}
           <div style={{ borderTop: "1px solid var(--borde)", paddingTop: 12 }}>
             <p style={{ fontSize: 12, color: "var(--slate-500)", marginBottom: 4 }}>
-              Rellenar template oficial de SIAGIE:
+              {modoSimple ? "Preparar Excel oficial para SIAGIE:" : "Rellenar template oficial de SIAGIE:"}
             </p>
             <p style={{ fontSize: 11, color: "var(--slate-500)", marginBottom: 8, fontStyle: "italic" }}>
-              Sube el Excel vacío que descargaste de SIAGIE — el sistema lo rellena y te lo devuelve listo para subir.
+              Sube el Excel oficial que descargaste de SIAGIE; EduMWork detecta sus columnas, lo rellena con tus notas y te devuelve el mismo archivo listo para cargar.
             </p>
-            <button className="btn btn-secundario" onClick={() => setModalSiagieTemplate(true)}
+            <button className={modoSimple ? "btn btn-primario" : "btn btn-secundario"} onClick={() => setModalSiagieTemplate(true)}
               style={{ padding: "6px 12px", width: "auto", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
-              <FileSpreadsheet size={13} /> Subir template SIAGIE
+              <FileSpreadsheet size={13} /> {modoSimple ? "Preparar Excel SIAGIE" : "Subir template SIAGIE"}
             </button>
+            {modoSimple && (
+              <div style={{ marginTop: 8, fontSize: 11, color: "var(--muted-foreground)" }}>
+                Para exportar por bimestre, libreta anual o plantilla interna, cambia a modo Completo.
+              </div>
+            )}
           </div>
           {resultado && (
             <div style={{ marginTop: 12, display: "flex", gap: 12 }}>
@@ -1733,6 +1813,9 @@ export default function CargarNotasView() {
           secciones={Array.from(
             new Map(asignaciones.map(a => [a.seccion_id, { id: a.seccion_id, nombre: a.seccion_nombre }])).values()
           )}
+          area={areaActual}
+          numCompetencias={numComp}
+          competencias={competenciasCNEB.map(c => ({ numero: c.numero, nombre: c.nombre }))}
         />
       )}
     </div>
@@ -1771,7 +1854,7 @@ function PanelConclusion({ estudiante, competencia, competenciaNombre, capacidad
   const [mostrarDesemps, setMostrarDesemps] = useState(true);
   void capEstados; void onCapEstado; void capSugerencias;  // ya no se usan (capacidades read-only)
   const nl = nota.calificacion;
-  const colores = nl ? { bg: ({ AD: "#D1FAE5", A: "#DBEAFE", B: "#FEF3C7", C: "#FEE2E2" } as Record<string, string>)[nl], text: ({ AD: "#065F46", A: "#1E40AF", B: "#92400E", C: "#991B1B" } as Record<string, string>)[nl] } : null;
+  const colores = nl ? NL_COLOR[nl] : null;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [generandoIA, setGenerandoIA] = useState(false);
   const toast = useToast();
@@ -1917,10 +2000,10 @@ function PanelConclusion({ estudiante, competencia, competenciaNombre, capacidad
       {/* Desempeños del CNEB — graduables, moda → nota de la competencia */}
       {desempenos && desempenos.length > 0 && (() => {
         const NL_C: Record<string, { bg: string; text: string }> = {
-          AD: { bg: "#D1FAE5", text: "#065F46" },
-          A:  { bg: "#DBEAFE", text: "#1E40AF" },
-          B:  { bg: "#FEF3C7", text: "#92400E" },
-          C:  { bg: "#FEE2E2", text: "#991B1B" },
+          AD: { bg: "var(--success-bg-subtle)", text: "var(--success-text)" },
+          A:  { bg: "var(--info-bg-subtle)", text: "var(--info-text)" },
+          B:  { bg: "var(--warning-bg-subtle)", text: "var(--warning-text)" },
+          C:  { bg: "var(--danger-bg-subtle)", text: "var(--danger-text)" },
         };
         const sugsConNota = desempenos.filter(d => !desEstados[d.id] && desSugerencias.get(`${estudianteId}_${d.id}`));
         return (
@@ -1937,7 +2020,7 @@ function PanelConclusion({ estudiante, competencia, competenciaNombre, capacidad
               <span>
                 Desempeños del CNEB · {desempenos.length}
                 {sugsConNota.length > 0 && (
-                  <span style={{ marginLeft: 6, background: "#FEF3C7", color: "#92400E", padding: "1px 6px", borderRadius: 8, fontSize: 9 }}>
+                  <span style={{ marginLeft: 6, background: "var(--warning-bg-subtle)", color: "var(--warning-text)", padding: "1px 6px", borderRadius: 8, fontSize: 9 }}>
                     {sugsConNota.length} sugerencia{sugsConNota.length !== 1 ? "s" : ""}
                   </span>
                 )}
@@ -1945,12 +2028,12 @@ function PanelConclusion({ estudiante, competencia, competenciaNombre, capacidad
               <span style={{ fontSize: 12 }}>{mostrarDesemps ? "▲" : "▼"}</span>
             </button>
             {mostrarDesemps && (
-              <div style={{ maxHeight: 380, overflowY: "auto", background: "#F8FAFC", borderRadius: 6, padding: "8px 10px" }}>
+              <div style={{ maxHeight: 380, overflowY: "auto", background: "var(--fondo-secundario)", borderRadius: 6, padding: "8px 10px" }}>
                 {[...desempenos].sort((a, b) => a.orden - b.orden).map(des => {
                   const desVal = desEstados[des.id] ?? "";
                   const sug = desSugerencias.get(`${estudianteId}_${des.id}`);
                   return (
-                    <div key={des.id} style={{ marginBottom: 10, background: "white", borderRadius: 6, padding: "6px 8px" }}>
+                    <div key={des.id} style={{ marginBottom: 10, background: "var(--bg-panel)", borderRadius: 6, padding: "6px 8px" }}>
                       <div style={{ fontSize: 11, color: "var(--texto)", lineHeight: 1.35, marginBottom: 5, display: "flex", gap: 6 }}>
                         <span style={{ fontWeight: 700, color: "var(--azul-700)", minWidth: 16 }}>{des.orden}.</span>
                         <span>{des.descripcion}</span>
@@ -2027,7 +2110,7 @@ function PanelConclusion({ estudiante, competencia, competenciaNombre, capacidad
           </div>
           <span style={{
             fontSize: 10, fontWeight: 700, padding: "1px 6px", borderRadius: 4,
-            background: "var(--amarillo-100)", color: "var(--amarillo-700)",
+            background: "var(--warning-bg-subtle)", color: "var(--warning-text)",
             textTransform: "uppercase", letterSpacing: 0.5,
           }}>
             plantilla

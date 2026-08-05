@@ -48,7 +48,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         from apps.core.models import ConfiguracionInstitucional
         from apps.notas.models import AsignacionDocente
-        from apps.usuarios.models import Estudiante
+        from apps.usuarios.models import Estudiante, Matricula, Seccion
+        from django.db.models.functions import Length
 
         nuevo_anio = options["nuevo_anio"]
         cfg = ConfiguracionInstitucional.get_solo()
@@ -62,7 +63,7 @@ class Command(BaseCommand):
             self.stdout.write(f"  CIERRE DE AÑO LECTIVO: {anio_actual} → {nuevo_anio}")
             self.stdout.write(f"{'='*60}")
             self.stdout.write(f"  Asignaciones del año {anio_actual}: {AsignacionDocente.objects.filter(anio_lectivo=anio_actual).count()}")
-            self.stdout.write(f"  Estudiantes activos: {Estudiante.objects.filter(situacion_matricula='matriculado').count()}")
+            self.stdout.write(f"  Estudiantes activos: {Estudiante.objects.matriculados(anio_lectivo=anio_actual, situaciones=['matriculado']).count()}")
             respuesta = input("\n  ¿Confirmar? [s/N]: ").strip().lower()
             if respuesta != "s":
                 self.stdout.write("  Cancelado.")
@@ -97,23 +98,56 @@ class Command(BaseCommand):
         if options["promover_estudiantes"]:
             promovidos = 0
             egresados = 0
-            for est in Estudiante.objects.filter(situacion_matricula="matriculado"):
-                grado_actual = est.grado or ""
+
+            # Primer número de código disponible para el nuevo año lectivo
+            anio_str = str(nuevo_anio)
+            codigo_len = len(anio_str) + 4
+            ultimo = (
+                Matricula.objects.filter(codigo_matricula__startswith=anio_str)
+                .annotate(clen=Length("codigo_matricula"))
+                .filter(clen=codigo_len)
+                .order_by("-codigo_matricula")
+                .first()
+            )
+            if ultimo and ultimo.codigo_matricula:
+                try:
+                    num = int(ultimo.codigo_matricula[len(anio_str):])
+                except ValueError:
+                    num = 0
+            else:
+                num = 0
+
+            matriculas_activas = (
+                Matricula.objects.filter(anio_lectivo=anio_actual, situacion="matriculado")
+                .select_related("estudiante", "seccion")
+            )
+            for mat in matriculas_activas:
+                est = mat.estudiante
+                grado_actual = (mat.seccion.grado if mat.seccion else None) or est.grado or ""
                 siguiente = SIGUIENTE_GRADO.get(grado_actual)
                 if siguiente == "egresado":
-                    est.situacion_matricula = "egresado"
-                    est.save(update_fields=["situacion_matricula"])
+                    mat.situacion = "egresado"
+                    mat.save(update_fields=["situacion"])
                     egresados += 1
                 elif siguiente:
-                    # Buscar la sección del siguiente grado con la misma letra
-                    from apps.usuarios.models import Seccion
-                    letra = est.seccion or "A"
-                    nueva_seccion = Seccion.objects.filter(grado__icontains=siguiente, letra=letra).first()
+                    letra = (mat.seccion.letra if mat.seccion else None) or est.seccion or "A"
+                    nueva_seccion = Seccion.objects.filter(
+                        grado__icontains=siguiente, letra=letra
+                    ).first()
+                    # Mantener el caché legado grado/sección en Estudiante
                     est.grado = siguiente
-                    if nueva_seccion:
-                        est.seccion = nueva_seccion.letra
-                        est.seccion_obj = nueva_seccion
-                    est.save(update_fields=["grado", "seccion", "seccion_obj"])
+                    est.seccion = nueva_seccion.letra if nueva_seccion else letra
+                    est.save(update_fields=["grado", "seccion"])
+                    num += 1
+                    Matricula.objects.get_or_create(
+                        estudiante=est,
+                        anio_lectivo=nuevo_anio,
+                        defaults={
+                            "seccion": nueva_seccion,
+                            "codigo_matricula": f"{anio_str}{num:04d}",
+                            "situacion": "matriculado",
+                        },
+                    )
                     promovidos += 1
             self.stdout.write(self.style.SUCCESS(
                 f"✓ Estudiantes promovidos: {promovidos} | Egresados: {egresados}"

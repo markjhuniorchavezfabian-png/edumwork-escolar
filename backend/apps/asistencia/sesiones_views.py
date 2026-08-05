@@ -7,7 +7,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.usuarios.models import Estudiante, Rol
+from apps.usuarios.models import Estudiante, Matricula, Rol
 
 from apps.asistencia.views import _secciones_docente_ids
 
@@ -143,9 +143,16 @@ class SesionClaseViewSet(viewsets.ModelViewSet):
         codigo = (request.data.get("codigo") or "").strip()
         if not codigo:
             return Response({"error": "codigo requerido"}, status=400)
-        est = Estudiante.objects.filter(codigo_matricula=codigo).select_related("usuario").first()
+        from apps.core.models import ConfiguracionInstitucional
+        cfg = ConfiguracionInstitucional.get_solo()
+        anio_lectivo = cfg.anio_lectivo_activo or 2026
+        matricula = Matricula.objects.select_related("estudiante__usuario").filter(
+            codigo_matricula=codigo,
+            anio_lectivo=anio_lectivo,
+        ).first()
+        est = matricula.estudiante if matricula else None
         if not est:
-            return Response({"error": f"No hay estudiante con código '{codigo}'."}, status=404)
+            return Response({"error": f"No hay estudiante matriculado con código '{codigo}' en {anio_lectivo}."}, status=404)
 
         obj, creado = AsistenciaSesion.objects.update_or_create(
             sesion=s, estudiante=est,

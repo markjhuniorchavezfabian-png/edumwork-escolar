@@ -1,4 +1,5 @@
 import io
+import json
 from datetime import date, timedelta
 
 import qrcode
@@ -7,12 +8,13 @@ from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, parser_classes, permission_classes
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.usuarios.models import Estudiante, Padre, Rol, Seccion
+from apps.usuarios.models import Estudiante, Matricula, Padre, Rol, Seccion
 
 from .exportacion import excel_asistencia_mensual, pdf_asistencia_mensual
 from apps.notas.models import AsignacionDocente
@@ -26,9 +28,66 @@ from .serializers import (
 )
 
 
+ROLES_SIAGIE_ASISTENCIA = (
+    Rol.DIRECTOR,
+    Rol.SUBDIRECTOR,
+    Rol.ADMIN_TIC,
+    Rol.SECRETARIA,
+    Rol.AUXILIAR,
+)
+
+
 def _anio_lectivo_activo():
     from apps.core.models import ConfiguracionInstitucional
     return ConfiguracionInstitucional.get_solo().anio_lectivo_activo or 2026
+
+
+def _parse_mes(mes_str: str):
+    if not mes_str or "-" not in mes_str:
+        raise ValueError("Parametro 'mes' requerido en formato YYYY-MM.")
+    anio_s, mes_s = mes_str.split("-", 1)
+    anio, mes = int(anio_s), int(mes_s)
+    if not 1 <= mes <= 12:
+        raise ValueError
+    return anio, mes
+
+
+def _params_siagie_asistencia(request):
+    archivo = request.FILES.get("archivo")
+    if not archivo:
+        return None, None, None, Response({"error": "Envía el Excel en 'archivo'."}, status=400)
+    seccion_id = request.POST.get("seccion_id") or request.POST.get("seccion")
+    if not seccion_id:
+        return None, None, None, Response({"error": "Parametro 'seccion_id' requerido."}, status=400)
+    try:
+        anio, mes = _parse_mes((request.POST.get("mes") or "").strip())
+    except (TypeError, ValueError):
+        return None, None, None, Response({"error": "'mes' debe ser YYYY-MM (ej: 2026-07)."}, status=400)
+    return archivo, int(seccion_id), (anio, mes), None
+
+
+def _mapeo_manual_asistencia(request):
+    raw = request.POST.get("mapeo_json")
+    if not raw:
+        return None
+    data = json.loads(raw)
+    if not isinstance(data, list):
+        raise ValueError("mapeo_json debe ser una lista de hojas.")
+    hojas = []
+    for item in data:
+        mapeo = item.get("mapeo") or item.get("columnas_detectadas") or {}
+        hojas.append({
+            "hash": item.get("hash", "manual"),
+            "hoja": item.get("hoja", ""),
+            "fila_datos": int(item.get("fila_datos") or 1),
+            "mapeo": {int(k): v for k, v in mapeo.items()},
+            "dias": item.get("dias", []),
+            "metodo": "manual",
+            "confianza": "alta",
+            "errores": [],
+            "muestra_header": item.get("muestra_header", ""),
+        })
+    return hojas
 
 
 def _secciones_docente_ids(user):
@@ -94,32 +153,172 @@ def exportar_mensual(request):
     return resp
 
 
+@api_view(["POST"])
+@parser_classes([MultiPartParser])
+@permission_classes([IsAuthenticated])
+def siagie_asistencia_analizar(request):
+    if request.user.rol not in ROLES_SIAGIE_ASISTENCIA:
+        raise PermissionDenied()
+
+    archivo = request.FILES.get("archivo")
+    if not archivo:
+        return Response({"error": "Envía el Excel en 'archivo'."}, status=400)
+
+    try:
+        from .siagie_asistencia import analizar_template_asistencia, resumen_confianza
+        hojas = analizar_template_asistencia(io.BytesIO(archivo.read()))
+        confianza, errores = resumen_confianza(hojas)
+    except Exception as e:
+        return Response({"error": f"No se pudo analizar el archivo: {str(e)[:300]}"}, status=400)
+
+    return Response({
+        "ok": True,
+        "n_hojas": len(hojas),
+        "confianza": confianza,
+        "errores": errores,
+        "hojas": [
+            {
+                "hash": h.get("hash", ""),
+                "hoja": h.get("hoja", ""),
+                "fila_datos": h.get("fila_datos", 0),
+                "metodo": h.get("metodo", ""),
+                "confianza": h.get("confianza", ""),
+                "errores": h.get("errores", []),
+                "muestra_header": h.get("muestra_header", ""),
+                "dias": h.get("dias", []),
+                "columnas_detectadas": {str(k): v for k, v in h.get("mapeo", {}).items()},
+                "n_columnas_mapeadas": len(h.get("mapeo", {})),
+            }
+            for h in hojas
+        ],
+    })
+
+
+@api_view(["POST"])
+@parser_classes([MultiPartParser])
+@permission_classes([IsAuthenticated])
+def siagie_asistencia_preview(request):
+    if request.user.rol not in ROLES_SIAGIE_ASISTENCIA:
+        raise PermissionDenied()
+
+    archivo, seccion_id, periodo, error = _params_siagie_asistencia(request)
+    if error:
+        return error
+    anio, mes = periodo
+
+    try:
+        from .siagie_asistencia import (
+            analizar_template_asistencia,
+            datos_asistencia_por_dni,
+            preview_relleno_asistencia,
+            resumen_confianza,
+        )
+        contenido = archivo.read()
+        hojas = _mapeo_manual_asistencia(request) or analizar_template_asistencia(io.BytesIO(contenido))
+        confianza, errores = resumen_confianza(hojas)
+        if confianza == "baja":
+            return Response({"error": "No se pudo detectar la plantilla SIAGIE.", "errores": errores}, status=400)
+        datos = datos_asistencia_por_dni(seccion_id, anio, mes)
+        preview = preview_relleno_asistencia(io.BytesIO(contenido), datos, hojas)
+    except Exception as e:
+        return Response({"error": f"Error en preview: {str(e)[:300]}"}, status=400)
+
+    return Response({
+        "ok": True,
+        "total_filas": preview["total_filas"],
+        "se_rellenaran": preview["se_rellenaran"],
+        "sin_datos": preview["sin_datos"],
+        "dnis_sin_datos": preview["dnis_sin_datos"],
+        "asistencias_disponibles": len(datos),
+        "n_hojas": len(hojas),
+        "confianza": confianza,
+        "errores": errores,
+        "hojas": [
+            {
+                "hash": h.get("hash", ""),
+                "hoja": h.get("hoja", ""),
+                "fila_datos": h.get("fila_datos", 0),
+                "metodo": h.get("metodo", ""),
+                "confianza": h.get("confianza", ""),
+                "dias": h.get("dias", []),
+                "columnas_detectadas": {str(k): v for k, v in h.get("mapeo", {}).items()},
+            }
+            for h in hojas
+        ],
+    })
+
+
+@api_view(["POST"])
+@parser_classes([MultiPartParser])
+@permission_classes([IsAuthenticated])
+def siagie_asistencia_rellenar(request):
+    if request.user.rol not in ROLES_SIAGIE_ASISTENCIA:
+        raise PermissionDenied()
+
+    archivo, seccion_id, periodo, error = _params_siagie_asistencia(request)
+    if error:
+        return error
+    anio, mes = periodo
+
+    try:
+        from .siagie_asistencia import (
+            analizar_template_asistencia,
+            datos_asistencia_por_dni,
+            rellenar_template_asistencia,
+            resumen_confianza,
+        )
+        contenido = archivo.read()
+        hojas = _mapeo_manual_asistencia(request) or analizar_template_asistencia(io.BytesIO(contenido))
+        confianza, errores = resumen_confianza(hojas)
+        if confianza == "baja":
+            return Response({"error": "No se pudo detectar la plantilla SIAGIE.", "errores": errores}, status=400)
+        datos = datos_asistencia_por_dni(seccion_id, anio, mes)
+        excel_out, n_rellenadas = rellenar_template_asistencia(io.BytesIO(contenido), datos, hojas)
+    except Exception as e:
+        return Response({"error": f"Error al rellenar: {str(e)[:300]}"}, status=400)
+
+    resp = HttpResponse(
+        excel_out.read(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    nombre = archivo.name or f"asistencia_siagie_{anio}-{mes:02d}.xlsx"
+    resp["Content-Disposition"] = f'attachment; filename="{nombre}"'
+    resp["X-Filas-Rellenadas"] = str(n_rellenadas)
+    return resp
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def listar_estudiantes(request):
     """Lista de estudiantes para el marcado del docente.
     - Docente: solo estudiantes de las secciones asignadas o tutoradas por él.
     - Admin TIC / Director: todos.
-    Filtros: ?grado=5to&seccion=A"""
-    qs = Estudiante.objects.select_related("usuario", "seccion_obj").exclude(
-        situacion_matricula__in=["trasladado", "retirado"]
+    Filtros: ?seccion_id=X"""
+    from apps.core.models import ConfiguracionInstitucional
+    cfg = ConfiguracionInstitucional.get_solo()
+    anio_lectivo = cfg.anio_lectivo_activo or 2026
+
+    qs = Estudiante.objects.select_related("usuario").filter(
+        usuario__activo=True,
+        matriculas__anio_lectivo=anio_lectivo,
+        matriculas__situacion__in=["matriculado", "suspendido"],
     ).order_by(
-        "grado", "seccion", "usuario__last_name", "usuario__first_name"
-    )
+        "usuario__last_name", "usuario__first_name"
+    ).distinct()
     user = request.user
     if user.rol == Rol.DOCENTE:
         secciones_ids = _secciones_docente_ids(user)
-        qs = qs.filter(seccion_obj_id__in=secciones_ids)
+        qs = qs.filter(matriculas__seccion_id__in=secciones_ids, matriculas__anio_lectivo=anio_lectivo)
 
     seccion_id = request.GET.get("seccion_id")
     grado = request.GET.get("grado")
     seccion = request.GET.get("seccion")
     if seccion_id:
-        qs = qs.filter(seccion_obj_id=seccion_id)
+        qs = qs.filter(matriculas__seccion_id=seccion_id, matriculas__anio_lectivo=anio_lectivo)
     elif grado:
-        qs = qs.filter(grado=grado)
+        qs = qs.filter(matriculas__seccion__grado=grado, matriculas__anio_lectivo=anio_lectivo)
         if seccion:
-            qs = qs.filter(seccion=seccion)
+            qs = qs.filter(matriculas__seccion__letra=seccion, matriculas__anio_lectivo=anio_lectivo)
     return Response(EstudianteListaSerializer(qs, many=True).data)
 
 
@@ -183,9 +382,12 @@ class RegistroAsistenciaViewSet(viewsets.ModelViewSet):
         if request.user.rol == Rol.DOCENTE:
             secciones_ids = _secciones_docente_ids(request.user)
             estudiantes_ids = [r["estudiante"] for r in registros]
+            anio_lectivo = _anio_lectivo_activo()
             permitidos = set(
                 Estudiante.objects.filter(
-                    id__in=estudiantes_ids, seccion_obj_id__in=secciones_ids
+                    id__in=estudiantes_ids,
+                    matriculas__seccion_id__in=secciones_ids,
+                    matriculas__anio_lectivo=anio_lectivo,
                 ).values_list("id", flat=True)
             )
             if set(estudiantes_ids) - permitidos:
@@ -256,17 +458,19 @@ class RegistroAsistenciaViewSet(viewsets.ModelViewSet):
         porc_asistencia = round((presente_o_tardanza / total * 100), 1) if total else 0.0
 
         # Top ausencias por estudiante
+        anio_activo = _anio_lectivo_activo()
         top_ausentes = list(
             qs.filter(estado=EstadoAsistencia.AUSENTE)
+            .filter(estudiante__matriculas__anio_lectivo=anio_activo)
             .values("estudiante__usuario__first_name", "estudiante__usuario__last_name",
-                    "estudiante__grado", "estudiante__seccion")
+                    "estudiante__matriculas__seccion__grado", "estudiante__matriculas__seccion__letra")
             .annotate(ausencias=Count("id"))
             .order_by("-ausencias")[:5]
         )
         top_ausentes_fmt = [{
             "nombre": f"{r['estudiante__usuario__first_name']} {r['estudiante__usuario__last_name']}".strip(),
-            "grado": r["estudiante__grado"],
-            "seccion": r["estudiante__seccion"],
+            "grado": r["estudiante__matriculas__seccion__grado"],
+            "seccion": r["estudiante__matriculas__seccion__letra"],
             "ausencias": r["ausencias"],
         } for r in top_ausentes]
 
@@ -330,16 +534,23 @@ class RegistroAsistenciaViewSet(viewsets.ModelViewSet):
         if not codigo:
             return Response({"error": "El campo 'codigo' es requerido."}, status=400)
 
-        est = Estudiante.objects.select_related("usuario", "seccion_obj").filter(
-            codigo_matricula=codigo
+        from apps.core.models import ConfiguracionInstitucional
+        cfg = ConfiguracionInstitucional.get_solo()
+        anio_lectivo = cfg.anio_lectivo_activo or 2026
+
+        matricula = Matricula.objects.select_related("estudiante__usuario", "seccion").filter(
+            codigo_matricula=codigo,
+            anio_lectivo=anio_lectivo,
         ).first()
-        if not est:
-            return Response({"error": f"No hay estudiante con código '{codigo}'."}, status=404)
+        if not matricula:
+            return Response({"error": f"No hay estudiante matriculado con código '{codigo}' en {anio_lectivo}."}, status=404)
+
+        est = matricula.estudiante
 
         # Docente: solo puede marcar estudiantes de sus secciones
         if request.user.rol == Rol.DOCENTE:
             secciones_ids = _secciones_docente_ids(request.user)
-            if est.seccion_obj_id not in secciones_ids:
+            if matricula.seccion_id not in secciones_ids:
                 return Response(
                     {"error": f"{est.usuario.first_name} no pertenece a tus secciones."},
                     status=403,
@@ -403,7 +614,12 @@ class RegistroAsistenciaViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def qr_estudiante(request, codigo):
     """Genera un PNG con el QR de un estudiante (contenido = código matrícula)."""
-    est = Estudiante.objects.filter(codigo_matricula=codigo).first()
+    anio_lectivo = _anio_lectivo_activo()
+    matricula = Matricula.objects.select_related("estudiante__usuario").filter(
+        codigo_matricula=codigo,
+        anio_lectivo=anio_lectivo,
+    ).first()
+    est = matricula.estudiante if matricula else None
     if not est:
         return HttpResponse("No existe", status=404)
 
@@ -424,7 +640,12 @@ def qrs_por_seccion(request, seccion_id):
     if not seccion:
         return Response({"error": "Sección no encontrada."}, status=404)
 
-    ests = list(seccion.estudiantes.select_related("usuario").order_by("usuario__last_name"))
+    anio_lectivo = _anio_lectivo_activo()
+    ests = list(
+        Estudiante.objects.por_seccion(seccion.pk, anio_lectivo)
+        .select_related("usuario")
+        .order_by("usuario__last_name")
+    )
     resultado = [{
         "id": e.pk,
         "nombre": f"{e.usuario.first_name} {e.usuario.last_name}".strip(),
@@ -443,6 +664,7 @@ def mis_secciones(request):
     """Devuelve las secciones que el docente puede atender en asistencia.
     Combina secciones asignadas/tutoradas con las asignaciones de notas del año activo."""
     user = request.user
+    anio_lectivo = _anio_lectivo_activo()
     if user.rol == Rol.DOCENTE:
         secciones_ids = _secciones_docente_ids(user)
         qs = Seccion.objects.filter(id__in=secciones_ids)
@@ -453,6 +675,6 @@ def mis_secciones(request):
 
     return Response([
         {"id": s.pk, "nombre": s.nombre, "grado": s.grado, "letra": s.letra,
-         "nivel": s.nivel, "cantidad_estudiantes": s.estudiantes.count()}
+         "nivel": s.nivel, "cantidad_estudiantes": Estudiante.objects.por_seccion(s.pk, anio_lectivo).count()}
         for s in qs.order_by("nivel", "grado", "letra")
     ])

@@ -27,8 +27,10 @@ def listar_auditoria(request):
             docente=request.user, anio_lectivo=anio
         ).values_list("seccion_id", flat=True)
         notas_ids = NotaBimestre.objects.filter(
-            estudiante__seccion_obj_id__in=secciones_ids, anio_lectivo=anio
-        ).values_list("id", flat=True)
+            estudiante__matriculas__seccion_id__in=secciones_ids,
+            estudiante__matriculas__anio_lectivo=anio,
+            anio_lectivo=anio,
+        ).values_list("id", flat=True).distinct()
         qs = Auditoria.objects.filter(
             modelo="NotaBimestre",
             objeto_id__in=[str(i) for i in notas_ids],

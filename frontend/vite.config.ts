@@ -1,13 +1,17 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const apiProxyTarget = process.env.VITE_DEV_API_PROXY ?? "http://127.0.0.1:8000";
+
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: "0.0.0.0",
     port: 5173,
+    allowedHosts: ["oblivion-expediter-atrium.ngrok-free.dev"],
     proxy: {
       "/api": {
-        target: "http://localhost:80",
+        target: apiProxyTarget,
         changeOrigin: true,
       },
     },

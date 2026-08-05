@@ -3,7 +3,7 @@ import pytest
 from rest_framework.test import APIClient
 
 from apps.asistencia.models import EstadoAsistencia, RegistroAsistencia
-from apps.usuarios.models import Estudiante, Padre, Rol, Usuario
+from apps.usuarios.models import Estudiante, Matricula, Padre, Rol, Seccion, Usuario
 
 
 @pytest.fixture
@@ -17,15 +17,24 @@ def padre(db):
 
 
 @pytest.fixture
-def hijo(db):
-    u = Usuario.objects.create_user(username="e1", password="p", rol=Rol.ESTUDIANTE, first_name="Juan")
-    return Estudiante.objects.create(usuario=u, grado="1ro", seccion="A", codigo_matricula="20260001")
+def seccion(db):
+    return Seccion.objects.create(nombre="1ro A", grado="1ro", letra="A")
 
 
 @pytest.fixture
-def hijo_otro(db):
+def hijo(db, seccion):
+    u = Usuario.objects.create_user(username="e1", password="p", rol=Rol.ESTUDIANTE, first_name="Juan")
+    est = Estudiante.objects.create(usuario=u, grado="1ro", seccion="A")
+    Matricula.objects.create(estudiante=est, seccion=seccion, anio_lectivo=2026, codigo_matricula="20260001", situacion="matriculado")
+    return est
+
+
+@pytest.fixture
+def hijo_otro(db, seccion):
     u = Usuario.objects.create_user(username="e2", password="p", rol=Rol.ESTUDIANTE, first_name="Juana")
-    return Estudiante.objects.create(usuario=u, grado="1ro", seccion="A", codigo_matricula="20260002")
+    est = Estudiante.objects.create(usuario=u, grado="1ro", seccion="A")
+    Matricula.objects.create(estudiante=est, seccion=seccion, anio_lectivo=2026, codigo_matricula="20260002", situacion="matriculado")
+    return est
 
 
 @pytest.fixture

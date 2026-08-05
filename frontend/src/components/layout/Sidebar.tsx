@@ -29,7 +29,7 @@ const GRUPOS: Grupo[] = [
       { to: "/cargar-notas", label: "Registro de notas", icon: BookOpen, roles: ["docente"] },
       { to: "/notas", label: "Gestión de notas y boletas", icon: BookOpen, roles: ["director", "subdirector", "secretaria"] },
       { to: "/informes", label: "Informes de aprendizaje", icon: FileSpreadsheet, roles: ["director", "subdirector", "docente", "secretaria"] },
-      { to: "/sesiones-clase", label: "Sesiones (labs)", icon: Layers, roles: ["docente", "auxiliar", "psicologa"] },
+      { to: "/sesiones-clase", label: "Sesiones de clase", icon: Layers, roles: ["docente", "auxiliar", "psicologa"] },
       { to: "/alertas", label: "Alertas tempranas", icon: ShieldAlert, roles: ["director", "subdirector", "docente", "auxiliar", "psicologa"] },
       { to: "/horario", label: "Horario semanal", icon: Calendar, roles: ["docente"] },
       { to: "/aprender", label: "Aula Virtual", icon: BookOpen, roles: ["director", "subdirector", "docente", "admin_tic", "psicologa", "estudiante", "padre"] },

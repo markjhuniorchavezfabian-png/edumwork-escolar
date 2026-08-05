@@ -4,7 +4,8 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from apps.usuarios.models import Usuario, Rol, Estudiante, Padre
+from apps.usuarios.models import Usuario, Rol, Estudiante, Matricula, Padre, Seccion
+from apps.core.models import ConfiguracionInstitucional
 
 
 USUARIOS_SEED = [
@@ -63,7 +64,18 @@ class Command(BaseCommand):
             if usuario.rol == Rol.ESTUDIANTE:
                 estudiante_perfil, _ = Estudiante.objects.get_or_create(
                     usuario=usuario,
-                    defaults={"grado": "5to", "seccion": "A", "codigo_matricula": "2026001"},
+                    defaults={"grado": "5to", "seccion": "A"},
+                )
+                cfg = ConfiguracionInstitucional.get_solo()
+                anio = cfg.anio_lectivo_activo or 2026
+                seccion, _ = Seccion.objects.get_or_create(
+                    grado="5to", letra="A",
+                    defaults={"nombre": "5to A", "nivel": "secundaria"},
+                )
+                Matricula.objects.get_or_create(
+                    estudiante=estudiante_perfil,
+                    anio_lectivo=anio,
+                    defaults={"seccion": seccion, "codigo_matricula": "2026001", "situacion": "matriculado"},
                 )
                 estudiante_obj = usuario
 

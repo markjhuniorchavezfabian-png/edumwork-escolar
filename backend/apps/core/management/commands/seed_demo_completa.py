@@ -176,7 +176,7 @@ class Command(BaseCommand):
             self.stdout.write("  notas: ya existen, skip")
             return
 
-        estudiantes = list(Estudiante.objects.filter(seccion_obj__isnull=False).select_related("usuario"))
+        estudiantes = list(Estudiante.objects.matriculados().select_related("usuario"))
         creadas = 0
         total_por_est = sum(AREAS_NUM_COMPETENCIAS.values()) * 2  # 2 bimestres
         for est in estudiantes:
@@ -249,7 +249,7 @@ class Command(BaseCommand):
             )
 
         # 2 tareas
-        seccion_est = list(Estudiante.objects.filter(seccion_obj=seccion_5to)) if seccion_5to else []
+        seccion_est = list(Estudiante.objects.por_seccion(seccion_5to.id)) if seccion_5to else []
         for i, titulo in enumerate(["Práctica calificada 1: Fracciones", "Trabajo grupal: Aplicación al mercado"], start=1):
             t = Tarea.objects.create(
                 curso=curso,
@@ -291,7 +291,7 @@ class Command(BaseCommand):
         if not director:
             return
 
-        estudiantes = list(Estudiante.objects.filter(seccion_obj__isnull=False))
+        estudiantes = list(Estudiante.objects.matriculados())
         if len(estudiantes) < 4:
             return
 
@@ -460,7 +460,7 @@ class Command(BaseCommand):
                                      "Experimento de laboratorio", "Debate grupal", "Exposición"]),
                 fecha=fecha, hora_inicio=hi, hora_fin=hf,
             )
-            for est in Estudiante.objects.filter(seccion_obj=seccion):
+            for est in Estudiante.objects.por_seccion(seccion.id):
                 AsistenciaSesion.objects.create(
                     sesion=sesion, estudiante=est,
                     presente=random.random() > 0.1,

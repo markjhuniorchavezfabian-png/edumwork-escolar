@@ -43,12 +43,20 @@ class ComunicadoSerializer(serializers.ModelSerializer):
         if obj.alcance == "toda_ie":
             return qs.count()
         if obj.alcance == "staff":
-            return qs.exclude(rol__in=[Rol.PADRE, Rol.ESTUDIANTE, Rol.UGEL]).count()
+            return qs.exclude(rol__in=[Rol.PADRE, Rol.ESTUDIANTE, "ugel"]).count()
         if obj.alcance == "padres":
             return qs.filter(rol=Rol.PADRE).count()
         if obj.alcance == "seccion" and obj.seccion_id:
             # Padres y docentes de esa sección
-            padres = qs.filter(rol=Rol.PADRE, perfil_padre__hijos__seccion_obj=obj.seccion).distinct().count()
+            from apps.core.models import ConfiguracionInstitucional
+            from apps.usuarios.models import Matricula
+            cfg = ConfiguracionInstitucional.get_solo()
+            anio = cfg.anio_lectivo_activo or 2026
+            padres = qs.filter(
+                rol=Rol.PADRE,
+                perfil_padre__hijos__matriculas__seccion=obj.seccion,
+                perfil_padre__hijos__matriculas__anio_lectivo=anio,
+            ).distinct().count()
             docentes = obj.seccion.docentes.filter(activo=True).count()
             return padres + docentes
         return 0

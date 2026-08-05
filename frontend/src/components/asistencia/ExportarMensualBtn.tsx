@@ -15,7 +15,7 @@ export default function ExportarMensualBtn() {
 
   useEffect(() => {
     if (!abierto) return;
-    api.get<Seccion[]>("/asistencia/mis-secciones/")
+    api.get<Seccion[]>("/asistencia/secciones/mis/")
       .then((r) => {
         const list = r.data;
         setSecciones(list);

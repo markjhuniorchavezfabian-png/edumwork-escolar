@@ -378,7 +378,8 @@ def _contexto_datos_reales(user, nombre_ie: str, anio: int) -> str:
             top_faltas = (
                 RegistroAsistencia.objects
                 .filter(fecha__gte=inicio_mes, estado="ausente")
-                .values("estudiante__usuario__first_name", "estudiante__usuario__last_name", "estudiante__seccion_obj__nombre")
+                .filter(estudiante__matriculas__anio_lectivo=anio)
+                .values("estudiante__usuario__first_name", "estudiante__usuario__last_name", "estudiante__matriculas__seccion__nombre")
                 .annotate(faltas=Count("id"))
                 .order_by("-faltas")[:5]
             )
@@ -386,7 +387,7 @@ def _contexto_datos_reales(user, nombre_ie: str, anio: int) -> str:
                 ctx += f"- Top estudiantes con más faltas (desde {inicio_mes}):\n"
                 for r in top_faltas:
                     nombre = f"{r['estudiante__usuario__first_name']} {r['estudiante__usuario__last_name']}".strip()
-                    seccion = r["estudiante__seccion_obj__nombre"] or "—"
+                    seccion = r["estudiante__matriculas__seccion__nombre"] or "—"
                     ctx += f"  · {nombre} ({seccion}): {r['faltas']} falta(s)\n"
 
             # D4: Notas por sección (distribución)
@@ -401,14 +402,17 @@ def _contexto_datos_reales(user, nombre_ie: str, anio: int) -> str:
             if secciones:
                 ctx += "- Notas por sección:\n"
                 for sec in secciones:
-                    ns = notas_anio.filter(estudiante__seccion_obj=sec)
+                    ns = notas_anio.filter(
+                        estudiante__matriculas__seccion=sec,
+                        estudiante__matriculas__anio_lectivo=anio,
+                    )
                     if ns.exists():
                         d = {nl: ns.filter(calificacion=nl).count() for nl in ("AD", "A", "B", "C")}
                         ctx += f"  · {sec.nombre}: AD:{d['AD']} A:{d['A']} B:{d['B']} C:{d['C']}\n"
 
             # Estudiantes
             from apps.usuarios.models import Estudiante
-            total_est = Estudiante.objects.filter(situacion_matricula="matriculado").count()
+            total_est = Estudiante.objects.matriculados(situaciones=["matriculado"]).count()
             ctx += f"- Estudiantes matriculados: {total_est}\n"
 
         elif user.rol == "docente":
@@ -428,7 +432,12 @@ def _contexto_datos_reales(user, nombre_ie: str, anio: int) -> str:
                     # D1: Notas individuales por estudiante y competencia de esta asignación
                     notas_asig = (
                         NotaBimestre.objects
-                        .filter(estudiante__seccion_obj=seccion, area=area, anio_lectivo=anio)
+                        .filter(
+                            estudiante__matriculas__seccion=seccion,
+                            estudiante__matriculas__anio_lectivo=anio,
+                            area=area,
+                            anio_lectivo=anio,
+                        )
                         .select_related("estudiante__usuario")
                         .order_by("estudiante__usuario__last_name", "bimestre", "competencia")
                     )
@@ -446,13 +455,18 @@ def _contexto_datos_reales(user, nombre_ie: str, anio: int) -> str:
 
                     # D2: Asistencia mensual por estudiante de esta sección
                     from apps.usuarios.models import Estudiante as Est
-                    estudiantes_sec = Est.objects.filter(
-                        seccion_obj=seccion, situacion_matricula="matriculado"
+                    estudiantes_sec = Est.objects.matriculados(
+                        seccion_id=seccion.pk, situaciones=["matriculado"]
                     ).select_related("usuario").order_by("usuario__last_name")
 
                     faltas_mes = (
                         RegistroAsistencia.objects
-                        .filter(estudiante__seccion_obj=seccion, fecha__gte=inicio_mes, estado="ausente")
+                        .filter(
+                            estudiante__matriculas__seccion=seccion,
+                            estudiante__matriculas__anio_lectivo=anio,
+                            fecha__gte=inicio_mes,
+                            estado="ausente",
+                        )
                         .values("estudiante_id")
                         .annotate(faltas=Count("id"))
                     )
@@ -506,10 +520,11 @@ def resumen_semanal(request):
     ausencias_semana = RegistroAsistencia.objects.filter(fecha__gte=inicio_semana, fecha__lte=fin_semana, estado="ausente").count()
     top_faltas_qs = (
         RegistroAsistencia.objects.filter(fecha__gte=inicio_mes, estado="ausente")
-        .values("estudiante__usuario__first_name", "estudiante__usuario__last_name", "estudiante__seccion_obj__nombre")
+        .filter(estudiante__matriculas__anio_lectivo=anio)
+        .values("estudiante__usuario__first_name", "estudiante__usuario__last_name", "estudiante__matriculas__seccion__nombre")
         .annotate(f=Count("id")).order_by("-f")[:5]
     )
-    top_faltas = [f"{r['estudiante__usuario__last_name']} {r['estudiante__usuario__first_name']} ({r['estudiante__seccion_obj__nombre']}): {r['f']}" for r in top_faltas_qs]
+    top_faltas = [f"{r['estudiante__usuario__last_name']} {r['estudiante__usuario__first_name']} ({r['estudiante__matriculas__seccion__nombre']}): {r['f']}" for r in top_faltas_qs]
 
     # Incidencias
     inc_qs = Incidencia.objects.filter(creado_en__gte=hace_7)
@@ -527,13 +542,16 @@ def resumen_semanal(request):
     secciones = Seccion.objects.all().order_by("grado", "letra")[:8]
     notas_por_seccion = []
     for s in secciones:
-        ns = notas.filter(estudiante__seccion_obj=s)
+        ns = notas.filter(
+            estudiante__matriculas__seccion=s,
+            estudiante__matriculas__anio_lectivo=anio,
+        )
         if ns.exists():
             d = {nl: ns.filter(calificacion=nl).count() for nl in ("AD","A","B","C")}
             notas_por_seccion.append(f"{s.nombre}: AD:{d['AD']} A:{d['A']} B:{d['B']} C:{d['C']}")
 
     # Alertas riesgo
-    estudiantes = Estudiante.objects.filter(situacion_matricula="matriculado")
+    estudiantes = Estudiante.objects.matriculados(situaciones=["matriculado"])
     est_con_c = notas.filter(calificacion="C").values("estudiante_id").distinct().count()
     faltas_mes_qs = (
         RegistroAsistencia.objects.filter(fecha__gte=inicio_mes, estado="ausente")
@@ -611,10 +629,17 @@ def cierre_bimestre_ia(request):
     except Seccion.DoesNotExist:
         return Response({"error": "Sección no encontrada."}, status=404)
 
-    total_est = Estudiante.objects.filter(seccion_obj=seccion, situacion_matricula="matriculado").count()
+    total_est = Estudiante.objects.matriculados(
+        seccion_id=seccion.pk, situaciones=["matriculado"]
+    ).count()
 
     def _areas(bim):
-        notas = NotaBimestre.objects.filter(estudiante__seccion_obj=seccion, bimestre=bim, anio_lectivo=anio)
+        notas = NotaBimestre.objects.filter(
+            estudiante__matriculas__seccion=seccion,
+            estudiante__matriculas__anio_lectivo=anio,
+            bimestre=bim,
+            anio_lectivo=anio,
+        )
         areas_dict: dict = {}
         for n in notas:
             areas_dict.setdefault(n.area, {"AD": 0, "A": 0, "B": 0, "C": 0})

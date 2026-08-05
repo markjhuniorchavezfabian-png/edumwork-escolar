@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   AlertTriangle, ClipboardCheck, Package, DoorOpen, Cpu, BarChart3,
   BookOpen, Clock, Shield, Users, ArrowRight, Sparkles, TrendingUp,
-  School, GraduationCap, Wand2, MailWarning, Wallet, RefreshCw, type LucideIcon,
+  School, GraduationCap, Wand2, MailWarning, RefreshCw, type LucideIcon,
   GraduationCap as Risk,
 } from "lucide-react";
 import api from "../services/api";
@@ -59,7 +59,6 @@ const ATAJOS_POR_ROL: Record<string, Atajo[]> = {
     { titulo: "Gestión de notas", texto: "Cargar Excel de bimestre, generar boletas PDF.", ruta: "/notas", icono: BookOpen, color: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
     { titulo: "Inventario TI", texto: "Estado y valor total de los activos TIC.", ruta: "/inventario", icono: Package, color: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
     { titulo: "Configurar IA", texto: "Elige proveedor (DeepSeek, Claude, Ollama...) y clave.", ruta: "/config-ia", icono: Sparkles, color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" },
-    { titulo: "Costo para mi colegio", texto: "Calcula cuánto cuesta tener EduMWork con los datos reales de tu I.E.", ruta: "/mi-plan", icono: Wallet, color: "bg-teal-500/10 text-teal-600 dark:text-teal-400" },
   ],
   subdirector: [
     { titulo: "Panel de asistencia", texto: "% de asistencia y ausencias.", ruta: "/asistencia", icono: ClipboardCheck, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
@@ -277,6 +276,7 @@ export default function DashboardView() {
           {resumenSemanal && (
             <div className="mt-4 pt-4 border-t border-border/60 text-sm space-y-2 prose prose-sm dark:prose-invert max-w-none">
               {resumenSemanal.split("\n").map((line, i) => {
+                if (line.startsWith("# ")) return <h2 key={i} className="font-semibold text-lg mt-2 mb-1">{line.slice(2)}</h2>;
                 if (line.startsWith("## ")) return <h3 key={i} className="font-semibold text-base mt-3 mb-1">{line.slice(3)}</h3>;
                 if (line.startsWith("**") && line.endsWith("**")) return <p key={i} className="font-semibold">{line.slice(2,-2)}</p>;
                 if (line.startsWith("- ")) return <li key={i} className="ml-4 text-muted-foreground">{line.slice(2)}</li>;

@@ -1,8 +1,8 @@
 /**
- * Modal 3 pasos para rellenar template oficial SIAGIE con notas del sistema:
- *   1. Subir Excel vacío       → backend detecta estructura (cache/IA/heurística)
+ * Modal 3 pasos para trabajar con el Excel oficial de SIAGIE:
+ *   1. Subir Excel oficial     → backend detecta estructura (cache/IA/heurística)
  *   2. Preview (dry-run)       → cuántas filas se rellenarán, DNIs sin notas
- *   3. Descargar Excel relleno
+ *   3. Descargar el mismo Excel relleno para cargarlo en SIAGIE
  *
  * Extras: editor manual de mapeo por hoja + botón "re-analizar" si es incorrecto.
  */
@@ -15,9 +15,20 @@ import { useToast } from "../ui/Toast";
 interface Props {
   onCerrar: () => void;
   secciones: { id: number; nombre: string }[];
+  area?: string;
+  numCompetencias?: number;
+  competencias?: { numero: number; nombre: string }[];
 }
 
 type Paso = "subir" | "analizando" | "resultado" | "preview" | "rellenando" | "editar-mapeo";
+
+interface CompetenciaSiagie {
+  codigo: string;
+  nombre: string;
+  competencia_default: number;
+  campo_nl: string;
+  campo_conclusion: string;
+}
 
 interface HojaAnalisis {
   hoja: string;
@@ -27,6 +38,8 @@ interface HojaAnalisis {
   fila_datos: number;
   metodo: "cache" | "ia" | "heuristica" | "manual";
   muestra_header: string;
+  leyenda: Record<string, string>;
+  competencias_detectadas: CompetenciaSiagie[];
   columnas_detectadas: Record<string, string>;
   n_columnas_mapeadas: number;
   error?: string;
@@ -41,6 +54,7 @@ interface PreviewResp {
   sin_notas: number;
   dnis_sin_notas: string[];
   notas_disponibles: number;
+  hojas_procesadas: string[];
 }
 
 const METODO_INFO = {
@@ -57,7 +71,7 @@ const CAMPOS_VALIDOS = [
   "conclusion_1", "conclusion_2", "conclusion_3", "conclusion_4",
 ];
 
-export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
+export default function SiagieRellenarModal({ onCerrar, secciones, area = "", numCompetencias = 4, competencias = [] }: Props) {
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +83,37 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
   const [seccionId, setSeccionId] = useState(secciones[0] ? String(secciones[0].id) : "");
   const [hojaEditando, setHojaEditando] = useState<HojaAnalisis | null>(null);
   const [mapeoEdit, setMapeoEdit] = useState<Record<string, string>>({});
+  const [hojasSeleccionadas, setHojasSeleccionadas] = useState<Set<string>>(new Set());
+  const [competenciasMap, setCompetenciasMap] = useState<Record<string, Record<string, string>>>({});
+  const [mostrarAvanzado, setMostrarAvanzado] = useState(false);
+
+  function inicializarSeleccion(data: AnalisisResp) {
+    const hojasOk = data.hojas.filter(h => !h.error).map(h => h.hoja);
+    setHojasSeleccionadas(new Set(hojasOk.length === 1 ? hojasOk : []));
+    const mapa: Record<string, Record<string, string>> = {};
+    data.hojas.forEach(h => {
+      mapa[h.hoja] = {};
+      h.competencias_detectadas?.forEach(c => {
+        const destino = Math.min(c.competencia_default || 1, Math.max(numCompetencias, 1));
+        mapa[h.hoja][c.codigo] = String(destino);
+      });
+    });
+    setCompetenciasMap(mapa);
+  }
+
+  function toggleHoja(hoja: string) {
+    const next = new Set(hojasSeleccionadas);
+    if (next.has(hoja)) next.delete(hoja);
+    else next.add(hoja);
+    setHojasSeleccionadas(next);
+  }
+
+  function setCompetenciaDestino(hoja: string, codigo: string, destino: string) {
+    setCompetenciasMap({
+      ...competenciasMap,
+      [hoja]: { ...(competenciasMap[hoja] ?? {}), [codigo]: destino },
+    });
+  }
 
   async function handleArchivo(file: File) {
     setArchivo(file);
@@ -80,6 +125,7 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setAnalisis(data);
+      inicializarSeleccion(data);
       setPaso("resultado");
     } catch (e: unknown) {
       const err = e as { response?: { status?: number; data?: { error?: string } } };
@@ -100,6 +146,9 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
       fd.append("archivo", archivo);
       fd.append("bimestre", bimestre);
       if (seccionId) fd.append("seccion_id", seccionId);
+      if (area) fd.append("area", area);
+      fd.append("hojas", JSON.stringify([...hojasSeleccionadas]));
+      fd.append("competencias", JSON.stringify(competenciasMap));
       const { data } = await api.post<PreviewResp>("/notas/siagie/preview/", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -119,6 +168,9 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
       fd.append("archivo", archivo);
       fd.append("bimestre", bimestre);
       if (seccionId) fd.append("seccion_id", seccionId);
+      if (area) fd.append("area", area);
+      fd.append("hojas", JSON.stringify([...hojasSeleccionadas]));
+      fd.append("competencias", JSON.stringify(competenciasMap));
       const resp = await api.post("/notas/siagie/rellenar/", fd, {
         headers: { "Content-Type": "multipart/form-data" },
         responseType: "blob",
@@ -127,7 +179,7 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
       const url = URL.createObjectURL(new Blob([resp.data]));
       const a = document.createElement("a");
       a.href = url;
-      a.download = `siagie_relleno_B${bimestre}.xlsx`;
+      a.download = archivo.name;
       a.click();
       URL.revokeObjectURL(url);
       toast.ok(`Excel descargado. ${nRellenadas} filas rellenadas. Listo para subir a SIAGIE.`);
@@ -183,9 +235,9 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <FileSpreadsheet size={20} color="#10B981" />
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15 }}>Template SIAGIE oficial</div>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>Preparar Excel SIAGIE</div>
               <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
-                Subir Excel vacío → rellenar con notas del sistema → descargar
+                EduMWork lee el archivo oficial, revisas coincidencias y descargas listo
               </div>
             </div>
           </div>
@@ -203,15 +255,16 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
                 style={{ border: "2px dashed var(--border)", borderRadius: 10, padding: "32px 20px",
                   textAlign: "center", cursor: "pointer" }}>
                 <Upload size={32} style={{ color: "var(--muted-foreground)", margin: "0 auto 10px" }} />
-                <div style={{ fontWeight: 600, marginBottom: 4 }}>Sube el template vacío de SIAGIE</div>
-                <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
-                  Director → Evaluación → Registro de calificaciones → Por Excel → Descargar
-                </div>
+                  <div style={{ fontWeight: 600, marginBottom: 4 }}>Sube el Excel oficial descargado de SIAGIE</div>
+                  <div style={{ fontSize: 12, color: "var(--muted-foreground)" }}>
+                  SIAGIE → Evaluación → Registro de calificaciones → Por Excel → Generar Excel
+                  </div>
                 <input ref={inputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }}
                   onChange={e => e.target.files?.[0] && handleArchivo(e.target.files[0])} />
               </div>
               <div style={{ marginTop: 12, padding: 12, background: "var(--muted)", borderRadius: 8, fontSize: 11, color: "var(--muted-foreground)" }}>
-                Si tienes IA configurada (personal o institucional) el sistema usará tu API para mapear formatos nuevos. Si no, usa heurística propia. En ambos casos, cada formato solo se analiza <strong>una vez</strong> — luego queda cacheado.
+                No cambies el nombre del archivo. EduMWork no entra a SIAGIE: tú descargas desde SIAGIE, aquí se rellena, y luego tú lo subes manualmente.
+                {area && <><br />Área actual en EduMWork: <strong>{area}</strong></>}
               </div>
             </>
           )}
@@ -222,7 +275,7 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
               <Loader2 size={32} className="animate-spin" style={{ margin: "0 auto 12px", color: "var(--primary)" }} />
               <div style={{ fontWeight: 600 }}>Analizando estructura...</div>
               <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginTop: 4 }}>
-                Detectando hojas, columnas y nivel educativo
+                Detectando hojas, estudiantes, columnas NL y leyenda de competencias
               </div>
             </div>
           )}
@@ -230,25 +283,30 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
           {/* ── PASO RESULTADO ANÁLISIS ── */}
           {paso === "resultado" && analisis && (
             <>
-              <div style={{ marginBottom: 12, fontSize: 13 }}>
-                <strong>{analisis.n_hojas}</strong> {analisis.n_hojas === 1 ? "hoja detectada" : "hojas detectadas"}
+              <div style={{ marginBottom: 12, fontSize: 13, lineHeight: 1.5 }}>
+                <strong>{analisis.n_hojas}</strong> {analisis.n_hojas === 1 ? "hoja válida detectada" : "hojas válidas detectadas"}.
+                {analisis.n_hojas > 1 && " Elige solo la hoja que corresponde al área que estás preparando."}
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
                 {analisis.hojas.map((h, i) => {
                   const M = METODO_INFO[h.metodo] || METODO_INFO.heuristica;
+                  const seleccionada = hojasSeleccionadas.has(h.hoja);
                   return (
-                    <div key={i} style={{ background: "var(--muted)", borderRadius: 8, padding: 12 }}>
+                    <div key={i} style={{ background: seleccionada ? "var(--info-bg-subtle)" : "var(--muted)", border: seleccionada ? "1px solid var(--info-border-subtle)" : "1px solid transparent", borderRadius: 8, padding: 12 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 6 }}>
-                        <div>
+                        <label style={{ display: "flex", gap: 8, alignItems: "start", cursor: "pointer" }}>
+                          <input type="checkbox" checked={seleccionada} onChange={() => toggleHoja(h.hoja)} style={{ marginTop: 2 }} />
+                          <div>
                           <div style={{ fontWeight: 600, fontSize: 13 }}>{h.hoja}</div>
                           <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>
                             Nivel: <strong style={{ textTransform: "capitalize" }}>{h.nivel || "?"}</strong> ·
                             {" "}{h.n_columnas_mapeadas} columnas mapeadas ·
                             {" "}fila datos: {h.fila_datos}
                           </div>
-                        </div>
-                        <div style={{ display: "flex", gap: 4 }}>
+                          </div>
+                        </label>
+                        <div style={{ display: mostrarAvanzado ? "flex" : "none", gap: 4 }}>
                           <button onClick={() => abrirEditor(h)} title="Editar mapeo manualmente"
                             style={{ padding: 5, borderRadius: 4, border: "1px solid var(--border)", background: "var(--background)", cursor: "pointer" }}>
                             <Edit3 size={12} />
@@ -262,6 +320,30 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
                       <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: M.color }}>
                         <M.icon size={12} /> {M.label}
                       </div>
+                      {h.competencias_detectadas?.length > 0 && (
+                        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                          {h.competencias_detectadas.map(c => (
+                            <div key={c.codigo} style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 150px", gap: 8, alignItems: "center", fontSize: 12 }}>
+                              <div>
+                                <strong>{c.codigo}</strong>{" "}{c.nombre || "Competencia detectada sin texto en leyenda"}
+                                <div style={{ fontSize: 10, color: "var(--muted-foreground)" }}>
+                                  {c.campo_conclusion ? "NL + conclusión" : "Solo NL"}
+                                </div>
+                              </div>
+                              <select value={competenciasMap[h.hoja]?.[c.codigo] ?? String(c.competencia_default)}
+                                onChange={e => setCompetenciaDestino(h.hoja, c.codigo, e.target.value)}
+                                disabled={!seleccionada}
+                                style={{ padding: "5px 7px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--background)", fontSize: 11 }}>
+                                {Array.from({ length: Math.max(numCompetencias, h.competencias_detectadas.length, 1) }).map((_, idx) => {
+                                  const n = idx + 1;
+                                  const nombre = competencias.find(cn => cn.numero === n)?.nombre;
+                                  return <option key={n} value={String(n)}>EduMWork C{n}{nombre ? ` · ${nombre.slice(0, 32)}` : ""}</option>;
+                                })}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {h.n_columnas_mapeadas < 3 && (
                         <div style={{ marginTop: 6, display: "flex", gap: 6, alignItems: "center", fontSize: 11, color: "#92400E" }}>
                           <AlertCircle size={12} /> Pocas columnas mapeadas — considera editar manualmente
@@ -271,6 +353,11 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
                   );
                 })}
               </div>
+
+              <button onClick={() => setMostrarAvanzado(!mostrarAvanzado)}
+                style={{ marginBottom: 12, background: "none", border: "none", color: "var(--muted-foreground)", fontSize: 11, cursor: "pointer", textDecoration: "underline" }}>
+                {mostrarAvanzado ? "Ocultar opciones avanzadas" : "Mostrar opciones avanzadas"}
+              </button>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
                 <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -296,9 +383,11 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
                   Cambiar archivo
                 </button>
                 <button onClick={handlePreview}
+                  disabled={hojasSeleccionadas.size === 0}
                   style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                     padding: "9px 16px", borderRadius: 7, border: "none",
-                    background: "var(--primary)", color: "white", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                    background: hojasSeleccionadas.size === 0 ? "var(--muted)" : "var(--primary)",
+                    color: hojasSeleccionadas.size === 0 ? "var(--muted-foreground)" : "white", fontWeight: 600, fontSize: 13, cursor: hojasSeleccionadas.size === 0 ? "not-allowed" : "pointer" }}>
                   Ver preview
                 </button>
               </div>
@@ -328,7 +417,7 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
               {preview.dnis_sin_notas.length > 0 && (
                 <div style={{ marginBottom: 14, padding: 12, background: "#FEF3C7", border: "1px solid #FDE68A", borderRadius: 8 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: "#92400E", marginBottom: 6 }}>
-                    DNIs en el template sin notas en el sistema:
+                    Estudiantes/códigos en el Excel sin notas en EduMWork:
                   </div>
                   <div style={{ fontSize: 11, color: "#92400E", fontFamily: "monospace", wordBreak: "break-all" }}>
                     {preview.dnis_sin_notas.join(", ")}
@@ -340,6 +429,12 @@ export default function SiagieRellenarModal({ onCerrar, secciones }: Props) {
               {preview.se_rellenaran === 0 && (
                 <div style={{ marginBottom: 14, padding: 12, background: "#FEE2E2", border: "1px solid #FCA5A5", borderRadius: 8, fontSize: 12, color: "#991B1B" }}>
                   Ninguna fila se rellenará. Verifica que las notas del bimestre {bimestre} estén cargadas y que la sección coincida.
+                </div>
+              )}
+
+              {preview.hojas_procesadas?.length > 0 && (
+                <div style={{ marginBottom: 14, fontSize: 11, color: "var(--muted-foreground)" }}>
+                  Hojas que se prepararán: <strong>{preview.hojas_procesadas.join(", ")}</strong>
                 </div>
               )}
 

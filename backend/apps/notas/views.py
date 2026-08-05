@@ -1,6 +1,9 @@
 import io
+import json
 
+from django.db.models import F
 from django.http import HttpResponse
+from django.utils import timezone
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from rest_framework import serializers as drf_s, status, viewsets
@@ -10,9 +13,9 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.usuarios.models import Estudiante, Padre, Rol, Seccion, Usuario
+from apps.usuarios.models import Estudiante, Matricula, Padre, Rol, Seccion, Usuario
 
-from .models import AsignacionDocente, CONCLUSIONES_NL, HorarioClase, NotaBimestre
+from .models import AsignacionDocente, CONCLUSIONES_NL, HorarioClase, NotaBimestre, PublicacionNotas
 
 
 ROLES_PUEDEN_CARGAR = ("director", "subdirector", "secretaria", "docente")
@@ -28,6 +31,26 @@ def _anio_lectivo_activo():
     from apps.core.models import ConfiguracionInstitucional
     cfg = ConfiguracionInstitucional.get_solo()
     return cfg.anio_lectivo_activo or 2026
+
+
+def _filtrar_notas_publicadas(qs, anio: int):
+    """Padres/estudiantes solo ven notas cuyo bimestre fue publicado por sección."""
+    return qs.filter(
+        estudiante__matriculas__anio_lectivo=anio,
+        estudiante__matriculas__seccion__publicaciones_notas__anio_lectivo=anio,
+        estudiante__matriculas__seccion__publicaciones_notas__bimestre=F("bimestre"),
+        estudiante__matriculas__seccion__publicaciones_notas__estado=PublicacionNotas.ESTADO_PUBLICADO,
+    ).distinct()
+
+
+def _boleta_publicada_para_familia(estudiante_id: int, bimestre: str, anio: int) -> bool:
+    return PublicacionNotas.objects.filter(
+        seccion__matriculas__estudiante_id=estudiante_id,
+        seccion__matriculas__anio_lectivo=anio,
+        anio_lectivo=anio,
+        bimestre=bimestre,
+        estado=PublicacionNotas.ESTADO_PUBLICADO,
+    ).exists()
 
 
 class AsignacionDocenteSerializer(drf_s.ModelSerializer):
@@ -148,11 +171,15 @@ class NotaViewSet(viewsets.ModelViewSet):
 
         if user.rol == Rol.ESTUDIANTE:
             est = Estudiante.objects.filter(usuario=user).first()
-            return qs.filter(estudiante=est, anio_lectivo=anio) if est else qs.none()
+            if not est:
+                return qs.none()
+            return _filtrar_notas_publicadas(qs.filter(estudiante=est, anio_lectivo=anio), anio)
 
         if user.rol == Rol.PADRE:
             padre = Padre.objects.filter(usuario=user).first()
-            return qs.filter(estudiante__in=padre.hijos.all(), anio_lectivo=anio) if padre else qs.none()
+            if not padre:
+                return qs.none()
+            return _filtrar_notas_publicadas(qs.filter(estudiante__in=padre.hijos.all(), anio_lectivo=anio), anio)
 
         if user.rol in ROLES_PUEDEN_CARGAR:
             qs = qs.filter(anio_lectivo=anio)
@@ -168,7 +195,8 @@ class NotaViewSet(viewsets.ModelViewSet):
             if area:
                 qs = qs.filter(area__iexact=area)
             if seccion:
-                qs = qs.filter(estudiante__seccion_obj_id=seccion)
+                qs = qs.filter(estudiante__matriculas__seccion_id=seccion,
+                               estudiante__matriculas__anio_lectivo=anio)
             if competencia:
                 qs = qs.filter(competencia=competencia)
             # Docente: limitar a sus secciones del año activo
@@ -176,9 +204,11 @@ class NotaViewSet(viewsets.ModelViewSet):
                 secciones_ids = AsignacionDocente.objects.filter(
                     docente=user, anio_lectivo=anio
                 ).values_list("seccion_id", flat=True)
-                qs = qs.filter(estudiante__seccion_obj_id__in=secciones_ids)
+                qs = qs.filter(estudiante__matriculas__seccion_id__in=secciones_ids,
+                               estudiante__matriculas__anio_lectivo=anio)
             # Excluir estudiantes trasladados/retirados de las grillas activas
-            qs = qs.exclude(estudiante__situacion_matricula__in=["trasladado", "retirado"])
+            qs = qs.exclude(estudiante__matriculas__situacion__in=["trasladado", "retirado"],
+                            estudiante__matriculas__anio_lectivo=anio)
             return qs
 
         return qs.none()
@@ -214,7 +244,7 @@ class NotaViewSet(viewsets.ModelViewSet):
             from apps.usuarios.models import Estudiante
             est_id = request.data.get("estudiante")
             if est_id:
-                est = Estudiante.objects.select_related("seccion_obj").filter(pk=est_id).first()
+                est = Estudiante.objects.select_related("usuario").filter(pk=est_id).first()
                 if est and est.seccion_obj:
                     err = self._validar_conclusion_rvm_048(request, est.seccion_obj.nivel or "primaria")
                     if err is not None:
@@ -261,6 +291,9 @@ class NotaViewSet(viewsets.ModelViewSet):
                     pass  # auditoría es best-effort, no bloquea el guardado
             return resp
         return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        raise PermissionDenied("Eliminar notas no está permitido desde la API normal. Use corrección auditada.")
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -426,8 +459,7 @@ def template_notas(request):
         area = asig.area
         num_comp = getattr(asig, "num_competencias", 1)
         estudiantes = list(
-            Estudiante.objects.filter(seccion_obj=seccion, usuario__activo=True)
-            .select_related("usuario")
+            Estudiante.objects.por_seccion(seccion.pk, anio)
             .order_by("usuario__last_name", "usuario__first_name")
         )
         titulo = f"{area[:20]} {seccion.grado}{seccion.letra}"
@@ -476,6 +508,7 @@ def exportar_siagie(request):
 
     wb = Workbook()
     wb.remove(wb.active)
+    anio = _anio_lectivo_activo()
 
     vistas = set()
     for asig in asig_qs.order_by("area", "seccion__grado", "seccion__letra"):
@@ -485,8 +518,7 @@ def exportar_siagie(request):
         vistas.add(clave)
 
         estudiantes = list(
-            Estudiante.objects.filter(seccion_obj=asig.seccion, usuario__activo=True)
-            .select_related("usuario")
+            Estudiante.objects.por_seccion(asig.seccion.pk, anio)
             .order_by("usuario__last_name", "usuario__first_name")
         )
         titulo = f"{asig.area[:20]} {asig.seccion.grado}{asig.seccion.letra}"
@@ -530,18 +562,22 @@ def _rate_limit_ia(usuario) -> tuple[bool, int]:
     return (usados < SIAGIE_IA_MAX_POR_DIA), usados
 
 
-def _notas_por_dni(bimestre: str, seccion_id: str):
+def _notas_por_dni(bimestre: str, seccion_id: str, area: str = ""):
     """
-    Agrupa notas del sistema por DNI del estudiante.
-    Usa Usuario.dni (con fallback a codigo_matricula y username).
+    Agrupa notas del sistema por identificador del estudiante.
+    Crea alias por DNI, codigo_matricula y username porque SIAGIE puede usar
+    cualquiera de ellos segun la plantilla descargada.
     """
-    from apps.usuarios.models import Estudiante  # noqa: F401
+    anio = _anio_lectivo_activo()
 
     qs = NotaBimestre.objects.select_related(
-        "estudiante__usuario", "estudiante__seccion_obj",
+        "estudiante__usuario",
     ).filter(bimestre=bimestre)
+    if area:
+        qs = qs.filter(area__iexact=area)
     if seccion_id:
-        qs = qs.filter(estudiante__seccion_obj_id=seccion_id)
+        qs = qs.filter(estudiante__matriculas__seccion_id=seccion_id,
+                        estudiante__matriculas__anio_lectivo=anio)
 
     notas_por_dni: dict = {}
     contador_comp: dict = {}  # (dni, area) → n° competencia
@@ -549,11 +585,16 @@ def _notas_por_dni(bimestre: str, seccion_id: str):
     for nota in qs.order_by("estudiante__usuario__last_name", "area", "competencia"):
         est = nota.estudiante
         u = est.usuario
-        # Prioridad: DNI real → código matrícula → username
-        dni = (u.dni or "").strip() or (est.codigo_matricula or "").strip() or (u.username or "").strip()
-        if not dni:
+        identificadores = [
+            (u.dni or "").strip(),
+            (est.codigo_matricula or "").strip(),
+            (u.username or "").strip(),
+        ]
+        identificadores = [ident for ident in dict.fromkeys(identificadores) if ident]
+        if not identificadores:
             continue
 
+        dni = identificadores[0]
         key = (dni, nota.area)
         idx = contador_comp.get(key, 0) + 1
         contador_comp[key] = idx
@@ -567,7 +608,35 @@ def _notas_por_dni(bimestre: str, seccion_id: str):
         if nota.conclusion_descriptiva:
             notas_por_dni[dni][f"conclusion_{idx}"] = nota.conclusion_descriptiva
 
+        for alias in identificadores[1:]:
+            notas_por_dni[alias] = notas_por_dni[dni]
+
     return notas_por_dni
+
+
+def _json_post_dict(request, campo: str) -> dict:
+    raw = request.POST.get(campo, "")
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, ValueError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _filtrar_hojas_siagie(hojas: list[dict], request) -> list[dict]:
+    raw = request.POST.get("hojas", "")
+    if not raw:
+        return hojas
+    try:
+        seleccionadas = json.loads(raw)
+    except (TypeError, ValueError):
+        seleccionadas = []
+    seleccionadas = {str(h) for h in seleccionadas if h}
+    if not seleccionadas:
+        return hojas
+    return [h for h in hojas if h.get("hoja") in seleccionadas]
 
 
 @api_view(["POST"])
@@ -627,6 +696,8 @@ def siagie_analizar(request):
                 "fila_datos": h.get("fila_datos", 0),
                 "metodo": h.get("metodo", ""),
                 "muestra_header": h.get("muestra_header", ""),
+                "leyenda": h.get("leyenda", {}),
+                "competencias_detectadas": h.get("competencias_detectadas", []),
                 "columnas_detectadas": {str(k): v for k, v in h.get("mapeo", {}).items()},
                 "n_columnas_mapeadas": len([v for v in h.get("mapeo", {}).values() if v != "ignorar"]),
                 "error": h.get("error", ""),
@@ -653,13 +724,16 @@ def siagie_preview(request):
 
     bimestre = request.POST.get("bimestre", "1")
     seccion_id = request.POST.get("seccion_id", "")
+    area = request.POST.get("area", "").strip()
 
     try:
-        from .siagie_reader import analizar_template, preview_relleno
+        from .siagie_reader import analizar_template, aplicar_mapeo_competencias, preview_relleno
         import io as _io
         contenido = archivo.read()
         hojas = analizar_template(_io.BytesIO(contenido), usuario=request.user)
-        notas = _notas_por_dni(bimestre, seccion_id)
+        hojas = _filtrar_hojas_siagie(hojas, request)
+        hojas = aplicar_mapeo_competencias(hojas, _json_post_dict(request, "competencias"))
+        notas = _notas_por_dni(bimestre, seccion_id, area)
         prev = preview_relleno(_io.BytesIO(contenido), notas, hojas)
     except Exception as e:
         return Response({"error": f"Error en preview: {str(e)[:300]}"}, status=400)
@@ -678,6 +752,7 @@ def siagie_preview(request):
         "sin_notas": prev["sin_notas"],
         "dnis_sin_notas": prev["dnis_sin_notas"],
         "notas_disponibles": len(notas),
+        "hojas_procesadas": [h.get("hoja") for h in hojas if h.get("hoja")],
     })
 
 
@@ -697,14 +772,17 @@ def siagie_rellenar(request):
 
     bimestre = request.POST.get("bimestre", "1")
     seccion_id = request.POST.get("seccion_id", "")
+    area = request.POST.get("area", "").strip()
 
     from .models import SiagieRellenoLog
     try:
-        from .siagie_reader import analizar_template, rellenar_template
+        from .siagie_reader import analizar_template, aplicar_mapeo_competencias, rellenar_template
         import io as _io
         contenido = archivo.read()
         hojas = analizar_template(_io.BytesIO(contenido), usuario=request.user)
-        notas = _notas_por_dni(bimestre, seccion_id)
+        hojas = _filtrar_hojas_siagie(hojas, request)
+        hojas = aplicar_mapeo_competencias(hojas, _json_post_dict(request, "competencias"))
+        notas = _notas_por_dni(bimestre, seccion_id, area)
         excel_out, n_rellenadas = rellenar_template(_io.BytesIO(contenido), notas, hojas)
     except Exception as e:
         SiagieRellenoLog.objects.create(
@@ -738,11 +816,12 @@ def siagie_mapeos_listar(request):
         raise PermissionDenied()
 
     from .models import SiagieMapeo
-    mapeos = SiagieMapeo.objects.all().order_by("-creado_en")[:50]
+    mapeos = SiagieMapeo.objects.filter(tipo_template="notas").order_by("-creado_en")[:50]
     return Response({
         "mapeos": [
             {
                 "hash": m.hash_header,
+                "tipo_template": m.tipo_template,
                 "nivel": m.nivel,
                 "metodo": m.metodo_deteccion,
                 "tiene_conclusiones": m.tiene_conclusiones,
@@ -769,7 +848,7 @@ def siagie_mapeo_editar(request, hash_header):
 
     from .models import SiagieMapeo
     try:
-        m = SiagieMapeo.objects.get(hash_header=hash_header)
+        m = SiagieMapeo.objects.get(tipo_template="notas", hash_header=hash_header)
     except SiagieMapeo.DoesNotExist:
         return Response({"error": "Mapeo no encontrado."}, status=404)
 
@@ -791,6 +870,67 @@ def siagie_mapeo_editar(request, hash_header):
     m.save()
 
     return Response({"ok": True, "columnas": m.mapeo_json})
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def publicaciones_notas(request):
+    """Consulta o cambia publicación de notas para familias por sección+bimestre."""
+    if request.user.rol not in ("director", "subdirector", "admin_tic", "secretaria"):
+        raise PermissionDenied("Solo dirección puede publicar notas para familias.")
+
+    if request.method == "GET":
+        anio_param = request.GET.get("anio")
+        anio = int(anio_param) if anio_param and anio_param.isdigit() else _anio_lectivo_activo()
+        qs = PublicacionNotas.objects.select_related("seccion", "publicado_por").filter(anio_lectivo=anio)
+        seccion_id = request.GET.get("seccion_id")
+        if seccion_id:
+            qs = qs.filter(seccion_id=seccion_id)
+        return Response({
+            "publicaciones": [
+                {
+                    "seccion_id": p.seccion_id,
+                    "seccion": str(p.seccion),
+                    "anio": p.anio_lectivo,
+                    "bimestre": p.bimestre,
+                    "estado": p.estado,
+                    "publicado_en": p.publicado_en.isoformat() if p.publicado_en else None,
+                    "publicado_por": p.publicado_por.get_full_name() if p.publicado_por else "",
+                }
+                for p in qs
+            ]
+        })
+
+    seccion_id = request.data.get("seccion_id")
+    bimestre = str(request.data.get("bimestre", ""))
+    estado = request.data.get("estado", PublicacionNotas.ESTADO_PUBLICADO)
+    anio_raw = request.data.get("anio")
+    anio = int(anio_raw) if str(anio_raw).isdigit() else _anio_lectivo_activo()
+
+    if not seccion_id or bimestre not in ("1", "2", "3", "4"):
+        return Response({"error": "seccion_id y bimestre válido son requeridos."}, status=400)
+    if estado not in (PublicacionNotas.ESTADO_BORRADOR, PublicacionNotas.ESTADO_PUBLICADO):
+        return Response({"error": "estado inválido."}, status=400)
+
+    publicacion, _ = PublicacionNotas.objects.get_or_create(
+        seccion_id=seccion_id,
+        anio_lectivo=anio,
+        bimestre=bimestre,
+        defaults={"estado": PublicacionNotas.ESTADO_BORRADOR},
+    )
+    publicacion.estado = estado
+    publicacion.publicado_por = request.user if estado == PublicacionNotas.ESTADO_PUBLICADO else None
+    publicacion.publicado_en = timezone.now() if estado == PublicacionNotas.ESTADO_PUBLICADO else None
+    publicacion.save(update_fields=["estado", "publicado_por", "publicado_en", "actualizado_en"])
+
+    return Response({
+        "ok": True,
+        "seccion_id": publicacion.seccion_id,
+        "anio": publicacion.anio_lectivo,
+        "bimestre": publicacion.bimestre,
+        "estado": publicacion.estado,
+        "publicado_en": publicacion.publicado_en.isoformat() if publicacion.publicado_en else None,
+    })
 
 
 @api_view(["POST"])
@@ -815,6 +955,7 @@ def importar_notas(request):
 
     creadas, actualizadas, errores = 0, 0, []
     bimestre_param = request.data.get("bimestre", "1")
+    anio = _anio_lectivo_activo()
 
     for sheet_name in wb.sheetnames:
         ws = wb[sheet_name]
@@ -826,6 +967,16 @@ def importar_notas(request):
         es_siagie = False
         fila_inicio = 5
         area_hoja = sheet_name
+
+        # Intentar extraer área del encabezado del template (ej: "Área: Matemática  ·  Bimestre: B1 ...")
+        for row in rows:
+            for val in (row or []):
+                s = str(val or "")
+                if "Área:" in s:
+                    area_hoja = s.split("Área:")[1].split("·")[0].split("Bimestre")[0].strip()
+                    break
+            if "Área:" in (str(row) if row else ""):
+                break
 
         for r_idx, row in enumerate(rows):
             if row and str(row[0] or "").strip().upper() == "ID":
@@ -875,7 +1026,10 @@ def importar_notas(request):
                 if id_val and id_val.isdigit():
                     est = Estudiante.objects.filter(usuario__dni=id_val).first()
                 if not est and cod_est:
-                    est = Estudiante.objects.filter(codigo_matricula=cod_est).first()
+                    matricula = Matricula.objects.select_related("estudiante__usuario").filter(
+                        codigo_matricula=cod_est, anio_lectivo=anio
+                    ).first()
+                    est = matricula.estudiante if matricula else None
                 if not est:
                     errores.append({"hoja": sheet_name, "fila": r_num, "error": f"Estudiante no encontrado (DNI={id_val}, Cód={cod_est})"})
                     continue
@@ -1060,7 +1214,8 @@ def sugerencias_notas(request):
     # Competencias con nota ya registrada en este bimestre (no sugerir sobre las que ya tienen nota)
     ya_registradas = set(
         NotaBimestre.objects.filter(
-            estudiante__seccion_obj_id=seccion_id,
+            estudiante__matriculas__seccion_id=seccion_id,
+            estudiante__matriculas__anio_lectivo=anio,
             area=area, bimestre=bimestre, anio_lectivo=anio,
         ).exclude(calificacion="").values_list("estudiante_id", "competencia")
     )
@@ -1071,7 +1226,8 @@ def sugerencias_notas(request):
 
     from django.db.models import Q
     historico = NotaBimestre.objects.filter(
-        estudiante__seccion_obj_id=seccion_id,
+        estudiante__matriculas__seccion_id=seccion_id,
+        estudiante__matriculas__anio_lectivo=anio,
         area=area,
     ).exclude(calificacion="").filter(
         # Mismo año, año anterior, o sin año (datos legacy)
@@ -1156,7 +1312,9 @@ def c_consecutiva(request):
         return Response({"error": "seccion_id y area son requeridos."}, status=400)
 
     notas = NotaBimestre.objects.filter(
-        estudiante__seccion_obj_id=seccion_id, area=area, anio_lectivo=anio,
+        estudiante__matriculas__seccion_id=seccion_id,
+        estudiante__matriculas__anio_lectivo=anio,
+        area=area, anio_lectivo=anio,
         calificacion="C",
     ).values("estudiante_id", "competencia", "bimestre", "conclusion_descriptiva")
 
@@ -1215,7 +1373,9 @@ def sugerencias_capacidad(request):
 
     from django.db.models import Q
     hist = NotaBimestre.objects.filter(
-        estudiante__seccion_obj_id=seccion_id, area=area,
+        estudiante__matriculas__seccion_id=seccion_id,
+        estudiante__matriculas__anio_lectivo=anio,
+        area=area,
     ).filter(
         Q(anio_lectivo__in=[anio - 1, anio]) | Q(anio_lectivo__isnull=True)
     ).exclude(observaciones="").values(
@@ -1288,7 +1448,9 @@ def sugerencias_desempeno(request):
     # Notas históricas del área en el mismo año o anterior
     from django.db.models import Q
     hist = NotaBimestre.objects.filter(
-        estudiante__seccion_obj_id=seccion_id, area=area,
+        estudiante__matriculas__seccion_id=seccion_id,
+        estudiante__matriculas__anio_lectivo=anio,
+        area=area,
     ).filter(
         Q(anio_lectivo__in=[anio - 1, anio]) | Q(anio_lectivo__isnull=True)
     ).exclude(observaciones="").values(
@@ -1379,7 +1541,9 @@ def informe_notas(request):
         )
 
     qs = NotaBimestre.objects.filter(
-        estudiante__seccion_obj_id=seccion_id, anio_lectivo=anio
+        estudiante__matriculas__seccion_id=seccion_id,
+        estudiante__matriculas__anio_lectivo=anio,
+        anio_lectivo=anio,
     ).select_related("estudiante__usuario")
     if bimestres:
         qs = qs.filter(bimestre__in=bimestres)
@@ -1393,9 +1557,7 @@ def informe_notas(request):
         if nota.calificacion in ("AD", "A", "B", "C"):
             dist_area[nota.area][nota.calificacion] += 1
 
-    total_estudiantes = (
-        Estudiante.objects.filter(seccion_obj_id=seccion_id, usuario__activo=True).count()
-    )
+    total_estudiantes = Estudiante.objects.por_seccion(seccion_id, anio).count()
 
     areas_stats = [
         {"area": area, "distribucion": dict(dist)}
@@ -1411,10 +1573,12 @@ def informe_notas(request):
         "areas": areas_stats,
     }
 
-    from apps.ia.servicios import generar_informe_notas
-    from apps.core.models import ConfiguracionInstitucional
-    cfg = ConfiguracionInstitucional.get_solo()
-    narrative = generar_informe_notas(datos, usuario=request.user, plantilla=cfg.plantilla_informe or None)
+    narrative = None
+    if request.GET.get("solo_datos") not in ("1", "true", "True"):
+        from apps.ia.servicios import generar_informe_notas
+        from apps.core.models import ConfiguracionInstitucional
+        cfg = ConfiguracionInstitucional.get_solo()
+        narrative = generar_informe_notas(datos, usuario=request.user, plantilla=cfg.plantilla_informe or None)
 
     return Response({
         "seccion": str(seccion),
@@ -1466,7 +1630,9 @@ def exportar_informe(request):
         )
 
     qs = NotaBimestre.objects.filter(
-        estudiante__seccion_obj_id=seccion_id, anio_lectivo=anio
+        estudiante__matriculas__seccion_id=seccion_id,
+        estudiante__matriculas__anio_lectivo=anio,
+        anio_lectivo=anio,
     )
     if bimestres:
         qs = qs.filter(bimestre__in=bimestres)
@@ -1479,7 +1645,7 @@ def exportar_informe(request):
         if nota.calificacion in ("AD", "A", "B", "C"):
             dist_area[nota.area][nota.calificacion] += 1
 
-    total_estudiantes = Estudiante.objects.filter(seccion_obj_id=seccion_id, usuario__activo=True).count()
+    total_estudiantes = Estudiante.objects.por_seccion(seccion_id, anio).count()
     areas_stats = [
         {"area": area, "distribucion": dict(dist)}
         for area, dist in sorted(dist_area.items())
@@ -1816,7 +1982,7 @@ def boleta_estudiante(request, estudiante_id):
     from apps.usuarios.models import Estudiante
     from apps.notas.boletas import generar_boleta_pdf
 
-    est = Estudiante.objects.filter(pk=estudiante_id).select_related("usuario", "seccion_obj__tutor").first()
+    est = Estudiante.objects.filter(pk=estudiante_id).select_related("usuario").first()
     if not est:
         return Response({"error": "Estudiante no encontrado."}, status=404)
 
@@ -1842,6 +2008,10 @@ def boleta_estudiante(request, estudiante_id):
         anio = int(request.GET.get("anio", 0)) or None
     except ValueError:
         anio = None
+    anio = anio or _anio_lectivo_activo()
+
+    if user.rol in ("padre", "estudiante") and not _boleta_publicada_para_familia(est.pk, bimestre, anio):
+        raise PermissionDenied("La boleta de este bimestre aún está en revisión por la institución.")
 
     pdf = generar_boleta_pdf(est, bimestre, anio)
     resp = HttpResponse(pdf, content_type="application/pdf")
@@ -1883,7 +2053,7 @@ def boletas_seccion_zip(request, seccion_id):
     anio_param = request.GET.get("anio")
     anio = int(anio_param) if anio_param and anio_param.isdigit() else _anio_lectivo_activo()
 
-    estudiantes = Estudiante.objects.filter(seccion_obj_id=seccion_id, usuario__activo=True)
+    estudiantes = Estudiante.objects.por_seccion(seccion_id, anio)
     if not estudiantes.exists():
         return Response({"error": "La sección no tiene estudiantes."}, status=400)
 
@@ -1921,7 +2091,7 @@ def libreta_anual_seccion_zip(request, seccion_id):
     anio_param = request.GET.get("anio")
     anio = int(anio_param) if anio_param and anio_param.isdigit() else _anio_lectivo_activo()
 
-    estudiantes = Estudiante.objects.filter(seccion_obj_id=seccion_id, usuario__activo=True)
+    estudiantes = Estudiante.objects.por_seccion(seccion_id, anio)
     if not estudiantes.exists():
         return Response({"error": "La sección no tiene estudiantes."}, status=400)
 
@@ -1968,7 +2138,7 @@ def boletas_grado_zip(request):
     buf_final = io.BytesIO()
     with zipfile.ZipFile(buf_final, "w", zipfile.ZIP_DEFLATED) as zf_final:
         for seccion in secciones_qs.order_by("grado", "letra"):
-            estudiantes = Estudiante.objects.filter(seccion_obj=seccion, usuario__activo=True)
+            estudiantes = Estudiante.objects.por_seccion(seccion.pk, anio)
             if not estudiantes.exists():
                 continue
             zip_sec = generar_boletas_zip(estudiantes, bimestre, anio)
@@ -2020,12 +2190,11 @@ def generar_conclusiones_ia(request):
         if not tiene_asig:
             raise PermissionDenied("No tenés asignación en esta sección.")
 
-    est_qs = Estudiante.objects.filter(seccion_obj=seccion, usuario__activo=True)
+    est_qs = Estudiante.objects.por_seccion(seccion.pk, anio)
     if estudiante_id:
         est_qs = est_qs.filter(pk=estudiante_id)
     estudiantes = list(
-        est_qs.select_related("usuario")
-        .order_by("usuario__last_name", "usuario__first_name")
+        est_qs.order_by("usuario__last_name", "usuario__first_name")
     )
 
     if not estudiantes:
@@ -2108,7 +2277,7 @@ def certificado_estudios(request, estudiante_id):
     if request.user.rol not in ("director", "subdirector", "admin_tic", "secretaria"):
         raise PermissionDenied("Solo el director o secretaría puede generar certificados.")
 
-    est = Estudiante.objects.filter(pk=estudiante_id).select_related("usuario", "seccion_obj").first()
+    est = Estudiante.objects.filter(pk=estudiante_id).select_related("usuario").first()
     if not est:
         return Response({"error": "Estudiante no encontrado."}, status=404)
 
@@ -2205,7 +2374,10 @@ def importar_notas_historicas(request):
             # Buscar estudiante por código o DNI
             est = None
             if codigo:
-                est = Estudiante.objects.filter(codigo_matricula=codigo).first()
+                matricula = Matricula.objects.select_related("estudiante__usuario").filter(
+                    codigo_matricula=codigo, anio_lectivo=anio
+                ).first()
+                est = matricula.estudiante if matricula else None
             if not est and dni:
                 est = Estudiante.objects.filter(usuario__dni=dni).first()
             if not est:
@@ -2351,7 +2523,7 @@ def horario_list_create(request):
             qs = qs.filter(asignacion__seccion_id=seccion_id)
         elif user.rol == "padre":
             try:
-                hijo = user.padre_profile.hijos.select_related("seccion").first()
+                hijo = user.padre_profile.hijos.select_related("usuario").first()
                 if not hijo:
                     return Response([])
                 seccion_id = hijo.seccion_id
@@ -2360,7 +2532,7 @@ def horario_list_create(request):
             hijo_id = request.GET.get("hijo_id")
             if hijo_id:
                 try:
-                    hijo = user.padre_profile.hijos.select_related("seccion").get(pk=hijo_id)
+                    hijo = user.padre_profile.hijos.select_related("usuario").get(pk=hijo_id)
                     seccion_id = hijo.seccion_id
                 except Exception:
                     return Response([])
@@ -2442,8 +2614,13 @@ def alertas_riesgo(request):
     # Estudiantes en esas secciones
     estudiantes = (
         Estudiante.objects
-        .filter(seccion_obj_id__in=secciones_ids, situacion_matricula="matriculado")
-        .select_related("usuario", "seccion_obj")
+        .filter(
+            matriculas__seccion_id__in=secciones_ids,
+            matriculas__situacion="matriculado",
+            matriculas__anio_lectivo=anio,
+        )
+        .select_related("usuario")
+        .distinct()
     )
 
     # Notas en C por estudiante
@@ -2482,7 +2659,7 @@ def alertas_riesgo(request):
             "id": e.id,
             "nombre": f"{e.usuario.last_name}, {e.usuario.first_name}".strip(", "),
             "seccion": str(e.seccion_obj) if e.seccion_obj else "—",
-            "seccion_id": e.seccion_obj_id,
+            "seccion_id": e.seccion_obj.id if e.seccion_obj else None,
             "areas_c": areas_c,
             "faltas_mes": faltas,
             "nivel_riesgo": nivel,

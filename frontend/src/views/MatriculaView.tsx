@@ -25,11 +25,11 @@ interface Matriculado {
 }
 
 const SITUACIONES: Record<string, { label: string; color: string; bg: string }> = {
-  matriculado:  { label: "Matriculado",  color: "#166534", bg: "#dcfce7" },
-  retirado:     { label: "Retirado",     color: "#991b1b", bg: "#fee2e2" },
-  trasladado:   { label: "Trasladado",   color: "#92400e", bg: "#fef3c7" },
-  promovido:    { label: "Promovido",    color: "#1e40af", bg: "#dbeafe" },
-  no_promovido: { label: "No promovido", color: "#6b21a8", bg: "#f3e8ff" },
+  matriculado:  { label: "Matriculado",  color: "var(--success-text)", bg: "var(--success-bg-subtle)" },
+  retirado:     { label: "Retirado",     color: "var(--danger-text)", bg: "var(--danger-bg-subtle)" },
+  trasladado:   { label: "Trasladado",   color: "var(--warning-text)", bg: "var(--warning-bg-subtle)" },
+  promovido:    { label: "Promovido",    color: "var(--info-text)", bg: "var(--info-bg-subtle)" },
+  no_promovido: { label: "No promovido", color: "var(--texto)", bg: "var(--empty-state-bg)" },
 };
 
 const PARENTESCOS = ["Padre", "Madre", "Abuelo/a", "Tío/a", "Hermano/a mayor", "Tutor legal", "Otro"];
@@ -161,13 +161,13 @@ export default function MatriculaView() {
       {/* RM 556-2024 · Cumplimiento Instructivo Matrícula 2025 */}
       {cumplimiento && cumplimiento.total_estudiantes > 0 && (
         <div style={{
-          background: cumplimiento.matriculas_invalidas === 0 ? "#F0FDF4" : "#FEF3C7",
-          border: `1px solid ${cumplimiento.matriculas_invalidas === 0 ? "#22C55E" : "#F59E0B"}`,
+          background: cumplimiento.matriculas_invalidas === 0 ? "var(--success-bg-subtle)" : "var(--warning-bg-subtle)",
+          border: `1px solid ${cumplimiento.matriculas_invalidas === 0 ? "color-mix(in srgb, var(--success-text) 45%, transparent)" : "var(--warning-border-subtle)"}`,
           borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 13,
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
-              <strong style={{ color: cumplimiento.matriculas_invalidas === 0 ? "#166534" : "#92400E" }}>
+              <strong style={{ color: cumplimiento.matriculas_invalidas === 0 ? "var(--success-text)" : "var(--warning-text)" }}>
                 Instructivo Matrícula EBR 2025:
               </strong>{" "}
               <span>
@@ -175,24 +175,24 @@ export default function MatriculaView() {
                 {" "}({cumplimiento.pct_cumplimiento}%)
               </span>
               {cumplimiento.matriculas_invalidas > 0 && (
-                <span style={{ color: "#92400E", marginLeft: 8 }}>
+                <span style={{ color: "var(--warning-text)", marginLeft: 8 }}>
                   · {cumplimiento.matriculas_invalidas} con datos críticos faltantes
                 </span>
               )}
             </div>
             {cumplimiento.matriculas_invalidas > 0 && (
               <button onClick={() => setVerInvalidos(v => !v)}
-                style={{ padding: "4px 12px", border: "1px solid #F59E0B", background: verInvalidos ? "#FDE68A" : "white", color: "#92400E", borderRadius: 6, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
+                style={{ padding: "4px 12px", border: "1px solid var(--warning-border-subtle)", background: verInvalidos ? "var(--warning-bg-subtle)" : "var(--bg-panel)", color: "var(--warning-text)", borderRadius: 6, fontSize: 12, cursor: "pointer", fontWeight: 600 }}>
                 {verInvalidos ? "Ocultar" : "Ver detalle"}
               </button>
             )}
           </div>
           {verInvalidos && cumplimiento.invalidos.length > 0 && (
-            <div style={{ marginTop: 10, maxHeight: 240, overflowY: "auto", background: "white", borderRadius: 6, padding: 8 }}>
+            <div style={{ marginTop: 10, maxHeight: 240, overflowY: "auto", background: "var(--bg-panel)", borderRadius: 6, padding: 8 }}>
               {cumplimiento.invalidos.map((inv, i) => (
                 <div key={i} style={{ padding: "6px 8px", borderBottom: "1px solid var(--borde)", fontSize: 12 }}>
                   <div style={{ fontWeight: 600 }}>{inv.nombre} <span style={{ color: "var(--muted-foreground)" }}>· {inv.seccion} · {inv.completitud_pct}%</span></div>
-                  <div style={{ color: "#991B1B", fontSize: 11, marginTop: 2 }}>
+                  <div style={{ color: "var(--danger-text)", fontSize: 11, marginTop: 2 }}>
                     Falta: {inv.faltantes_labels.join(", ")}
                   </div>
                 </div>
@@ -268,17 +268,17 @@ export default function MatriculaView() {
 
       {/* Credencial recién creada */}
       {credencial && (
-        <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 10, padding: 16, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div style={{ background: "var(--success-bg-subtle)", border: "1px solid color-mix(in srgb, var(--success-text) 45%, transparent)", borderRadius: 10, padding: 16, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
-            <strong style={{ color: "#166534" }}>✓ Matrícula registrada</strong>
-            <div style={{ fontSize: 13, marginTop: 6, color: "#166534" }}>
-              Código: <code style={{ background: "#dcfce7", padding: "2px 6px", borderRadius: 4 }}>{credencial.codigo}</code>
-              {" "} · Usuario: <code style={{ background: "#dcfce7", padding: "2px 6px", borderRadius: 4 }}>{credencial.username}</code>
-              {" "} · Contraseña inicial: <code style={{ background: "#dcfce7", padding: "2px 6px", borderRadius: 4 }}>{credencial.password}</code>
+            <strong style={{ color: "var(--success-text)" }}>✓ Matrícula registrada</strong>
+            <div style={{ fontSize: 13, marginTop: 6, color: "var(--success-text)" }}>
+              Código: <code style={{ background: "color-mix(in srgb, var(--success-bg-subtle) 65%, var(--bg-panel))", padding: "2px 6px", borderRadius: 4 }}>{credencial.codigo}</code>
+              {" "} · Usuario: <code style={{ background: "color-mix(in srgb, var(--success-bg-subtle) 65%, var(--bg-panel))", padding: "2px 6px", borderRadius: 4 }}>{credencial.username}</code>
+              {" "} · Contraseña inicial: <code style={{ background: "color-mix(in srgb, var(--success-bg-subtle) 65%, var(--bg-panel))", padding: "2px 6px", borderRadius: 4 }}>{credencial.password}</code>
             </div>
-            <div style={{ fontSize: 11, color: "#15803d", marginTop: 4 }}>Guarda estas credenciales antes de cerrar.</div>
+            <div style={{ fontSize: 11, color: "var(--success-text)", marginTop: 4 }}>Guarda estas credenciales antes de cerrar.</div>
           </div>
-          <button onClick={() => setCredencial(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#166534" }}><X size={16} /></button>
+          <button onClick={() => setCredencial(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--success-text)" }}><X size={16} /></button>
         </div>
       )}
 
@@ -299,7 +299,7 @@ export default function MatriculaView() {
             </thead>
             <tbody>
               {lista.map(e => {
-                const sit = SITUACIONES[e.situacion_matricula] ?? { label: e.situacion_matricula, color: "#333", bg: "#f5f5f5" };
+                const sit = SITUACIONES[e.situacion_matricula] ?? { label: e.situacion_matricula, color: "var(--texto)", bg: "var(--empty-state-bg)" };
                 return (
                   <tr key={e.id} style={{ borderBottom: "1px solid var(--borde)" }}>
                     <td style={tdStyle}><code style={{ fontSize: 11, background: "var(--muted)", padding: "1px 5px", borderRadius: 4 }}>{e.codigo_matricula}</code></td>

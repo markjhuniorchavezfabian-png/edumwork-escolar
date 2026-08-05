@@ -44,10 +44,10 @@ const ACCIONES = [
 ];
 
 const COLOR_ALERTA: Record<string, string> = {
-  ninguna: "var(--slate-500)",
-  proximo: "var(--amarillo-600)",
-  urgente: "var(--rojo-600)",
-  vencido: "var(--rojo-600)",
+  ninguna: "var(--texto-mute)",
+  proximo: "var(--warning-text)",
+  urgente: "var(--danger-text)",
+  vencido: "var(--danger-text)",
 };
 
 export default function ConvivenciaView() {
@@ -96,15 +96,15 @@ export default function ConvivenciaView() {
           <div className="kpi-grid">
             <div className="kpi-card">
               <span className="kpi-label">Casos activos</span>
-              <span className="kpi-valor" style={{ color: "var(--azul-600)" }}>{kpis.activos}</span>
+              <span className="kpi-valor" style={{ color: "var(--info-text)" }}>{kpis.activos}</span>
             </div>
-            <div className="kpi-card" style={{ borderLeft: kpis.urgentes > 0 ? "3px solid var(--amarillo-600)" : undefined }}>
-              <span className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="alerta" size={12} style={{ color: "var(--amarillo-600)" }} /> Urgentes (≤5 días)</span>
-              <span className="kpi-valor" style={{ color: "var(--amarillo-600)" }}>{kpis.urgentes}</span>
+            <div className="kpi-card" style={{ borderLeft: kpis.urgentes > 0 ? "3px solid var(--warning-border-subtle)" : undefined }}>
+              <span className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="alerta" size={12} style={{ color: "var(--warning-text)" }} /> Urgentes (≤5 días)</span>
+              <span className="kpi-valor" style={{ color: "var(--warning-text)" }}>{kpis.urgentes}</span>
             </div>
-            <div className="kpi-card" style={{ borderLeft: kpis.vencidos > 0 ? "3px solid var(--rojo-600)" : undefined }}>
-              <span className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="alerta" size={12} style={{ color: "var(--rojo-600)" }} /> Vencidos</span>
-              <span className="kpi-valor" style={{ color: "var(--rojo-600)" }}>{kpis.vencidos}</span>
+            <div className="kpi-card" style={{ borderLeft: kpis.vencidos > 0 ? "3px solid var(--danger-border-subtle)" : undefined }}>
+              <span className="kpi-label" style={{ display: "flex", alignItems: "center", gap: 4 }}><Icon name="alerta" size={12} style={{ color: "var(--danger-text)" }} /> Vencidos</span>
+              <span className="kpi-valor" style={{ color: "var(--danger-text)" }}>{kpis.vencidos}</span>
             </div>
             <div className="kpi-card">
               <span className="kpi-label">Reportados SíseVe</span>
@@ -112,7 +112,7 @@ export default function ConvivenciaView() {
             </div>
           </div>
           {kpis.vencidos > 0 && (
-            <div style={{ padding: "12px 16px", background: "var(--rojo-50)", border: "1px solid var(--rojo-600)", borderRadius: 8, marginBottom: 20, color: "var(--rojo-600)", fontSize: 13.5 }}>
+            <div style={{ padding: "12px 16px", background: "var(--danger-bg-subtle)", border: "1px solid var(--danger-border-subtle)", borderRadius: 8, marginBottom: 20, color: "var(--danger-text)", fontSize: 13.5 }}>
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="alerta" size={14} /> <strong>Atención:</strong></span> Hay {kpis.vencidos} caso{kpis.vencidos === 1 ? "" : "s"} vencido{kpis.vencidos === 1 ? "" : "s"} de plazo legal (30 días).
               El director/a puede ser responsabilizado civilmente si no se atienden.
             </div>
@@ -140,8 +140,8 @@ export default function ConvivenciaView() {
                       <td style={{ fontSize: 12.5 }}>{c.tipo_label}</td>
                       <td>
                         <span className="badge" style={{
-                          background: c.gravedad === "grave" ? "var(--rojo-50)" : c.gravedad === "moderada" ? "var(--amarillo-50)" : "var(--slate-100)",
-                          color: c.gravedad === "grave" ? "var(--rojo-600)" : c.gravedad === "moderada" ? "var(--amarillo-600)" : "var(--slate-700)",
+                          background: c.gravedad === "grave" ? "var(--danger-bg-subtle)" : c.gravedad === "moderada" ? "var(--warning-bg-subtle)" : "var(--empty-state-bg)",
+                          color: c.gravedad === "grave" ? "var(--danger-text)" : c.gravedad === "moderada" ? "var(--warning-text)" : "var(--empty-state-text)",
                         }}>{c.gravedad_label}</span>
                       </td>
                       <td>{c.estado_label}</td>
@@ -310,7 +310,7 @@ function DetalleCasoModal({ caso, onCerrar, onActualizado }: {
 
           <div className="form-field">
             <label className="form-label">Descripción</label>
-            <p style={{ fontSize: 13.5, padding: 10, background: "var(--slate-50)", borderRadius: 6 }}>{caso.descripcion}</p>
+            <p style={{ fontSize: 13.5, padding: 10, background: "var(--fondo-secundario)", borderRadius: 6 }}>{caso.descripcion}</p>
           </div>
 
           <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
@@ -319,17 +319,17 @@ function DetalleCasoModal({ caso, onCerrar, onActualizado }: {
               {ESTADOS.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
             {!caso.reportado_siseve && (
-              <button className="btn-mini" style={{ background: "var(--rojo-50)", color: "var(--rojo-600)", display: "inline-flex", alignItems: "center", gap: 4 }} onClick={marcarS}>
+              <button className="btn-mini" style={{ background: "var(--danger-bg-subtle)", color: "var(--danger-text)", display: "inline-flex", alignItems: "center", gap: 4 }} onClick={marcarS}>
                 <Icon name="alerta" size={13} /> Registrar en SíseVe
               </button>
             )}
             {caso.reportado_siseve && (
-              <span style={{ fontSize: 11, color: "var(--verde-700)", background: "var(--verde-50)", padding: "3px 8px", borderRadius: 12, border: "1px solid var(--verde-300)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 11, color: "var(--success-text)", background: "var(--success-bg-subtle)", padding: "3px 8px", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--success-text) 45%, transparent)", display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <Icon name="check" size={11} /> SíseVe {caso.codigo_siseve ? `· ${caso.codigo_siseve}` : ""}
               </span>
             )}
             {!caso.registrado_libro_incidencias && (
-              <button className="btn-mini" style={{ background: "#FEF3C7", color: "#92400E", display: "inline-flex", alignItems: "center", gap: 4 }}
+              <button className="btn-mini" style={{ background: "var(--warning-bg-subtle)", color: "var(--warning-text)", display: "inline-flex", alignItems: "center", gap: 4 }}
                 onClick={async () => {
                   try { await import("../services/convivencia").then(m => m.marcarLibro(caso.id)); toast.ok("Libro marcado."); onActualizado(); }
                   catch { toast.error("Error."); }
@@ -338,7 +338,7 @@ function DetalleCasoModal({ caso, onCerrar, onActualizado }: {
               </button>
             )}
             {caso.registrado_libro_incidencias && (
-              <span style={{ fontSize: 11, color: "var(--verde-700)", background: "var(--verde-50)", padding: "3px 8px", borderRadius: 12, border: "1px solid var(--verde-300)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 11, color: "var(--success-text)", background: "var(--success-bg-subtle)", padding: "3px 8px", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--success-text) 45%, transparent)", display: "inline-flex", alignItems: "center", gap: 4 }}>
                 <Icon name="check" size={11} /> Libro registrado
               </span>
             )}
@@ -346,8 +346,8 @@ function DetalleCasoModal({ caso, onCerrar, onActualizado }: {
 
           {/* RM 383-2025 · Pasos oficiales del protocolo */}
           {caso.pasos_protocolo && caso.pasos_protocolo.length > 0 && (
-            <div style={{ background: "#FEF3C7", border: "1px solid #F59E0B", padding: 12, borderRadius: 8, marginBottom: 16 }}>
-              <h4 style={{ fontSize: 13, marginBottom: 8, color: "#92400E" }}>
+            <div style={{ background: "var(--warning-bg-subtle)", border: "1px solid var(--warning-border-subtle)", padding: 12, borderRadius: 8, marginBottom: 16 }}>
+              <h4 style={{ fontSize: 13, marginBottom: 8, color: "var(--warning-text)" }}>
                 Protocolo oficial RM 383-2025 · {caso.pasos_protocolo.filter(p => p.completado).length}/{caso.pasos_protocolo.length} pasos completados
               </h4>
               {caso.pasos_protocolo.map((paso, idx) => (
@@ -361,7 +361,7 @@ function DetalleCasoModal({ caso, onCerrar, onActualizado }: {
                     }}
                     style={{ marginTop: 3 }} />
                   <div>
-                    <span style={{ fontWeight: 700, color: "#7C2D12", marginRight: 5 }}>Día {paso.dia}:</span>
+                    <span style={{ fontWeight: 700, color: "var(--warning-text)", marginRight: 5 }}>Día {paso.dia}:</span>
                     <span style={{ textDecoration: paso.completado ? "line-through" : "none", opacity: paso.completado ? 0.7 : 1 }}>{paso.accion}</span>
                     {paso.completado && paso.fecha && (
                       <span style={{ fontSize: 10, color: "var(--muted-foreground)", marginLeft: 6 }}>
@@ -381,17 +381,17 @@ function DetalleCasoModal({ caso, onCerrar, onActualizado }: {
             {caso.seguimientos.length === 0 && <p style={{ fontSize: 13, color: "var(--texto-mute)" }}>Aún sin seguimiento.</p>}
             {caso.seguimientos.map((s) => (
               <div key={s.id} style={{ marginBottom: 12, position: "relative" }}>
-                <div style={{ position: "absolute", left: -18, top: 4, width: 10, height: 10, borderRadius: 50, background: "var(--azul-600)" }} />
+                <div style={{ position: "absolute", left: -18, top: 4, width: 10, height: 10, borderRadius: 50, background: "var(--info-text)" }} />
                 <div style={{ fontSize: 12, color: "var(--texto-mute)" }}>
                   {new Date(s.creado_en).toLocaleString("es-PE")} · {s.autor_nombre}
                 </div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--azul-700)", marginBottom: 2 }}>{s.accion_label}</div>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--info-text)", marginBottom: 2 }}>{s.accion_label}</div>
                 <div style={{ fontSize: 13 }}>{s.detalle}</div>
               </div>
             ))}
           </div>
 
-          <div style={{ background: "var(--slate-50)", padding: 12, borderRadius: 8 }}>
+          <div style={{ background: "var(--fondo-secundario)", padding: 12, borderRadius: 8 }}>
             <h4 style={{ fontSize: 13, marginBottom: 8 }}>Agregar seguimiento</h4>
             <select className="form-input" value={nuevoAccion} onChange={(e) => setNuevoAccion(e.target.value)} style={{ marginBottom: 8 }}>
               {ACCIONES.map((a) => <option key={a.codigo} value={a.codigo}>{a.etiqueta}</option>)}

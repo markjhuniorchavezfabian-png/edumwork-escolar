@@ -396,7 +396,7 @@ export default function PanelFamiliarView() {
               </Panel>
             ) : (
               <Panel titulo="Notas y boletas" icono={BookOpen}>
-                <EstadoVacio icono={TrendingUp} titulo="Sin notas" descripcion="Aún no hay notas cargadas del bimestre." />
+                <EstadoVacio icono={TrendingUp} titulo="Notas en revisión" descripcion="La institución publicará las notas y boletas cuando cierre el bimestre." />
               </Panel>
             )}
           </div>

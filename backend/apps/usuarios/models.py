@@ -4,6 +4,32 @@ from django.db import models
 from .tenant import OwnedManager
 
 
+class EstudianteManager(OwnedManager):
+    """Manager con helpers para filtrar estudiantes por matrícula."""
+
+    def matriculados(self, anio_lectivo=None, seccion_id=None, situaciones=None, activos=True):
+        """Estudiantes con matrícula vigente en el año lectivo."""
+        from apps.core.models import ConfiguracionInstitucional
+        if anio_lectivo is None:
+            cfg = ConfiguracionInstitucional.get_solo()
+            anio_lectivo = cfg.anio_lectivo_activo or 2026
+        if situaciones is None:
+            situaciones = ["matriculado", "suspendido"]
+        qs = super().get_queryset().select_related("usuario")
+        if activos:
+            qs = qs.filter(usuario__activo=True)
+        qs = qs.filter(
+            matriculas__anio_lectivo=anio_lectivo,
+            matriculas__situacion__in=situaciones,
+        ).distinct()
+        if seccion_id is not None:
+            qs = qs.filter(matriculas__seccion_id=seccion_id, matriculas__anio_lectivo=anio_lectivo)
+        return qs
+
+    def por_seccion(self, seccion_id, anio_lectivo=None):
+        return self.matriculados(anio_lectivo=anio_lectivo, seccion_id=seccion_id)
+
+
 class Rol(models.TextChoices):
     """Roles del sistema — reflejan actores de TOGAF Fase B.
     Ampliado en 2026-07-07 con los actores reales de la I.E.:
@@ -173,28 +199,66 @@ class SituacionMatricula(models.TextChoices):
     SUSPENDIDO = "suspendido", "Suspendido"
 
 
-class Estudiante(models.Model):
-    """Perfil extendido para usuarios con rol=ESTUDIANTE.
-    Ficha completa según requisitos MINEDU + SIAGIE + Ley 29733."""
-    usuario = models.OneToOneField(
-        Usuario, on_delete=models.CASCADE, related_name="perfil_estudiante"
+class Matricula(models.Model):
+    """Inscripción anual de un estudiante en una sección.
+
+    Un estudiante puede tener una matrícula por año lectivo. Esto permite
+    historial, traslados, reingresos y repetición sin duplicar la persona.
+    """
+    estudiante = models.ForeignKey(
+        "Estudiante",
+        on_delete=models.CASCADE,
+        related_name="matriculas",
     )
-    # ── Datos académicos ────────────────────────────────────────────────
-    # Campos legacy (se mantienen para compatibilidad; se sincronizan con seccion_obj).
-    grado = models.CharField(max_length=20, blank=True)
-    seccion = models.CharField(max_length=5, blank=True)
-    seccion_obj = models.ForeignKey(
+    seccion = models.ForeignKey(
         Seccion,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="estudiantes",
+        related_name="matriculas",
     )
-    codigo_matricula = models.CharField(max_length=20, unique=True, null=True, blank=True)
-    situacion_matricula = models.CharField(
-        max_length=15, choices=SituacionMatricula.choices,
+    anio_lectivo = models.PositiveSmallIntegerField(db_index=True)
+    codigo_matricula = models.CharField(
+        max_length=20,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Código SIAGIE o interno de matrícula para el año lectivo.",
+    )
+    situacion = models.CharField(
+        max_length=15,
+        choices=SituacionMatricula.choices,
         default=SituacionMatricula.MATRICULADO,
     )
+    fecha_matricula = models.DateField(null=True, blank=True)
+    observaciones = models.TextField(blank=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "matriculas"
+        unique_together = [("estudiante", "anio_lectivo")]
+        ordering = ["-anio_lectivo", "-creado_en"]
+
+    def __str__(self):
+        return f"Matrícula {self.anio_lectivo}: {self.estudiante.usuario.get_full_name()}"
+
+
+class Estudiante(models.Model):
+    """Perfil extendido para usuarios con rol=ESTUDIANTE.
+    Ficha completa según requisitos MINEDU + SIAGIE + Ley 29733.
+
+    A partir del refactor de matrícula, la sección, código y situación de matrícula
+    viven en el modelo `Matricula` (1:N por año lectivo). Este modelo conserva solo
+    los datos personales/académicos estáticos del estudiante.
+    """
+    usuario = models.OneToOneField(
+        Usuario, on_delete=models.CASCADE, related_name="perfil_estudiante"
+    )
+    # ── Datos académicos (estáticos / legacy) ───────────────────────────
+    # `grado` y `seccion` se mantienen como caché legible de la última matrícula.
+    grado = models.CharField(max_length=20, blank=True)
+    seccion = models.CharField(max_length=5, blank=True)
     fecha_ingreso = models.DateField(null=True, blank=True, help_text="Fecha de ingreso a la I.E.")
     colegio_procedencia = models.CharField(max_length=200, blank=True)
 
@@ -269,7 +333,7 @@ class Estudiante(models.Model):
         help_text="En modo personal: docente dueño. En institucional: NULL.",
     )
 
-    objects = OwnedManager()
+    objects = EstudianteManager()
 
     class Meta:
         db_table = "estudiantes"
@@ -286,6 +350,32 @@ class Estudiante(models.Model):
         return hoy.year - self.fecha_nacimiento.year - (
             (hoy.month, hoy.day) < (self.fecha_nacimiento.month, self.fecha_nacimiento.day)
         )
+
+    def matricula_para(self, anio_lectivo: int):
+        """Devuelve la matrícula del estudiante para un año lectivo."""
+        return self.matriculas.filter(anio_lectivo=anio_lectivo).first()
+
+    @property
+    def matricula_actual(self):
+        from apps.core.models import ConfiguracionInstitucional
+        cfg = ConfiguracionInstitucional.get_solo()
+        return self.matricula_para(cfg.anio_lectivo_activo or 2026)
+
+    @property
+    def seccion_obj(self):
+        """Compatibilidad hacia atrás: devuelve la sección de la matrícula actual."""
+        m = self.matricula_actual
+        return m.seccion if m else None
+
+    @property
+    def codigo_matricula(self):
+        m = self.matricula_actual
+        return m.codigo_matricula if m else None
+
+    @property
+    def situacion_matricula(self):
+        m = self.matricula_actual
+        return m.situacion if m else SituacionMatricula.MATRICULADO
 
 
 class ParentescoChoices(models.TextChoices):

@@ -9,6 +9,9 @@ from .views import (
     mis_secciones,
     qr_estudiante,
     qrs_por_seccion,
+    siagie_asistencia_analizar,
+    siagie_asistencia_preview,
+    siagie_asistencia_rellenar,
 )
 
 router = DefaultRouter()
@@ -21,5 +24,8 @@ urlpatterns = [
     path("qr/<str:codigo>/", qr_estudiante, name="asistencia-qr-estudiante"),
     path("secciones/<int:seccion_id>/qrs/", qrs_por_seccion, name="asistencia-qrs-seccion"),
     path("exportar-mensual/", exportar_mensual, name="asistencia-exportar-mensual"),
+    path("siagie/analizar/", siagie_asistencia_analizar, name="asistencia-siagie-analizar"),
+    path("siagie/preview/", siagie_asistencia_preview, name="asistencia-siagie-preview"),
+    path("siagie/rellenar/", siagie_asistencia_rellenar, name="asistencia-siagie-rellenar"),
     path("", include(router.urls)),
 ]

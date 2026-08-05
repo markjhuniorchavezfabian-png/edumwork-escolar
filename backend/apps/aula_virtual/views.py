@@ -7,8 +7,9 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from apps.core.models import ConfiguracionInstitucional
 from apps.notificaciones.servicios import notificar
-from apps.usuarios.models import Rol, Usuario
+from apps.usuarios.models import Matricula, Rol, Usuario
 
 from .models import Curso, EstadoEntrega, Entrega, Leccion, Recurso, Tarea
 from .serializers import (
@@ -49,13 +50,19 @@ class CursoViewSet(viewsets.ModelViewSet):
         # Director/subdirector/admin_tic: todos
         if user.rol == Rol.ESTUDIANTE:
             est = getattr(user, "perfil_estudiante", None)
-            if not est or not est.seccion_obj_id:
+            if not est or not est.seccion_obj:
                 return qs.none()
             qs = qs.filter(secciones=est.seccion_obj)
         elif user.rol == Rol.PADRE:
             try:
+                anio = ConfiguracionInstitucional.get_solo().anio_lectivo_activo or 2026
+                hijos = user.perfil_padre.hijos.all()
                 secciones_ids = list(
-                    user.perfil_padre.hijos.values_list("seccion_obj_id", flat=True)
+                    Matricula.objects.filter(
+                        estudiante__in=hijos, anio_lectivo=anio
+                    )
+                    .values_list("seccion_id", flat=True)
+                    .distinct()
                 )
             except AttributeError:
                 return qs.none()
@@ -180,7 +187,7 @@ class TareaViewSet(viewsets.ModelViewSet):
         # Estudiantes solo ven publicadas de sus cursos
         if user.rol == Rol.ESTUDIANTE:
             est = getattr(user, "perfil_estudiante", None)
-            if not est or not est.seccion_obj_id:
+            if not est or not est.seccion_obj:
                 return qs.none()
             qs = qs.filter(publicada=True, curso__secciones=est.seccion_obj)
 
@@ -194,9 +201,11 @@ class TareaViewSet(viewsets.ModelViewSet):
 
         # Notificar a estudiantes de las secciones del curso
         try:
+            anio = ConfiguracionInstitucional.get_solo().anio_lectivo_activo or 2026
             estudiantes_users = Usuario.objects.filter(
                 rol=Rol.ESTUDIANTE,
-                perfil_estudiante__seccion_obj__in=curso.secciones.all(),
+                perfil_estudiante__matriculas__seccion__in=curso.secciones.all(),
+                perfil_estudiante__matriculas__anio_lectivo=anio,
                 is_active=True,
             ).distinct()
             for u in estudiantes_users:
@@ -220,6 +229,17 @@ class TareaViewSet(viewsets.ModelViewSet):
         if not _es_docente_del_curso(self.request.user, instance.curso):
             raise PermissionDenied()
         instance.delete()
+
+    @action(detail=False, methods=["get"], url_path="pendientes")
+    def pendientes(self, request):
+        """Tareas visibles para el estudiante que todavía no fueron entregadas."""
+        if request.user.rol != Rol.ESTUDIANTE:
+            return Response([])
+        est = getattr(request.user, "perfil_estudiante", None)
+        if not est:
+            return Response([])
+        qs = self.get_queryset().exclude(entregas__estudiante=est).order_by("fecha_entrega")
+        return Response(TareaSerializer(qs, many=True).data)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -264,7 +284,7 @@ class EntregaViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Tarea inválida.")
 
         # Verificar que la tarea pertenezca a un curso de su sección
-        if not tarea.curso.secciones.filter(pk=est.seccion_obj_id).exists():
+        if not est.seccion_obj or not tarea.curso.secciones.filter(pk=est.seccion_obj.id).exists():
             raise PermissionDenied("Esta tarea no es de tu sección.")
 
         # Determinar estado según fecha

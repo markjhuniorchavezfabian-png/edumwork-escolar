@@ -21,8 +21,8 @@ interface Seccion {
 }
 
 const BADGE_NIVEL: Record<string, { label: string; bg: string; color: string }> = {
-  alto:  { label: "Alto",  bg: "var(--rojo-50)",     color: "#dc2626" },
-  medio: { label: "Medio", bg: "var(--amarillo-50)",  color: "#d97706" },
+  alto:  { label: "Alto",  bg: "var(--danger-bg-subtle)",  color: "var(--danger-text)" },
+  medio: { label: "Medio", bg: "var(--warning-bg-subtle)", color: "var(--warning-text)" },
 };
 
 export default function AlertasView() {
@@ -122,9 +122,9 @@ export default function AlertasView() {
       {/* Resumen chips + botón IA */}
       {!cargando && alertas.length > 0 && (
         <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-          <Chip color="#dc2626" bg="var(--rojo-50)" label={`${altos.length} riesgo alto`} />
-          <Chip color="#d97706" bg="var(--amarillo-50)" label={`${medios.length} riesgo medio`} />
-          <Chip color="#2563eb" bg="var(--azul-50)" label={`${alertas.length} total`} />
+          <Chip color="var(--danger-text)" bg="var(--danger-bg-subtle)" label={`${altos.length} riesgo alto`} />
+          <Chip color="var(--warning-text)" bg="var(--warning-bg-subtle)" label={`${medios.length} riesgo medio`} />
+          <Chip color="var(--info-text)" bg="var(--info-bg-subtle)" label={`${alertas.length} total`} />
           <button
             className="btn btn-secundario"
             style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}
@@ -143,8 +143,8 @@ export default function AlertasView() {
         <Cargando />
       ) : alertas.length === 0 ? (
         <div style={{
-          background: "var(--verde-50)", border: "1px solid #bbf7d0",
-          borderRadius: 10, padding: 24, textAlign: "center", color: "#166534", fontSize: 14,
+          background: "var(--success-bg-subtle)", border: "1px solid color-mix(in srgb, var(--success-text) 45%, transparent)",
+          borderRadius: 10, padding: 24, textAlign: "center", color: "var(--success-text)", fontSize: 14,
         }}>
           Sin alertas activas. Todos los estudiantes están al día en notas y asistencia.
         </div>
@@ -173,8 +173,8 @@ export default function AlertasView() {
                         : a.areas_c.map((area) => (
                           <span key={area} style={{
                             display: "inline-block", marginRight: 4, marginBottom: 2,
-                            background: "var(--rojo-50)", color: "#dc2626",
-                            border: "1px solid #fca5a5", borderRadius: 4,
+                            background: "var(--danger-bg-subtle)", color: "var(--danger-text)",
+                            border: "1px solid var(--danger-border-subtle)", borderRadius: 4,
                             padding: "1px 6px", fontSize: 11, fontWeight: 600,
                           }}>{area}</span>
                         ))
@@ -182,7 +182,7 @@ export default function AlertasView() {
                     </td>
                     <td style={tdStyle}>
                       {a.faltas_mes > 0
-                        ? <span style={{ color: a.faltas_mes >= umbral ? "#dc2626" : "var(--texto)", fontWeight: a.faltas_mes >= umbral ? 700 : 400 }}>
+                        ? <span style={{ color: a.faltas_mes >= umbral ? "var(--danger-text)" : "var(--texto)", fontWeight: a.faltas_mes >= umbral ? 700 : 400 }}>
                             {a.faltas_mes}
                           </span>
                         : <span style={{ color: "var(--muted-foreground)" }}>0</span>
@@ -209,7 +209,7 @@ export default function AlertasView() {
       {reporteIA && (
         <div style={{ marginTop: 20 }}>
           <Card titulo="Reporte de riesgo (IA)">
-            <div style={{ borderLeft: "3px solid #dc2626", paddingLeft: 16 }}>
+            <div style={{ borderLeft: "3px solid var(--danger-border-subtle)", paddingLeft: 16 }}>
               {reporteIA.split("\n").map((line, i) => {
                 if (line.startsWith("## ")) return <h3 key={i} style={{ margin: "12px 0 4px", fontSize: 15 }}>{line.slice(3)}</h3>;
                 if (line.startsWith("**") && line.endsWith("**")) return <strong key={i} style={{ display: "block" }}>{line.slice(2, -2)}</strong>;

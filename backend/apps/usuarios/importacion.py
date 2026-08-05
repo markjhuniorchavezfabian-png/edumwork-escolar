@@ -6,7 +6,7 @@ from datetime import datetime
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
-from apps.usuarios.models import Docente, Estudiante, Padre, Rol, Seccion, Usuario
+from apps.usuarios.models import Docente, Estudiante, Matricula, Padre, Rol, Seccion, Usuario
 
 
 def _password_inicial(dni: str) -> str:
@@ -353,13 +353,16 @@ def importar_estudiantes(archivo) -> dict:
             if gs not in grupos_validos:
                 gs = "NS"
 
+            # Año lectivo activo para la matrícula
+            from apps.core.models import ConfiguracionInstitucional
+            cfg = ConfiguracionInstitucional.get_solo()
+            anio_lectivo = cfg.anio_lectivo_activo or 2026
+
             # Estudiante: sobreescribir solo campos que vinieron con dato
             codigo_siagie_s = str(codigo_siagie or "").strip() or None
             defaults = {
                 "grado": grado_s,
                 "seccion": seccion_s,
-                "seccion_obj": seccion_obj,
-                "codigo_matricula": codigo_siagie_s or str(codigo_mat or "").strip() or None,
                 "sexo": sexo_norm,
                 "grupo_sanguineo": gs,
             }
@@ -400,7 +403,18 @@ def importar_estudiantes(archivo) -> dict:
             except (ValueError, TypeError):
                 pass
 
-            Estudiante.objects.update_or_create(usuario=usuario, defaults=defaults)
+            estudiante, _ = Estudiante.objects.update_or_create(usuario=usuario, defaults=defaults)
+
+            # Matrícula del año lectivo activo
+            Matricula.objects.update_or_create(
+                estudiante=estudiante,
+                anio_lectivo=anio_lectivo,
+                defaults={
+                    "seccion": seccion_obj,
+                    "codigo_matricula": codigo_siagie_s or str(codigo_mat or "").strip() or None,
+                    "situacion": "matriculado",
+                },
+            )
         except Exception as e:  # noqa: BLE001 — capturamos para reportar sin abortar
             errores.append({"fila": i, "error": str(e), "datos": [str(x) if x else "" for x in fila[:4]]})
 

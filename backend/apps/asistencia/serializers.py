@@ -10,7 +10,7 @@ class EstudianteListaSerializer(serializers.ModelSerializer):
     dni = serializers.CharField(source="usuario.dni", read_only=True)
     grado = serializers.CharField()
     seccion = serializers.CharField()
-    codigo_matricula = serializers.CharField()
+    codigo_matricula = serializers.CharField(read_only=True)
     usuario_id = serializers.IntegerField(source="usuario.id", read_only=True)
 
     class Meta:

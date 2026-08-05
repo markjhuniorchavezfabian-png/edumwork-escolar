@@ -9,6 +9,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from apps.asistencia.models import EstadoAsistencia, RegistroAsistencia
+from apps.core.models import ConfiguracionInstitucional
 from apps.notificaciones.servicios import notificar
 from apps.usuarios.models import Estudiante, Padre, Rol, Usuario
 
@@ -54,7 +55,11 @@ class JustificacionViewSet(viewsets.ModelViewSet):
             # Docente ve las de sus secciones
             secciones_ids = set(user.secciones_asignadas.values_list("id", flat=True))
             secciones_ids.update(user.secciones_como_tutor.values_list("id", flat=True))
-            qs = qs.filter(estudiante__seccion_obj_id__in=secciones_ids)
+            anio = ConfiguracionInstitucional.get_solo().anio_lectivo_activo or 2026
+            qs = qs.filter(
+                estudiante__matriculas__seccion_id__in=secciones_ids,
+                estudiante__matriculas__anio_lectivo=anio,
+            ).distinct()
         elif user.rol not in ROLES_REVISORES:
             return qs.none()
 

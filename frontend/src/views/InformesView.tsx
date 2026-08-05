@@ -129,7 +129,7 @@ function VistaDocente({ secciones, anio }: { secciones: Seccion[]; anio: number 
     setCargando(true);
     try {
       const resultados = await Promise.allSettled(
-        BIMESTRES.map(b => api.get<InformeData>("/notas/informe/", { params: { seccion_id: seccionId, bimestre: b, anio } }))
+        BIMESTRES.map(b => api.get<InformeData>("/notas/informe/", { params: { seccion_id: seccionId, bimestre: b, anio, solo_datos: 1 } }))
       );
       const nuevo: Record<Bim, InformeData | null> = { "1": null, "2": null, "3": null, "4": null };
       BIMESTRES.forEach((b, i) => {
@@ -208,8 +208,8 @@ function VistaDocente({ secciones, anio }: { secciones: Seccion[]; anio: number 
       {!cargando && todasAreas.length > 0 && (
         <>
           {areasCriticas.size > 0 && (
-            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-              <AlertTriangle size={16} color="#DC2626" />
+            <div className="ui-alert ui-alert-danger">
+              <AlertTriangle size={16} />
               <span><strong>Áreas críticas (&gt;30% en C):</strong> {[...areasCriticas].join(", ")}</span>
             </div>
           )}
@@ -242,9 +242,9 @@ function VistaDocente({ secciones, anio }: { secciones: Seccion[]; anio: number 
                   {todasAreas.map((area, idx) => {
                     const critica = areasCriticas.has(area);
                     return (
-                      <tr key={area} style={{ borderBottom: "1px solid var(--border)", background: critica ? "#FFF7F7" : idx % 2 === 0 ? "transparent" : "var(--muted)" }}>
-                        <td style={{ padding: "7px 10px", fontWeight: critica ? 700 : 500, color: critica ? "#DC2626" : undefined }}>
-                          {critica && <AlertTriangle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} color="#DC2626" />}
+                      <tr key={area} className={critica ? "ui-row-danger" : undefined} style={{ borderBottom: "1px solid var(--border)", background: critica ? undefined : idx % 2 === 0 ? "transparent" : "var(--muted)" }}>
+                        <td className={critica ? "ui-text-danger" : undefined} style={{ padding: "7px 10px", fontWeight: critica ? 700 : 500 }}>
+                          {critica && <AlertTriangle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />}
                           {area}
                         </td>
                         {BIMESTRES.map(b => {
@@ -289,7 +289,7 @@ function VistaDocente({ secciones, anio }: { secciones: Seccion[]; anio: number 
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                       {inf.areas.map(a => (
                         <div key={a.area}>
-                          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 3, color: areasCriticas.has(a.area) ? "#DC2626" : undefined }}>
+                          <div className={areasCriticas.has(a.area) ? "ui-text-danger" : undefined} style={{ fontSize: 12, fontWeight: 600, marginBottom: 3 }}>
                             {areasCriticas.has(a.area) && "⚠ "}{a.area}
                           </div>
                           <BarrasNL dist={a.distribucion} total={inf.total_estudiantes} compact />
@@ -305,8 +305,9 @@ function VistaDocente({ secciones, anio }: { secciones: Seccion[]; anio: number 
       )}
 
       {!cargando && todasAreas.length === 0 && seccionId && (
-        <div style={{ background: "var(--muted)", borderRadius: 10, padding: 24, textAlign: "center", color: "var(--muted-foreground)" }}>
-          Sin notas registradas en esta sección todavía.
+        <div style={{ background: "var(--muted)", borderRadius: 10, padding: 24, textAlign: "center", color: "var(--muted-foreground)", lineHeight: 1.6 }}>
+          <strong style={{ color: "var(--foreground)" }}>Todavía no hay notas para mostrar.</strong>
+          <div>Carga notas desde <strong>Registro de notas</strong> o importa la plantilla Excel para activar gráficos, alertas e informes.</div>
         </div>
       )}
     </div>
@@ -332,7 +333,7 @@ function VistaDirector({ secciones, anio }: { secciones: Seccion[]; anio: number
     try {
       const resultados = await Promise.allSettled(
         secciones.map(s => api.get<InformeData>("/notas/informe/", {
-          params: { seccion_id: s.id, ...(bimestre !== "todos" ? { bimestre } : {}), anio }
+          params: { seccion_id: s.id, ...(bimestre !== "todos" ? { bimestre } : {}), anio, solo_datos: 1 }
         }))
       );
       const nuevo: Record<number, InformeData | null> = {};
@@ -350,7 +351,7 @@ function VistaDirector({ secciones, anio }: { secciones: Seccion[]; anio: number
     setCargandoComp(true);
     try {
       const resultados = await Promise.allSettled(
-        BIMESTRES.map(b => api.get<InformeData>("/notas/informe/", { params: { seccion_id: seccionComp, bimestre: b, anio } }))
+        BIMESTRES.map(b => api.get<InformeData>("/notas/informe/", { params: { seccion_id: seccionComp, bimestre: b, anio, solo_datos: 1 } }))
       );
       const nuevo: Record<Bim, InformeData | null> = { "1": null, "2": null, "3": null, "4": null };
       BIMESTRES.forEach((b, i) => {
@@ -438,8 +439,8 @@ function VistaDirector({ secciones, anio }: { secciones: Seccion[]; anio: number
           </div>
 
           {areasCriticas.size > 0 && (
-            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 8, fontSize: 13, alignItems: "center" }}>
-              <AlertTriangle size={16} color="#DC2626" />
+            <div className="ui-alert ui-alert-danger">
+              <AlertTriangle size={16} />
               <span><strong>Áreas críticas en alguna sección (&gt;30% en C):</strong> {[...areasCriticas].join(", ")}</span>
             </div>
           )}
@@ -469,16 +470,20 @@ function VistaDirector({ secciones, anio }: { secciones: Seccion[]; anio: number
                     </div>
                   }>
                     {!inf ? (
-                      <div style={{ color: "var(--muted-foreground)", fontSize: 13 }}>Sin datos para este período.</div>
+                      <div style={{ color: "var(--muted-foreground)", fontSize: 13, lineHeight: 1.6 }}>
+                        Sin datos para este período. Cuando el docente registre notas, aquí aparecerá la distribución AD/A/B/C y los botones de exportación servirán para entregar informes.
+                      </div>
                     ) : inf.areas.length === 0 ? (
-                      <div style={{ color: "var(--muted-foreground)", fontSize: 13 }}>Sin notas registradas.</div>
+                      <div style={{ color: "var(--muted-foreground)", fontSize: 13, lineHeight: 1.6 }}>
+                        Sin notas registradas. Primero carga notas o importa el Excel de evaluación.
+                      </div>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                         {inf.areas.map(a => {
                           const critica = areasCriticas.has(a.area);
                           return (
                             <div key={a.area}>
-                              <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 3, color: critica ? "#DC2626" : undefined }}>
+                              <div className={critica ? "ui-text-danger" : undefined} style={{ fontSize: 12, fontWeight: 600, marginBottom: 3 }}>
                                 {critica && "⚠ "}{a.area}
                               </div>
                               <BarrasNL dist={a.distribucion} total={inf.total_estudiantes} />
@@ -511,8 +516,9 @@ function VistaDirector({ secciones, anio }: { secciones: Seccion[]; anio: number
           </div>
 
           {cargandoComp ? <Cargando /> : areasComp.length === 0 ? (
-            <div style={{ background: "var(--muted)", borderRadius: 10, padding: 24, textAlign: "center", color: "var(--muted-foreground)" }}>
-              Sin notas registradas en esta sección.
+            <div style={{ background: "var(--muted)", borderRadius: 10, padding: 24, textAlign: "center", color: "var(--muted-foreground)", lineHeight: 1.6 }}>
+              <strong style={{ color: "var(--foreground)" }}>Sin notas registradas en esta sección.</strong>
+              <div>La comparativa bimestral aparecerá cuando existan notas en al menos un bimestre.</div>
             </div>
           ) : (
             <Card titulo="Comparativa por bimestre">
@@ -553,9 +559,9 @@ function VistaDirector({ secciones, anio }: { secciones: Seccion[]; anio: number
                         pctCFiltrado[pctCFiltrado.length - 1] > pctCFiltrado[0] + 0.1;
 
                       return (
-                        <tr key={area} style={{ borderBottom: "1px solid var(--border)", background: tendenciaNeg ? "#FFF7F7" : idx % 2 === 0 ? "transparent" : "var(--muted)" }}>
-                          <td style={{ padding: "7px 10px", fontWeight: tendenciaNeg ? 700 : 500, color: tendenciaNeg ? "#DC2626" : undefined }}>
-                            {tendenciaNeg && <AlertTriangle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} color="#DC2626" />}
+                        <tr key={area} className={tendenciaNeg ? "ui-row-danger" : undefined} style={{ borderBottom: "1px solid var(--border)", background: tendenciaNeg ? undefined : idx % 2 === 0 ? "transparent" : "var(--muted)" }}>
+                          <td className={tendenciaNeg ? "ui-text-danger" : undefined} style={{ padding: "7px 10px", fontWeight: tendenciaNeg ? 700 : 500 }}>
+                            {tendenciaNeg && <AlertTriangle size={12} style={{ marginRight: 4, verticalAlign: "middle" }} />}
                             {area}
                           </td>
                           {BIMESTRES.map(b => {
@@ -577,7 +583,7 @@ function VistaDirector({ secciones, anio }: { secciones: Seccion[]; anio: number
                     <strong>{nl}</strong> {nl === "AD" ? "Dest." : nl === "A" ? "Esperado" : nl === "B" ? "Proceso" : "Inicio"}
                   </span>
                 ))}
-                <span style={{ color: "#DC2626", display: "flex", alignItems: "center", gap: 4 }}>
+                <span className="ui-text-danger" style={{ display: "flex", alignItems: "center", gap: 4 }}>
                   <AlertTriangle size={11} /> Tendencia negativa (C aumenta entre bimestres)
                 </span>
               </div>
@@ -711,6 +717,15 @@ export default function InformesView() {
       {esDocente && secciones.length === 0 && (
         <div style={{ background: "var(--amarillo-50)", border: "1px solid var(--amarillo-300)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
           <strong>Sin secciones asignadas.</strong> El director debe asignarte secciones en <strong>Administración → Asignaciones de docentes</strong>.
+        </div>
+      )}
+
+      {!esDocente && secciones.length === 0 && (
+        <div style={{ background: "var(--muted)", border: "1px dashed var(--border)", borderRadius: 12, padding: 22, marginBottom: 16, lineHeight: 1.6 }}>
+          <strong>Aún no hay secciones creadas.</strong>
+          <div style={{ color: "var(--muted-foreground)", fontSize: 14 }}>
+            Crea secciones en <strong>Administración → Secciones</strong> y luego registra notas para activar informes, gráficos, exportes e IA.
+          </div>
         </div>
       )}
 

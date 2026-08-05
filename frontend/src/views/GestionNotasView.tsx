@@ -3,7 +3,6 @@ import api from "../services/api";
 import Card from "../components/ui/Card";
 import Icon from "../components/ui/Icon";
 import { useToast } from "../components/ui/Toast";
-import { useConfirm } from "../components/ui/Confirm";
 import { EmptyState, Cargando } from "../components/ui/Spinner";
 import { Link } from "react-router-dom";
 import { useInstitucion } from "../context/InstitucionContext";
@@ -81,7 +80,6 @@ function nombreSeccion(s: Seccion) { return s.nombre || `${s.grado} ${s.letra}`;
 /* ════════════════════════════════════════════════════════════════════════ */
 export default function GestionNotasView() {
   const toast = useToast();
-  const confirmar = useConfirm();
   const institucion = useInstitucion();
   const anioActivo = institucion.anio_lectivo_activo || new Date().getFullYear();
   const primerAnio = institucion.primer_anio_lectivo || anioActivo;
@@ -186,20 +184,6 @@ export default function GestionNotasView() {
       setEditandoId(null);
       cargarNotas();
     } catch { toast.error("Error al guardar."); }
-  }
-
-  async function borrar(n: Nota) {
-    const ok = await confirmar({
-      titulo: "Eliminar nota",
-      mensaje: `¿Eliminar la nota de ${n.estudiante_nombre} en ${n.area}?`,
-      textoConfirmar: "Eliminar", variante: "peligro",
-    });
-    if (!ok) return;
-    try {
-      await api.delete(`/notas/${n.id}/`);
-      toast.ok("Nota eliminada.");
-      cargarNotas();
-    } catch { toast.error("Error."); }
   }
 
   if (cargandoSecs) return <Cargando />;
@@ -413,6 +397,11 @@ export default function GestionNotasView() {
               Año {filtroAnio} — solo lectura.
             </div>
           )}
+          {!esAnioHistorico && (
+            <div className="ui-readonly-note" style={{ marginBottom: 14 }}>
+              Vista directiva: revisión y corrección auditada. La eliminación de notas no está disponible desde esta pantalla.
+            </div>
+          )}
 
           {cargandoNotas ? (
             <Cargando inline />
@@ -512,9 +501,6 @@ export default function GestionNotasView() {
                                       <>
                                         <button className="btn-mini btn-icono" onClick={() => empezarEdicion(notaPrin)} title="Editar">
                                           <Icon name="editar" size={12} />
-                                        </button>
-                                        <button className="btn-mini btn-icono" style={{ color: "var(--rojo-600)" }} onClick={() => borrar(notaPrin)} title="Eliminar">
-                                          <Icon name="borrar" size={12} />
                                         </button>
                                       </>
                                     )}

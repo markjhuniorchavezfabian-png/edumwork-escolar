@@ -668,7 +668,7 @@ def generar_boletas_zip(estudiantes_qs, bimestre: str, anio: int = None) -> byte
     """ZIP con las boletas de todos los estudiantes indicados."""
     buf_zip = io.BytesIO()
     with zipfile.ZipFile(buf_zip, "w", zipfile.ZIP_DEFLATED) as zf:
-        for est in estudiantes_qs.select_related("usuario", "seccion_obj__tutor"):
+        for est in estudiantes_qs.select_related("usuario"):
             pdf_bytes = generar_boleta_pdf(est, bimestre, anio)
             apellidos = (est.usuario.last_name or "").replace(" ", "_")[:20]
             nombre = f"boleta_{apellidos}_{est.codigo_matricula or est.usuario.dni or est.pk}_B{bimestre}.pdf"
@@ -801,7 +801,7 @@ def generar_libretas_anuales_zip(estudiantes_qs, anio: int = None) -> bytes:
     cfg = _cfg_institucional()
     anio = anio or cfg["anio"]
     with zipfile.ZipFile(buf_zip, "w", zipfile.ZIP_DEFLATED) as zf:
-        for est in estudiantes_qs.select_related("usuario", "seccion_obj__tutor"):
+        for est in estudiantes_qs.select_related("usuario"):
             pdf_bytes = generar_libreta_anual_pdf(est, anio)
             nombre = f"libreta_{est.codigo_matricula or est.usuario.dni or est.pk}_{anio}.pdf"
             zf.writestr(nombre, pdf_bytes)

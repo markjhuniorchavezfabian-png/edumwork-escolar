@@ -20,6 +20,13 @@ const BADGE: Record<EstadoAsistencia, { label: string; bg: string; text: string 
   justificado: { label: "J", bg: "#DBEAFE", text: "#1E40AF" },
 };
 
+const STATUS_CLASS: Record<EstadoAsistencia, string> = {
+  presente: "ui-status-presente",
+  tardanza: "ui-status-tardanza",
+  ausente: "ui-status-ausente",
+  justificado: "ui-status-justificado",
+};
+
 const ESTADO_LABEL: Record<EstadoAsistencia, string> = {
   presente: "Presente",
   tardanza: "Tardanza",
@@ -274,7 +281,7 @@ export default function DocenteAsistenciaView() {
         <div className="card-header">
           <span>
             Estudiantes ({filtrados.length}){totalCambios > 0 && ` · ${totalCambios} cambios pendientes`}
-            {!modoEdicion && <span style={{ marginLeft: 8, fontSize: 11, color: "var(--texto-mute)", fontStyle: "italic" }}>solo lectura</span>}
+            {!modoEdicion && <span className="ui-readonly-note">solo lectura</span>}
           </span>
           {modoEdicion && (
             <div style={{ display: "flex", gap: 6 }}>
@@ -305,14 +312,8 @@ export default function DocenteAsistenciaView() {
                   <div className="asistencia-botones">
                     <button
                       onClick={() => modoEdicion && ciclarEstado(est.id)}
-                      style={{
-                        padding: "6px 16px", borderRadius: 6, border: "none",
-                        cursor: modoEdicion ? "pointer" : "default",
-                        fontWeight: 700, fontSize: 14, minWidth: 44,
-                        background: actual ? BADGE[actual].bg : "#F3F4F6",
-                        color: actual ? BADGE[actual].text : "#6B7280",
-                        opacity: modoEdicion ? 1 : 0.85,
-                      }}
+                      className={`ui-status-pill ${actual ? STATUS_CLASS[actual] : "ui-status-empty"}`}
+                      style={{ cursor: modoEdicion ? "pointer" : "default", opacity: modoEdicion ? 1 : 0.85 }}
                       title={modoEdicion ? "Click para cambiar estado" : "Activa edición para modificar"}
                     >
                       {actual ? BADGE[actual].label : "—"}
@@ -352,8 +353,6 @@ export default function DocenteAsistenciaView() {
                           onChange={(e) => modoEdicion && e.target.value ? setEstado(est.id, e.target.value as EstadoAsistencia) : undefined}
                           style={{
                             fontSize: 12, padding: "4px 8px",
-                            background: actual ? BADGE[actual].bg : undefined,
-                            color: actual ? BADGE[actual].text : undefined,
                             fontWeight: actual ? 700 : undefined,
                           }}
                         >

@@ -39,9 +39,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR("Corre seed_usuarios primero."))
             return
 
-        estudiantes = list(Estudiante.objects.filter(
-            situacion_matricula="matriculado"
-        ).select_related("usuario", "seccion_obj"))
+        estudiantes = list(Estudiante.objects.matriculados(
+            situaciones=["matriculado"]
+        ).select_related("usuario"))
 
         if not estudiantes:
             self.stdout.write(self.style.ERROR("No hay estudiantes. Corre seed_asistencia primero."))
@@ -120,7 +120,7 @@ class Command(BaseCommand):
         else:
             creadas_notas = 0
             for asig in asigs:
-                ests_seccion = [e for e in estudiantes if e.seccion_obj_id == asig.seccion_id]
+                ests_seccion = [e for e in estudiantes if e.seccion_obj and e.seccion_obj.id == asig.seccion_id]
                 num_comp = asig.num_competencias or AREAS_COMP.get(asig.area, 2)
                 for est in ests_seccion:
                     for comp in range(1, num_comp + 1):

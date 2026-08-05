@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useBeforeUnload } from "react-router-dom";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { KPIsAsistencia, EstadoAsistencia, EstudianteLista, RegistroAsistencia } from "../../types/asistencia";
 import { ESTADO_ASISTENCIA_LABEL } from "../../types/asistencia";
 import { obtenerKPIsAsistencia, listarEstudiantes, registrosDelDia, marcarMasivo, type MarcaItem } from "../../services/asistencia";
 import ExportarMensualBtn from "../../components/asistencia/ExportarMensualBtn";
+import SiagieAsistenciaBtn from "../../components/asistencia/SiagieAsistenciaBtn";
 import { Cargando } from "../../components/ui/Spinner";
 import Icon from "../../components/ui/Icon";
 import { useToast } from "../../components/ui/Toast";
@@ -30,6 +32,13 @@ const BADGE: Record<EstadoAsistencia, { label: string; bg: string; text: string 
   justificado: { label: "J", bg: "#DBEAFE", text: "#1E40AF" },
 };
 
+const STATUS_CLASS: Record<EstadoAsistencia, string> = {
+  presente: "ui-status-presente",
+  tardanza: "ui-status-tardanza",
+  ausente: "ui-status-ausente",
+  justificado: "ui-status-justificado",
+};
+
 export default function DirectorAsistenciaView() {
   const toast = useToast();
   const [kpis, setKpis] = useState<KPIsAsistencia | null>(null);
@@ -46,6 +55,12 @@ export default function DirectorAsistenciaView() {
   const [cambios, setCambios] = useState<Record<number, EstadoAsistencia>>({});
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+
+  const tieneCambios = Object.keys(cambios).length > 0;
+  useBeforeUnload(useCallback((e) => {
+    if (tieneCambios) e.preventDefault();
+  }, [tieneCambios]));
 
   useEffect(() => {
     obtenerKPIsAsistencia().then(setKpis).finally(() => setCargandoKpis(false));
@@ -82,6 +97,7 @@ export default function DirectorAsistenciaView() {
   }, [estudiantes, busqueda]);
 
   function ciclarEstado(estId: number) {
+    if (!modoEdicion) return;
     const actual = cambios[estId] ?? registros[estId]?.estado;
     const idx = actual ? CICLO.indexOf(actual) : -1;
     setCambios(c => ({ ...c, [estId]: CICLO[(idx + 1) % CICLO.length] }));
@@ -133,7 +149,17 @@ export default function DirectorAsistenciaView() {
               Asistencia · {nivelInfo?.label}
             </h2>
           </div>
-          <ExportarMensualBtn />
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <ExportarMensualBtn />
+            <SiagieAsistenciaBtn />
+            <button
+              className={modoEdicion ? "btn btn-secundario btn-icono" : "btn btn-primario btn-icono"}
+              onClick={() => { setModoEdicion((v) => !v); setCambios({}); }}
+              style={{ padding: "8px 14px" }}
+            >
+              <Icon name={modoEdicion ? "cerrar" : "editar"} /> {modoEdicion ? "Salir de edición" : "Activar edición"}
+            </button>
+          </div>
         </div>
 
         <div className="card">
@@ -167,7 +193,10 @@ export default function DirectorAsistenciaView() {
 
         <div className="card">
           <div className="card-header">
-            <span>Estudiantes ({filtrados.length}){totalCambios > 0 && ` · ${totalCambios} cambios`}</span>
+            <span>
+              Estudiantes ({filtrados.length}){totalCambios > 0 && ` · ${totalCambios} cambios pendientes`}
+              {!modoEdicion && <span className="ui-readonly-note">solo lectura</span>}
+            </span>
           </div>
           {cargando ? (
             <div className="card-body"><Cargando inline /></div>
@@ -189,12 +218,9 @@ export default function DirectorAsistenciaView() {
                     <div className="asistencia-botones">
                       <button
                         onClick={() => ciclarEstado(est.id)}
-                        style={{
-                          padding: "6px 16px", borderRadius: 6, border: "none", cursor: "pointer",
-                          fontWeight: 700, fontSize: 14, minWidth: 44,
-                          background: actual ? BADGE[actual].bg : "#F3F4F6",
-                          color: actual ? BADGE[actual].text : "#6B7280",
-                        }}
+                        className={`ui-status-pill ${actual ? STATUS_CLASS[actual] : "ui-status-empty"}`}
+                        style={{ cursor: modoEdicion ? "pointer" : "default", opacity: modoEdicion ? 1 : 0.85 }}
+                        title={modoEdicion ? "Click para cambiar estado" : "Activa edición para modificar"}
                       >
                         {actual ? BADGE[actual].label : "—"}
                       </button>
@@ -204,11 +230,13 @@ export default function DirectorAsistenciaView() {
               })}
             </div>
           )}
-          <div className="card-body" style={{ borderTop: "1px solid var(--borde)", display: "flex", justifyContent: "flex-end" }}>
-            <button className="btn btn-primario btn-icono" style={{ width: "auto" }} onClick={guardar} disabled={guardando || totalCambios === 0}>
-              <Icon name="guardar" /> {guardando ? "Guardando..." : `Guardar ${totalCambios} cambios`}
-            </button>
-          </div>
+          {modoEdicion && (
+            <div className="card-body" style={{ borderTop: "1px solid var(--borde)", display: "flex", justifyContent: "flex-end" }}>
+              <button className="btn btn-primario btn-icono" style={{ width: "auto" }} onClick={guardar} disabled={guardando || totalCambios === 0}>
+                <Icon name="guardar" /> {guardando ? "Guardando..." : `Guardar ${totalCambios} cambios`}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -219,7 +247,10 @@ export default function DirectorAsistenciaView() {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
         <h2 className="page-title" style={{ marginBottom: 0 }}>Panel de Asistencia</h2>
-        <ExportarMensualBtn />
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <ExportarMensualBtn />
+          <SiagieAsistenciaBtn />
+        </div>
       </div>
 
       {/* Cards de nivel */}

@@ -49,7 +49,7 @@ def _datos(seccion_id: int, anio: int, mes: int):
     dias = [date(anio, mes, d) for d in range(1, dias_mes + 1)]
 
     estudiantes = list(
-        Estudiante.objects.filter(seccion_obj=seccion)
+        Estudiante.objects.por_seccion(seccion.pk, anio)
         .select_related("usuario")
         .order_by("usuario__last_name", "usuario__first_name")
     )

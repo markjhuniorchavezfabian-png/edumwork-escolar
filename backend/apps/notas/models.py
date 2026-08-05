@@ -158,6 +158,36 @@ class NotaBimestre(BaseModel):
         return f"{self.estudiante} · {self.anio_lectivo} · {self.area} · B{self.bimestre} · C{self.competencia} · {self.calificacion}"
 
 
+class PublicacionNotas(models.Model):
+    """Controla cuándo las familias pueden ver notas/boletas de una sección."""
+    ESTADO_BORRADOR = "borrador"
+    ESTADO_PUBLICADO = "publicado"
+    ESTADOS = [
+        (ESTADO_BORRADOR, "Borrador"),
+        (ESTADO_PUBLICADO, "Publicado"),
+    ]
+
+    seccion = models.ForeignKey(
+        Seccion, on_delete=models.CASCADE, related_name="publicaciones_notas",
+    )
+    anio_lectivo = models.PositiveSmallIntegerField(default=_anio_actual)
+    bimestre = models.CharField(max_length=1, choices=NotaBimestre.BIMESTRE)
+    estado = models.CharField(max_length=12, choices=ESTADOS, default=ESTADO_BORRADOR)
+    publicado_por = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name="publicaciones_notas",
+    )
+    publicado_en = models.DateTimeField(null=True, blank=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "notas_publicacion"
+        unique_together = [("seccion", "anio_lectivo", "bimestre")]
+        ordering = ["-anio_lectivo", "bimestre", "seccion"]
+
+    def __str__(self):
+        return f"{self.seccion} · {self.anio_lectivo} · B{self.bimestre} · {self.estado}"
+
+
 class HorarioClase(models.Model):
     DIAS = [
         ("lun", "Lunes"), ("mar", "Martes"), ("mie", "Miércoles"),
@@ -186,7 +216,13 @@ class SiagieMapeo(models.Model):
     Clave: hash SHA-256 de la fila de cabecera del Excel oficial.
     Si SIAGIE cambia el formato entre años, el hash cambia → re-mapeo automático.
     """
-    hash_header = models.CharField(max_length=64, unique=True, db_index=True)
+    tipo_template = models.CharField(
+        max_length=20,
+        default="notas",
+        choices=[("notas", "Notas"), ("asistencia", "Asistencia")],
+        db_index=True,
+    )
+    hash_header = models.CharField(max_length=64, db_index=True)
     mapeo_json = models.JSONField(
         help_text="Diccionario col_idx→campo_sistema. Ej: {3: 'dni', 4: 'apellidos', ...}"
     )
@@ -218,9 +254,10 @@ class SiagieMapeo(models.Model):
         db_table = "siagie_mapeo"
         verbose_name = "Mapeo SIAGIE"
         verbose_name_plural = "Mapeos SIAGIE"
+        unique_together = [("tipo_template", "hash_header")]
 
     def __str__(self):
-        return f"Mapeo SIAGIE [{self.nivel or '?'}] ({self.metodo_deteccion}) — {self.hash_header[:12]}…"
+        return f"Mapeo SIAGIE {self.tipo_template} [{self.nivel or '?'}] ({self.metodo_deteccion}) — {self.hash_header[:12]}…"
 
 
 class SiagieRellenoLog(models.Model):

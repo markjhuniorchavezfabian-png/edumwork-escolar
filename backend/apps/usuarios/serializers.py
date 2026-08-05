@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Docente, Estudiante, Padre, Usuario
+from .models import Docente, Estudiante, Matricula, Padre, Usuario
 
 
 class UsuarioSerializer(serializers.ModelSerializer):
@@ -64,12 +64,23 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
         if usuario.rol == "docente":
             Docente.objects.get_or_create(usuario=usuario, defaults={"especialidad": especialidad})
         elif usuario.rol == "estudiante":
-            Estudiante.objects.get_or_create(
+            from apps.core.models import ConfiguracionInstitucional
+            from apps.usuarios.models import Seccion
+            cfg = ConfiguracionInstitucional.get_solo()
+            estudiante, _ = Estudiante.objects.get_or_create(
                 usuario=usuario,
+                defaults={"grado": grado, "seccion": seccion},
+            )
+            seccion_obj = None
+            if grado and seccion:
+                seccion_obj = Seccion.objects.filter(grado=grado, letra=seccion).first()
+            Matricula.objects.get_or_create(
+                estudiante=estudiante,
+                anio_lectivo=cfg.anio_lectivo_activo or 2026,
                 defaults={
-                    "grado": grado,
-                    "seccion": seccion,
+                    "seccion": seccion_obj,
                     "codigo_matricula": codigo_matricula,
+                    "situacion": "matriculado",
                 },
             )
         elif usuario.rol == "padre":
@@ -120,6 +131,11 @@ class FichaEstudianteSerializer(serializers.ModelSerializer):
     # Calculados
     edad = serializers.IntegerField(read_only=True)
 
+    # Sección y matrícula (lectura desde Matricula actual)
+    seccion_obj = serializers.CharField(read_only=True)
+    codigo_matricula = serializers.CharField(read_only=True)
+    situacion_matricula = serializers.CharField(read_only=True)
+
     class Meta:
         model = Estudiante
         fields = [
@@ -154,6 +170,7 @@ class FichaEstudianteSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "usuario", "nombre_completo", "edad",
                             "seccion_nombre", "apoderados_detalle",
+                            "seccion_obj", "codigo_matricula", "situacion_matricula",
                             "creado_en", "actualizado_en"]
 
     def get_nombre_completo(self, obj):

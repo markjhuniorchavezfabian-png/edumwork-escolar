@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
 import Card from "../../components/ui/Card";
 import { useToast } from "../../components/ui/Toast";
 import { useConfirm } from "../../components/ui/Confirm";
 import { Cargando } from "../../components/ui/Spinner";
-import { Plus, Trash2, BookOpen } from "lucide-react";
-import { AREAS_CNEB } from "../../constants/curriculo";
+import { BookOpen, Save, CheckCircle2, Trash2 } from "lucide-react";
 
 interface Seccion {
   id: number;
@@ -31,20 +30,19 @@ interface Asignacion {
   num_competencias: number;
 }
 
-const AREAS_COMUNES = AREAS_CNEB;
+interface AreaCNEB {
+  id: number;
+  nombre: string;
+  nivel: string;
+  orden: number;
+  num_competencias: number;
+}
 
-const AREAS_PROFESOR_AULA = [
-  "Comunicación (3 comp.)",
-  "Matemática (2 comp.)",
-  "Personal Social (2 comp.)",
-  "Ciencia y Tecnología (1 comp.)",
-  "Arte y Cultura (1 comp.)",
-  "Educación Física (1 comp.)",
-  "Educación Religiosa (1 comp.)",
-];
+const ANIO_LECTIVO = 2026;
 
-function nivelEsAula(nivel: string) {
-  return nivel === "inicial" || nivel === "primaria";
+function toArray<T>(d: { results?: T[] } | T[] | undefined): T[] {
+  if (!d) return [];
+  return Array.isArray(d) ? d : (d.results ?? []);
 }
 
 export default function AsignacionesDocenteView() {
@@ -54,126 +52,177 @@ export default function AsignacionesDocenteView() {
   const [secciones, setSecciones] = useState<Seccion[]>([]);
   const [docentes, setDocentes] = useState<DocenteOp[]>([]);
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
+  const [areasCNEB, setAreasCNEB] = useState<AreaCNEB[]>([]);
+  const [mapa, setMapa] = useState<Record<string, string>>({});
   const [cargando, setCargando] = useState(true);
-  const [seccionActiva, setSeccionActiva] = useState<number | null>(null);
-
-  // Formulario nueva asignación
-  const [form, setForm] = useState({
-    docente: "",
-    area: "",
-    areaPersonalizada: "",
-  });
-  const [docenteAula, setDocenteAula] = useState("");
   const [guardando, setGuardando] = useState(false);
+  const [seccionActiva, setSeccionActiva] = useState<number | null>(null);
+  const [docenteGlobal, setDocenteGlobal] = useState<string>("");
 
   const cargar = useCallback(async () => {
     setCargando(true);
     try {
-      type Paged<T> = { results?: T[]; count?: number } | T[];
       const [sRes, dRes, aRes] = await Promise.all([
-        api.get<Paged<Seccion>>("/usuarios/secciones/?limit=200"),
-        api.get<Paged<DocenteOp>>("/usuarios/?rol=docente&limit=200"),
-        api.get<Paged<Asignacion>>("/notas/asignaciones/?limit=500"),
+        api.get("/usuarios/secciones/?limit=200"),
+        api.get("/usuarios/?rol=docente&limit=200"),
+        api.get(`/notas/asignaciones/?limit=500&anio=${ANIO_LECTIVO}`),
       ]);
-      const toArray = <T,>(d: Paged<T>): T[] =>
-        Array.isArray(d) ? d : ((d as { results?: T[] }).results ?? []);
-      const secs = toArray(sRes.data);
+      const secs = toArray<Seccion>(sRes.data);
       setSecciones(secs);
-      setDocentes(toArray(dRes.data));
-      setAsignaciones(toArray(aRes.data));
-      if (secs.length > 0) setSeccionActiva((prev) => prev ?? secs[0].id);
+      setDocentes(toArray<DocenteOp>(dRes.data));
+      const asigs = toArray<Asignacion>(aRes.data);
+      setAsignaciones(asigs);
+      if (secs.length > 0) {
+        const primera = seccionActiva && secs.some((s) => s.id === seccionActiva)
+          ? seccionActiva
+          : secs[0].id;
+        setSeccionActiva(primera);
+      }
     } catch {
       toast.error("Error al cargar datos.");
     } finally {
       setCargando(false);
     }
-  }, []); // eslint-disable-line
+  }, [seccionActiva]); // eslint-disable-line
 
   useEffect(() => { cargar(); }, [cargar]);
 
-  const asigsDe = (seccionId: number) =>
-    asignaciones.filter((a) => a.seccion === seccionId);
+  const seccionActual = useMemo(
+    () => secciones.find((s) => s.id === seccionActiva),
+    [secciones, seccionActiva]
+  );
 
-  async function agregar(seccionId: number) {
-    const areaFinal = form.area === "__otro__" ? form.areaPersonalizada.trim() : form.area;
-    if (!form.docente || !areaFinal) {
-      toast.error("Selecciona docente y área.");
-      return;
-    }
-    setGuardando(true);
-    try {
-      const { data } = await api.post<Asignacion>("/notas/asignaciones/", {
-        docente: Number(form.docente),
-        seccion: seccionId,
-        area: areaFinal,
-      });
-      setAsignaciones((prev) => [...prev, data]);
-      setForm({ docente: "", area: "", areaPersonalizada: "" });
-      toast.ok(`Asignación creada: ${data.docente_nombre} → ${areaFinal}`);
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { detail?: string; non_field_errors?: string[] } } };
-      const msg = err.response?.data?.non_field_errors?.[0]
-        || err.response?.data?.detail
-        || "Error al crear asignación.";
-      toast.error(msg);
-    } finally {
-      setGuardando(false);
-    }
-  }
+  const asigsDe = useCallback(
+    (seccionId: number) => asignaciones.filter((a) => a.seccion === seccionId),
+    [asignaciones]
+  );
 
-  async function eliminar(asig: Asignacion) {
-    const ok = await confirmar({
-      titulo: "Eliminar asignación",
-      mensaje: `¿Eliminar asignación de ${asig.docente_nombre} en ${asig.area}? Las notas ya registradas no se borran.`,
-      variante: "peligro",
+  // Cargar áreas CNEB y construir mapa cuando cambia la sección activa
+  useEffect(() => {
+    if (!seccionActual) return;
+    setCargando(true);
+    const nivel = seccionActual.nivel;
+    Promise.all([
+      api.get(`/curricula/areas/?nivel=${encodeURIComponent(nivel)}&limit=200`),
+    ])
+      .then(([areasRes]) => {
+        const areas = toArray<AreaCNEB>(areasRes.data);
+        // Agregar áreas ya asignadas en esta sección que no estén en el CNEB
+        const asigs = asigsDe(seccionActual.id);
+        const areaNames = new Set(areas.map((a) => a.nombre));
+        const extras: AreaCNEB[] = asigs
+          .filter((a) => !areaNames.has(a.area))
+          .map((a) => ({
+            id: -a.id,
+            nombre: a.area,
+            nivel,
+            orden: 999,
+            num_competencias: a.num_competencias,
+          }));
+        const todas = [...areas, ...extras].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
+        setAreasCNEB(todas);
+        const nuevoMapa: Record<string, string> = {};
+        for (const area of todas) {
+          const asig = asigs.find((a) => a.area === area.nombre);
+          nuevoMapa[area.nombre] = asig ? String(asig.docente) : "";
+        }
+        setMapa(nuevoMapa);
+        setDocenteGlobal("");
+      })
+      .catch(() => toast.error("Error al cargar áreas del currículo."))
+      .finally(() => setCargando(false));
+  }, [seccionActual, asigsDe]); // eslint-disable-line
+
+  function aplicarGlobal() {
+    if (!docenteGlobal) return;
+    const nuevo = { ...mapa };
+    areasCNEB.forEach((a) => {
+      nuevo[a.nombre] = docenteGlobal;
     });
-    if (!ok) return;
-    try {
-      await api.delete(`/notas/asignaciones/${asig.id}/`);
-      setAsignaciones((prev) => prev.filter((a) => a.id !== asig.id));
-      toast.ok("Asignación eliminada.");
-    } catch {
-      toast.error("Error al eliminar.");
-    }
+    setMapa(nuevo);
+    setDocenteGlobal("");
+    toast.ok("Docente asignado a todas las áreas. Puedes ajustar antes de guardar.");
   }
 
-  async function asignarProfesorAula(seccionId: number) {
+  function limpiarTodas() {
+    const nuevo: Record<string, string> = {};
+    areasCNEB.forEach((a) => {
+      nuevo[a.nombre] = "";
+    });
+    setMapa(nuevo);
+  }
+
+  async function guardar() {
+    if (!seccionActual) return;
     setGuardando(true);
-    try {
-      const { data } = await api.post<{ asignaciones: Asignacion[]; total: number }>(
-        "/notas/asignar-profesor-aula/",
-        { seccion_id: seccionId, docente_id: docenteAula ? Number(docenteAula) : null }
-      );
-      // Reemplazar asignaciones de esta sección con las nuevas
-      setAsignaciones((prev) => [
-        ...prev.filter((a) => a.seccion !== seccionId),
-        ...data.asignaciones.map((a) => ({ ...a, seccion: seccionId })),
-      ]);
-      setDocenteAula("");
-      toast.ok(docenteAula
-        ? `Profesor de aula asignado (${data.total} áreas creadas).`
-        : "Asignaciones de esta sección eliminadas.");
-    } catch {
-      toast.error("Error al asignar profesor de aula.");
-    } finally {
-      setGuardando(false);
+    const asigs = asigsDe(seccionActual.id);
+    const errores: string[] = [];
+    const acciones: Promise<unknown>[] = [];
+
+    for (const area of areasCNEB) {
+      const docenteIdRaw = mapa[area.nombre] || "";
+      const docenteId = docenteIdRaw ? Number(docenteIdRaw) : null;
+      const asigExistente = asigs.find((a) => a.area === area.nombre);
+
+      if (!docenteId) {
+        if (asigExistente) {
+          acciones.push(
+            api.delete(`/notas/asignaciones/${asigExistente.id}/`).catch(() => {
+              errores.push(`No se pudo quitar ${area.nombre}`);
+            })
+          );
+        }
+        continue;
+      }
+
+      if (asigExistente) {
+        if (asigExistente.docente !== docenteId) {
+          acciones.push(
+            api.patch(`/notas/asignaciones/${asigExistente.id}/`, {
+              docente: docenteId,
+              num_competencias: area.num_competencias,
+            }).catch(() => {
+              errores.push(`No se pudo cambiar docente en ${area.nombre}`);
+            })
+          );
+        }
+      } else {
+        acciones.push(
+          api.post("/notas/asignaciones/", {
+            docente: docenteId,
+            seccion: seccionActual.id,
+            area: area.nombre,
+            num_competencias: area.num_competencias,
+            anio_lectivo: ANIO_LECTIVO,
+          }).catch(() => {
+            errores.push(`No se pudo crear asignación en ${area.nombre}`);
+          })
+        );
+      }
+    }
+
+    await Promise.all(acciones);
+    setGuardando(false);
+    await cargar();
+    if (errores.length) {
+      toast.error(`Guardado parcial. Errores: ${errores.slice(0, 3).join(", ")}${errores.length > 3 ? "..." : ""}`);
+    } else {
+      toast.ok("Asignaciones guardadas.");
     }
   }
 
-  if (cargando) return <Cargando />;
-
-  const seccionActual = secciones.find((s) => s.id === seccionActiva);
+  if (cargando && secciones.length === 0) return <Cargando />;
 
   return (
     <div>
       <h2 className="page-title">Asignaciones de docentes</h2>
       <p style={{ color: "var(--muted-foreground)", marginBottom: 20, fontSize: 14 }}>
-        Aquí defines qué docente enseña cada área en cada sección. Esto permite que el docente vea
-        a sus estudiantes y registre sus notas.
+        Asigna docente por área en cada sección. En primaria/inicial el tutor puede llevar
+        la mayoría, pero puedes dejar áreas para especialistas.
       </p>
 
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-        {/* Panel izquierdo: lista de secciones */}
+        {/* Panel izquierdo: secciones */}
         <div style={{ minWidth: 180, maxHeight: "80vh", overflowY: "auto", paddingRight: 4 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: "var(--muted-foreground)", marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>
             Secciones
@@ -206,9 +255,7 @@ export default function AsignacionesDocenteView() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div>{s.nombre || `${s.grado} ${s.letra}`}</div>
                   <div style={{ fontSize: 10, opacity: 0.8, fontWeight: 400 }}>
-                    {s.nivel === "inicial" ? "Inicial · Prof. aula"
-                      : s.nivel === "primaria" ? "Primaria · Prof. aula"
-                      : "Secundaria"}
+                    {s.nivel === "inicial" ? "Inicial" : s.nivel === "primaria" ? "Primaria" : "Secundaria"}
                   </div>
                 </div>
                 <span style={{
@@ -225,169 +272,131 @@ export default function AsignacionesDocenteView() {
           })}
         </div>
 
-        {/* Panel derecho: asignaciones de la sección activa */}
+        {/* Panel derecho: tabla masiva */}
         <div style={{ flex: 1, minWidth: 300 }}>
           {seccionActual && (
-            <Card titulo={`${seccionActual.nombre || `${seccionActual.grado} ${seccionActual.letra}`} — Asignaciones`}>
-              {/* Badge de modo */}
-              {nivelEsAula(seccionActual.nivel) && (
-                <div style={{
-                  background: "var(--azul-50)", border: "1px solid var(--azul-200)",
-                  borderRadius: 8, padding: "8px 12px", fontSize: 13, marginBottom: 16,
-                  color: "var(--azul-800)",
-                }}>
-                  <strong>Nivel {seccionActual.nivel === "inicial" ? "Inicial" : "Primaria"}</strong> —
-                  modo <em>Profesor de aula</em>. Un docente enseña todas las áreas de la sección.
+            <Card titulo={`${seccionActual.nombre || `${seccionActual.grado} ${seccionActual.letra}`} — Asignación por área`}>
+              {/* Atajos */}
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end", marginBottom: 16 }}>
+                <div className="form-field" style={{ flex: 2, minWidth: 200 }}>
+                  <label className="form-label">Asignar docente a todas las áreas</label>
+                  <select
+                    className="form-input"
+                    value={docenteGlobal}
+                    onChange={(e) => setDocenteGlobal(e.target.value)}
+                  >
+                    <option value="">Seleccionar...</option>
+                    {docentes.map((d) => (
+                      <option key={d.id} value={d.id}>{d.nombre_completo || d.username}</option>
+                    ))}
+                  </select>
                 </div>
-              )}
+                <button
+                  className="btn btn-secundario"
+                  disabled={!docenteGlobal || guardando}
+                  onClick={aplicarGlobal}
+                >
+                  Aplicar a todas
+                </button>
+                <button
+                  className="btn btn-secundario"
+                  disabled={guardando}
+                  onClick={async () => {
+                    const ok = await confirmar({
+                      titulo: "Quitar todas las asignaciones",
+                      mensaje: "¿Dejar sin docente todas las áreas de esta sección?",
+                      variante: "peligro",
+                    });
+                    if (ok) limpiarTodas();
+                  }}
+                >
+                  Limpiar
+                </button>
+                <button
+                  className="btn btn-primary"
+                  disabled={guardando}
+                  onClick={guardar}
+                  style={{ marginLeft: "auto" }}
+                >
+                  <Save size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  {guardando ? "Guardando..." : "Guardar cambios"}
+                </button>
+              </div>
 
-              {/* Tabla de asignaciones actuales */}
-              {asigsDe(seccionActual.id).length === 0 ? (
-                <p style={{ color: "var(--muted-foreground)", fontSize: 14, marginBottom: 16 }}>
-                  Esta sección no tiene docentes asignados aún.
+              {cargando ? (
+                <Cargando />
+              ) : areasCNEB.length === 0 ? (
+                <p style={{ color: "var(--muted-foreground)" }}>
+                  No hay áreas configuradas para el nivel {seccionActual.nivel}. Carga el CNEB primero.
                 </p>
               ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 20, fontSize: 14 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
                   <thead>
                     <tr style={{ borderBottom: "2px solid var(--border)" }}>
-                      <th style={{ textAlign: "left", padding: "6px 8px" }}>Área</th>
-                      <th style={{ textAlign: "left", padding: "6px 8px" }}>Docente</th>
-                      {!nivelEsAula(seccionActual.nivel) && <th style={{ width: 40 }} />}
+                      <th style={{ textAlign: "left", padding: "8px 10px" }}>Área</th>
+                      <th style={{ textAlign: "center", padding: "8px 10px", width: 100 }}>Competencias</th>
+                      <th style={{ textAlign: "left", padding: "8px 10px" }}>Docente</th>
+                      <th style={{ width: 40 }} />
                     </tr>
                   </thead>
                   <tbody>
-                    {asigsDe(seccionActual.id).map((asig) => (
-                      <tr key={asig.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                        <td style={{ padding: "8px 8px", fontWeight: 500 }}>{asig.area}</td>
-                        <td style={{ padding: "8px 8px", color: "var(--muted-foreground)" }}>
-                          {asig.docente_nombre}
-                        </td>
-                        {!nivelEsAula(seccionActual.nivel) && (
-                          <td style={{ padding: "8px 4px", textAlign: "center" }}>
-                            <button
-                              onClick={() => eliminar(asig)}
-                              style={{ background: "none", border: "none", cursor: "pointer", color: "var(--destructive)", padding: 4 }}
-                              title="Eliminar asignación"
+                    {areasCNEB.map((area) => {
+                      const asig = asigsDe(seccionActual.id).find((a) => a.area === area.nombre);
+                      return (
+                        <tr key={area.nombre} style={{ borderBottom: "1px solid var(--border)" }}>
+                          <td style={{ padding: "8px 10px" }}>
+                            <div style={{ fontWeight: 500 }}>{area.nombre}</div>
+                            {asig && (
+                              <div style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+                                <CheckCircle2 size={11} style={{ verticalAlign: "middle", marginRight: 4 }} />
+                                Asignado: {asig.docente_nombre}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ textAlign: "center", padding: "8px 10px", color: "var(--muted-foreground)" }}>
+                            {area.num_competencias}
+                          </td>
+                          <td style={{ padding: "8px 10px" }}>
+                            <select
+                              className="form-input"
+                              value={mapa[area.nombre] || ""}
+                              onChange={(e) => setMapa((prev) => ({ ...prev, [area.nombre]: e.target.value }))}
+                              disabled={guardando}
                             >
-                              <Trash2 size={15} />
+                              <option value="">Sin asignar</option>
+                              {docentes.map((d) => (
+                                <option key={d.id} value={d.id}>{d.nombre_completo || d.username}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td style={{ textAlign: "center" }}>
+                            <button
+                              className="btn btn-secundario"
+                              title="Quitar asignación"
+                              disabled={guardando || !mapa[area.nombre]}
+                              onClick={() => setMapa((prev) => ({ ...prev, [area.nombre]: "" }))}
+                              style={{ padding: "4px 8px" }}
+                            >
+                              <Trash2 size={14} />
                             </button>
                           </td>
-                        )}
-                      </tr>
-                    ))}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
 
-              {/* Formulario — diferenciado por nivel */}
-              {nivelEsAula(seccionActual.nivel) ? (
-                /* Profesor de aula */
-                <div style={{ background: "var(--muted)", borderRadius: 10, padding: 14 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
-                    Asignar profesor de aula
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginBottom: 10 }}>
-                    Se crearán automáticamente las asignaciones para: {AREAS_PROFESOR_AULA.join(", ")}.
-                    Las asignaciones anteriores de esta sección se reemplazarán.
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
-                    <div className="form-field" style={{ flex: 2, minWidth: 200 }}>
-                      <label className="form-label">Docente (profesor de aula)</label>
-                      <select
-                        className="form-input"
-                        value={docenteAula}
-                        onChange={(e) => setDocenteAula(e.target.value)}
-                      >
-                        <option value="">Seleccionar...</option>
-                        {docentes.map((d) => (
-                          <option key={d.id} value={d.id}>{d.nombre_completo || d.username}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      className="btn btn-primario"
-                      disabled={!docenteAula || guardando}
-                      onClick={() => asignarProfesorAula(seccionActual.id)}
-                      style={{ marginBottom: 2, width: "auto" }}
-                    >
-                      {guardando ? "Asignando..." : "Asignar todas las áreas"}
-                    </button>
-                    {asigsDe(seccionActual.id).length > 0 && (
-                      <button
-                        className="btn btn-secundario"
-                        disabled={guardando}
-                        onClick={async () => {
-                          const ok = await confirmar({
-                            titulo: "Quitar todas las asignaciones",
-                            mensaje: "¿Eliminar todas las asignaciones de esta sección? Las notas ya registradas no se borran.",
-                            variante: "peligro",
-                          });
-                          if (ok) asignarProfesorAula(seccionActual.id);
-                        }}
-                        style={{ marginBottom: 2, width: "auto" }}
-                      >
-                        Quitar todas
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                /* Secundaria — asignación por área */
-                <div style={{ background: "var(--muted)", borderRadius: 10, padding: 14 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>
-                    <Plus size={13} style={{ verticalAlign: "middle", marginRight: 4 }} />
-                    Agregar asignación
-                  </div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
-                    <div className="form-field" style={{ flex: 2, minWidth: 180 }}>
-                      <label className="form-label">Docente</label>
-                      <select
-                        className="form-input"
-                        value={form.docente}
-                        onChange={(e) => setForm((p) => ({ ...p, docente: e.target.value }))}
-                      >
-                        <option value="">Seleccionar...</option>
-                        {docentes.map((d) => (
-                          <option key={d.id} value={d.id}>{d.nombre_completo || d.username}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-field" style={{ flex: 2, minWidth: 180 }}>
-                      <label className="form-label">Área</label>
-                      <select
-                        className="form-input"
-                        value={form.area}
-                        onChange={(e) => setForm((p) => ({ ...p, area: e.target.value }))}
-                      >
-                        <option value="">Seleccionar...</option>
-                        {AREAS_COMUNES.map((a) => (
-                          <option key={a} value={a}>{a}</option>
-                        ))}
-                        <option value="__otro__">Otra área...</option>
-                      </select>
-                    </div>
-                    {form.area === "__otro__" && (
-                      <div className="form-field" style={{ flex: 2, minWidth: 180 }}>
-                        <label className="form-label">Nombre del área</label>
-                        <input
-                          className="form-input"
-                          placeholder="Ej: Emprendimiento"
-                          value={form.areaPersonalizada}
-                          onChange={(e) => setForm((p) => ({ ...p, areaPersonalizada: e.target.value }))}
-                        />
-                      </div>
-                    )}
-                    <button
-                      className="btn btn-primary"
-                      disabled={guardando}
-                      onClick={() => agregar(seccionActual.id)}
-                      style={{ marginBottom: 2 }}
-                    >
-                      {guardando ? "Guardando..." : "Agregar"}
-                    </button>
-                  </div>
-                </div>
-              )}
+              <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  className="btn btn-primary"
+                  disabled={guardando}
+                  onClick={guardar}
+                >
+                  <Save size={16} style={{ marginRight: 6, verticalAlign: "middle" }} />
+                  {guardando ? "Guardando..." : "Guardar cambios"}
+                </button>
+              </div>
             </Card>
           )}
         </div>

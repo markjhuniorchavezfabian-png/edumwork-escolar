@@ -17,7 +17,8 @@ Uso:
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from apps.usuarios.models import Usuario, Seccion, Estudiante, Rol
+from apps.core.models import ConfiguracionInstitucional
+from apps.usuarios.models import Usuario, Seccion, Estudiante, Rol, Matricula
 
 
 ALUMNOS_INICIAL = [
@@ -50,6 +51,7 @@ class Command(BaseCommand):
         reset = opts.get("reset", False)
         self.stdout.write(self.style.MIGRATE_HEADING("→ Seed alumnos básico"))
 
+        self.anio_lectivo = self._anio_lectivo_activo()
         self._fijar_nivel_secciones()
         self._crear_seccion_inicial(reset)
         self._crear_alumnos_primaria(reset)
@@ -57,6 +59,10 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("\n✓ Listo."))
         self._resumen()
+
+    def _anio_lectivo_activo(self):
+        cfg = ConfiguracionInstitucional.get_solo()
+        return cfg.anio_lectivo_activo or 2026
 
     def _fijar_nivel_secciones(self):
         n = Seccion.objects.filter(nivel="").update(nivel="primaria")
@@ -96,13 +102,20 @@ class Command(BaseCommand):
                 u.save()
                 creados += 1
 
-            Estudiante.objects.get_or_create(
+            est, _ = Estudiante.objects.get_or_create(
                 usuario=u,
                 defaults={
-                    "seccion_obj": seccion,
                     "grado": "3 años",
                     "seccion": "A",
+                },
+            )
+            Matricula.objects.get_or_create(
+                estudiante=est,
+                anio_lectivo=self.anio_lectivo,
+                defaults={
+                    "seccion": seccion,
                     "codigo_matricula": f"INI2026{dni[-3:]}",
+                    "situacion": "matriculado",
                 },
             )
         self.stdout.write(f"  alumnos inicial 3 años: +{creados} (total={len(ALUMNOS_INICIAL)})")
@@ -124,12 +137,21 @@ class Command(BaseCommand):
         est1_user = Usuario.objects.filter(username="estudiante1").first()
         if est1_user:
             est1_perfil = Estudiante.objects.filter(usuario=est1_user).first()
-            if est1_perfil and est1_perfil.seccion_obj_id != seccion_5a.id:
-                est1_perfil.seccion_obj = seccion_5a
-                est1_perfil.grado = "5to"
-                est1_perfil.seccion = "A"
-                est1_perfil.save(update_fields=["seccion_obj", "grado", "seccion"])
-                self.stdout.write("  estudiante1 vinculado a 5to A")
+            if est1_perfil:
+                actual = est1_perfil.seccion_obj
+                if not actual or actual.id != seccion_5a.id:
+                    est1_perfil.grado = "5to"
+                    est1_perfil.seccion = "A"
+                    est1_perfil.save(update_fields=["grado", "seccion"])
+                    Matricula.objects.update_or_create(
+                        estudiante=est1_perfil,
+                        anio_lectivo=self.anio_lectivo,
+                        defaults={
+                            "seccion": seccion_5a,
+                            "situacion": "matriculado",
+                        },
+                    )
+                    self.stdout.write("  estudiante1 vinculado a 5to A")
 
         if reset:
             usernames = [u for _, _, u, _ in ALUMNOS_5TO_A]
@@ -150,13 +172,20 @@ class Command(BaseCommand):
                 u.save()
                 creados += 1
 
-            Estudiante.objects.get_or_create(
+            est, _ = Estudiante.objects.get_or_create(
                 usuario=u,
                 defaults={
-                    "seccion_obj": seccion_5a,
                     "grado": "5to",
                     "seccion": "A",
+                },
+            )
+            Matricula.objects.get_or_create(
+                estudiante=est,
+                anio_lectivo=self.anio_lectivo,
+                defaults={
+                    "seccion": seccion_5a,
                     "codigo_matricula": f"5A2026{dni[-3:]}",
+                    "situacion": "matriculado",
                 },
             )
         self.stdout.write(f"  alumnos 5to A: +{creados} (total={len(ALUMNOS_5TO_A)})")
@@ -190,6 +219,6 @@ class Command(BaseCommand):
     def _resumen(self):
         self.stdout.write("\n── Estado final ──")
         for s in Seccion.objects.all().order_by("nivel", "grado", "letra"):
-            n_est = Estudiante.objects.filter(seccion_obj=s).count()
+            n_est = Estudiante.objects.por_seccion(s.id, self.anio_lectivo).count()
             tutor = s.tutor.username if s.tutor_id else "—"
             self.stdout.write(f"  {s.nivel or '?'} {s.grado} {s.letra}: {n_est} alumnos, tutor={tutor}")

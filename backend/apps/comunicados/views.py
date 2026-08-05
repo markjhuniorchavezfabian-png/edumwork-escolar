@@ -34,13 +34,19 @@ def _notificar_destinatarios(comunicado):
             qs = qs.filter(rol=Rol.PADRE)
         elif comunicado.alcance == "seccion" and comunicado.seccion_id:
             # Padres cuyos hijos estén en la sección + docente tutor de la sección + estudiantes
+            from apps.core.models import ConfiguracionInstitucional
+            from apps.usuarios.models import Matricula
+            cfg = ConfiguracionInstitucional.get_solo()
+            anio = cfg.anio_lectivo_activo or 2026
             padres_ids = Usuario.objects.filter(
                 rol=Rol.PADRE,
-                perfil_padre__hijos__seccion_obj_id=comunicado.seccion_id,
+                perfil_padre__hijos__matriculas__seccion_id=comunicado.seccion_id,
+                perfil_padre__hijos__matriculas__anio_lectivo=anio,
             ).values_list("id", flat=True)
             estudiantes_ids = Usuario.objects.filter(
                 rol=Rol.ESTUDIANTE,
-                perfil_estudiante__seccion_obj_id=comunicado.seccion_id,
+                perfil_estudiante__matriculas__seccion_id=comunicado.seccion_id,
+                perfil_estudiante__matriculas__anio_lectivo=anio,
             ).values_list("id", flat=True)
             qs = qs.filter(id__in=list(padres_ids) + list(estudiantes_ids))
         else:
@@ -90,9 +96,18 @@ class ComunicadoViewSet(viewsets.ModelViewSet):
 
         if user.rol == Rol.PADRE:
             # Padre ve: toda_ie + padres + sección de sus hijos
+            from apps.core.models import ConfiguracionInstitucional
+            from apps.usuarios.models import Matricula
+            cfg = ConfiguracionInstitucional.get_solo()
+            anio = cfg.anio_lectivo_activo or 2026
             secciones_hijos = []
             try:
-                secciones_hijos = list(user.perfil_padre.hijos.values_list("seccion_obj_id", flat=True))
+                hijos_ids = list(user.perfil_padre.hijos.values_list("id", flat=True))
+                secciones_hijos = list(
+                    Matricula.objects.filter(
+                        estudiante_id__in=hijos_ids, anio_lectivo=anio
+                    ).values_list("seccion_id", flat=True).distinct()
+                )
             except Exception:
                 pass
             return base.filter(

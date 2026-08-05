@@ -23,7 +23,7 @@ from .importacion import (
     template_padres,
 )
 from .listas import excel_lista_seccion, pdf_lista_seccion
-from .models import CodigoRecuperacion, Docente, Estudiante, Padre, Rol, Seccion, Usuario
+from .models import CodigoRecuperacion, Docente, Estudiante, Matricula, Padre, Rol, Seccion, Usuario
 from .permissions import EsDirector, EsDirectorOAdminTIC
 from .tenant import es_modo_personal
 from .serializers import (
@@ -146,40 +146,56 @@ def lista_estudiantes(request):
     - Otros roles: 403."""
     user = request.user
     from apps.usuarios.models import Estudiante
+    from apps.core.models import ConfiguracionInstitucional
 
-    qs = Estudiante.objects.select_related("usuario", "seccion_obj").filter(
-        usuario__activo=True
-    ).exclude(situacion_matricula__in=["trasladado", "retirado"])
+    cfg = ConfiguracionInstitucional.get_solo()
+    anio_lectivo = cfg.anio_lectivo_activo or 2026
+
+    qs = Estudiante.objects.select_related("usuario").filter(
+        usuario__activo=True,
+        matriculas__anio_lectivo=anio_lectivo,
+        matriculas__situacion__in=["matriculado", "suspendido"],
+    ).distinct()
 
     if user.rol == Rol.DOCENTE:
         from apps.notas.models import AsignacionDocente
         secciones_ids = set(user.secciones_asignadas.values_list("id", flat=True))
         secciones_ids.update(user.secciones_como_tutor.values_list("id", flat=True))
         secciones_ids.update(AsignacionDocente.objects.filter(docente=user).values_list("seccion_id", flat=True))
-        qs = qs.filter(seccion_obj_id__in=secciones_ids)
+        qs = qs.filter(matriculas__seccion_id__in=secciones_ids, matriculas__anio_lectivo=anio_lectivo)
     elif user.rol not in (Rol.ADMIN_TIC, Rol.DIRECTOR, Rol.SUBDIRECTOR, Rol.SECRETARIA, Rol.AUXILIAR, Rol.PSICOLOGA):
         raise PermissionDenied()
 
     q = (request.GET.get("q") or "").strip().lower()
     seccion_id = request.GET.get("seccion")
     if seccion_id:
-        qs = qs.filter(seccion_obj_id=seccion_id)
+        qs = qs.filter(matriculas__seccion_id=seccion_id, matriculas__anio_lectivo=anio_lectivo)
     if q:
         qs = qs.filter(
             models.Q(usuario__first_name__icontains=q)
             | models.Q(usuario__last_name__icontains=q)
-            | models.Q(codigo_matricula__icontains=q)
+            | models.Q(matriculas__codigo_matricula__icontains=q)
         )
 
-    resultado = [{
-        "id": e.pk,
-        "nombre_completo": f"{e.usuario.first_name} {e.usuario.last_name}".strip() or e.usuario.username,
-        "nombre": f"{e.usuario.first_name} {e.usuario.last_name}".strip() or e.usuario.username,
-        "seccion": f"{e.grado} {e.seccion}".strip(),
-        "codigo_matricula": e.codigo_matricula or "",
-        "dni": e.usuario.dni or "",
-        "fecha_ingreso": str(e.fecha_ingreso) if e.fecha_ingreso else None,
-    } for e in qs.order_by("grado", "seccion", "usuario__last_name")[:500]]
+    # Precargar matrículas del año activo para evitar N+1
+    matriculas_qs = Matricula.objects.filter(anio_lectivo=anio_lectivo)
+    matriculas_por_est = {m.estudiante_id: m for m in matriculas_qs}
+
+    resultado = []
+    for e in qs.order_by("usuario__last_name", "usuario__first_name")[:500]:
+        m = matriculas_por_est.get(e.pk)
+        seccion_nombre = ""
+        if m and m.seccion:
+            seccion_nombre = f"{m.seccion.grado} {m.seccion.letra}".strip()
+        resultado.append({
+            "id": e.pk,
+            "nombre_completo": f"{e.usuario.first_name} {e.usuario.last_name}".strip() or e.usuario.username,
+            "nombre": f"{e.usuario.first_name} {e.usuario.last_name}".strip() or e.usuario.username,
+            "seccion": seccion_nombre,
+            "codigo_matricula": m.codigo_matricula if m else "",
+            "dni": e.usuario.dni or "",
+            "fecha_ingreso": str(m.fecha_matricula) if m and m.fecha_matricula else None,
+        })
     return Response(resultado)
 
 
@@ -364,7 +380,12 @@ class SeccionSerializer(drf_serializers.ModelSerializer):
         return obj.tutor.get_full_name() if obj.tutor else None
 
     def get_cantidad_estudiantes(self, obj):
-        return obj.estudiantes.count()
+        from apps.core.models import ConfiguracionInstitucional
+        from apps.usuarios.models import Matricula
+        cfg = ConfiguracionInstitucional.get_solo()
+        return Matricula.objects.filter(
+            seccion=obj, anio_lectivo=cfg.anio_lectivo_activo or 2026
+        ).count()
 
     def get_cantidad_docentes(self, obj):
         return obj.docentes.count()
@@ -726,7 +747,7 @@ class FichaEstudianteViewSet(viewsets.ModelViewSet):
     from .serializers import FichaEstudianteSerializer
 
     from .models import Estudiante
-    queryset = Estudiante.objects.all().select_related("usuario", "seccion_obj")
+    queryset = Estudiante.objects.all().select_related("usuario")
     serializer_class = FichaEstudianteSerializer
     permission_classes = [IsAuthenticated]
     from rest_framework.parsers import FormParser, JSONParser
@@ -734,15 +755,18 @@ class FichaEstudianteViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         from .models import Estudiante
+        from apps.core.models import ConfiguracionInstitucional
         user = self.request.user
-        qs = Estudiante.objects.select_related("usuario", "seccion_obj").prefetch_related("padres__usuario")
+        cfg = ConfiguracionInstitucional.get_solo()
+        anio = cfg.anio_lectivo_activo or 2026
+        qs = Estudiante.objects.select_related("usuario").prefetch_related("padres__usuario")
 
         if user.rol in ("director", "subdirector", "admin_tic", "secretaria", "auxiliar", "psicologa"):
             return qs
         if user.rol == "docente":
             secciones_ids = set(user.secciones_asignadas.values_list("id", flat=True))
             secciones_ids.update(user.secciones_como_tutor.values_list("id", flat=True))
-            return qs.filter(seccion_obj_id__in=secciones_ids)
+            return qs.filter(matriculas__seccion_id__in=secciones_ids, matriculas__anio_lectivo=anio).distinct()
         if user.rol == "padre":
             try:
                 return qs.filter(pk__in=user.perfil_padre.hijos.values_list("pk", flat=True))
@@ -758,7 +782,8 @@ class FichaEstudianteViewSet(viewsets.ModelViewSet):
         if user.rol in ("director", "subdirector", "admin_tic", "secretaria"):
             return True, "completo"
         if user.rol == "docente":
-            if obj.seccion_obj and obj.seccion_obj.tutor_id == user.id:
+            m = obj.matricula_actual
+            if m and m.seccion and m.seccion.tutor_id == user.id:
                 return True, "completo"
             return False, ""
         if user.rol == "padre":
@@ -818,9 +843,12 @@ class FichaApoderadoViewSet(viewsets.ModelViewSet):
         if user.rol in ("director", "subdirector", "admin_tic", "secretaria", "auxiliar", "psicologa"):
             return qs
         if user.rol == "docente":
+            from apps.core.models import ConfiguracionInstitucional
+            cfg = ConfiguracionInstitucional.get_solo()
+            anio = cfg.anio_lectivo_activo or 2026
             secciones_ids = set(user.secciones_asignadas.values_list("id", flat=True))
             secciones_ids.update(user.secciones_como_tutor.values_list("id", flat=True))
-            return qs.filter(hijos__seccion_obj_id__in=secciones_ids).distinct()
+            return qs.filter(hijos__matriculas__seccion_id__in=secciones_ids, hijos__matriculas__anio_lectivo=anio).distinct()
         if user.rol == "padre":
             return qs.filter(usuario=user)
         return qs.none()
@@ -837,18 +865,22 @@ def matricula_list(request):
     if request.user.rol not in ("director", "subdirector", "admin_tic", "secretaria"):
         raise PermissionDenied()
 
+    anio_param = request.query_params.get("anio")
+    anio = int(anio_param) if anio_param and anio_param.isdigit() else timezone.now().year
+
     qs = (Estudiante.objects
-          .select_related("usuario", "seccion_obj")
+          .select_related("usuario")
           .prefetch_related("padres__usuario")
-          .order_by("seccion_obj__grado", "seccion_obj__letra", "usuario__last_name", "usuario__first_name"))
+          .filter(matriculas__anio_lectivo=anio)
+          .order_by("matriculas__seccion__grado", "matriculas__seccion__letra", "usuario__last_name", "usuario__first_name"))
 
     seccion_id = request.query_params.get("seccion_id")
     if seccion_id:
-        qs = qs.filter(seccion_obj_id=seccion_id)
+        qs = qs.filter(matriculas__seccion_id=seccion_id, matriculas__anio_lectivo=anio)
 
     situacion = request.query_params.get("situacion")
     if situacion:
-        qs = qs.filter(situacion_matricula=situacion)
+        qs = qs.filter(matriculas__situacion=situacion, matriculas__anio_lectivo=anio)
 
     q = request.query_params.get("q", "").strip()
     if q:
@@ -857,27 +889,34 @@ def matricula_list(request):
             Q(usuario__first_name__icontains=q) |
             Q(usuario__last_name__icontains=q) |
             Q(usuario__dni__icontains=q) |
-            Q(codigo_matricula__icontains=q)
+            Q(matriculas__codigo_matricula__icontains=q)
         )
 
-    anio = request.query_params.get("anio", str(timezone.now().year))
-    qs = qs.filter(codigo_matricula__startswith=anio)
+    # Precargar matrículas del año solicitado para evitar N+1
+    matriculas_qs = Matricula.objects.filter(anio_lectivo=anio)
+    matriculas_por_est = {m.estudiante_id: m for m in matriculas_qs}
 
     resultado = []
-    for e in qs:
+    for e in qs.distinct():
+        m = matriculas_por_est.get(e.pk)
         apoderado = e.padres.first()
+        seccion_nombre = ""
+        seccion_id_out = None
+        if m and m.seccion:
+            seccion_nombre = f"{m.seccion.grado} {m.seccion.letra}".strip()
+            seccion_id_out = m.seccion_id
         resultado.append({
             "id": e.pk,
             "nombre_completo": e.usuario.get_full_name(),
             "dni": e.usuario.dni or "",
-            "codigo_matricula": e.codigo_matricula or "",
-            "seccion_id": e.seccion_obj_id,
-            "seccion": e.seccion_obj.nombre if e.seccion_obj else "",
-            "grado": e.grado or "",
+            "codigo_matricula": m.codigo_matricula if m else "",
+            "seccion_id": seccion_id_out,
+            "seccion": seccion_nombre,
+            "grado": m.seccion.grado if m and m.seccion else e.grado or "",
             "sexo": e.sexo or "",
             "fecha_nacimiento": str(e.fecha_nacimiento) if e.fecha_nacimiento else "",
-            "situacion_matricula": e.situacion_matricula,
-            "fecha_ingreso": str(e.fecha_ingreso) if e.fecha_ingreso else "",
+            "situacion_matricula": m.situacion if m else "—",
+            "fecha_ingreso": str(m.fecha_matricula) if m and m.fecha_matricula else str(e.fecha_ingreso) if e.fecha_ingreso else "",
             "colegio_procedencia": e.colegio_procedencia or "",
             "apoderado_nombre": apoderado.usuario.get_full_name() if apoderado else "",
             "apoderado_telefono": apoderado.usuario.telefono if apoderado else "",
@@ -932,7 +971,7 @@ def matricular_estudiante(request):
     anio_str = str(anio)
     codigo_len = len(anio_str) + 4  # 8 chars para años de 4 dígitos
     from django.db.models.functions import Length
-    ultimo = (Estudiante.objects
+    ultimo = (Matricula.objects
               .filter(codigo_matricula__startswith=anio_str)
               .annotate(clen=Length("codigo_matricula"))
               .filter(clen=codigo_len)
@@ -980,13 +1019,19 @@ def matricular_estudiante(request):
         usuario=u,
         grado=grado,
         seccion=letra,
-        seccion_obj=seccion,
-        codigo_matricula=codigo_matricula,
-        situacion_matricula="matriculado",
         fecha_nacimiento=fecha_nac or None,
         sexo=sexo or "",
         fecha_ingreso=fecha_ingreso or None,
         colegio_procedencia=colegio_procedencia,
+    )
+
+    Matricula.objects.create(
+        estudiante=est,
+        seccion=seccion,
+        anio_lectivo=anio,
+        codigo_matricula=codigo_matricula,
+        situacion="matriculado",
+        fecha_matricula=fecha_ingreso or None,
     )
 
     # Crear apoderado si se proporcionaron datos
@@ -1050,6 +1095,9 @@ def cambiar_situacion_matricula(request, pk):
     opciones = [c[0] for c in SituacionMatricula.choices]
     if nueva not in opciones:
         return Response({"error": f"Situación inválida. Opciones: {opciones}"}, status=400)
-    est.situacion_matricula = nueva
-    est.save(update_fields=["situacion_matricula"])
+    m = est.matricula_actual
+    if not m:
+        return Response({"error": "El estudiante no tiene una matrícula activa."}, status=400)
+    m.situacion = nueva
+    m.save(update_fields=["situacion"])
     return Response({"ok": True, "situacion_matricula": nueva})

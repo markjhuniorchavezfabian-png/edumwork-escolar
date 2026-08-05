@@ -27,11 +27,11 @@ from openpyxl import load_workbook
 # ─── Constantes heurísticas ──────────────────────────────────────────────────
 
 PATRONES_HEURISTICA = {
-    "orden":       [r"^n[°º]?\.?\s*$", r"^ord", r"^item", r"^nro", r"^num"],
+    "orden":       [r"^n[°º]?\.?\s*$", r"^ord", r"^item", r"^nro", r"^num", r"^id$"],
     "codigo":      [r"c[óo]d", r"codigo", r"c[oó]d\.?\s*est", r"matr[ií]cula"],
     "dni":         [r"^dni$", r"n[°º]?\s*doc", r"documento"],
-    "apellidos":   [r"apellido", r"apellidos.*y.*nombres", r"apellidos y nombres"],
-    "nombres":     [r"\bnombre", r"nombre.*alumno", r"nombre.*estud", r"apellidos.*y.*nombres"],
+    "apellidos":   [r"apellido", r"apellidos.*y.*nombres", r"apellidos y nombres", r"^nombres?$"],
+    "nombres":     [r"\bnombre", r"nombre.*alumno", r"nombre.*estud", r"apellidos.*y.*nombres", r"^nombres?$"],
     "sexo":        [r"^sexo$", r"^g[eé]nero$"],
     "nota_nl":     [r"^nl$", r"^nivel\s*log", r"calificac", r"logro",
                     r"competencia.*nl", r"comp.*\d+.*nl", r"comp\.?\s*\d"],
@@ -57,12 +57,12 @@ def _hash_fila(fila_valores: list) -> str:
 
 
 def _detectar_fila_cabecera(ws) -> tuple[int, list]:
-    """Busca la fila que contiene 'dni' o 'apellido'. Default: fila 6."""
+    """Busca la fila de cabecera SIAGIE, incluso templates con ID/Cód. Estudiante."""
     max_col = min(ws.max_column, 50)
     for row_idx in range(1, min(25, ws.max_row + 1)):
         fila = [ws.cell(row=row_idx, column=c).value for c in range(1, max_col + 1)]
         texto = " ".join(_normalizar(v) for v in fila if v)
-        if "dni" in texto or "apellido" in texto:
+        if "dni" in texto or "apellido" in texto or ("cod" in texto and "estudiante" in texto) or "nombres" in texto:
             return row_idx, fila
     fila = [ws.cell(row=6, column=c).value for c in range(1, max_col + 1)]
     return 6, fila
@@ -100,6 +100,102 @@ def _detectar_nivel(ws) -> tuple[str, bool]:
     return nivel, tiene_conclusiones
 
 
+def _extraer_leyenda(ws) -> dict[str, str]:
+    """Extrae leyendas tipo SIAGIE: 01 = competencia, NL = nivel de logro."""
+    leyenda = {}
+    inicio = None
+    max_row = min(ws.max_row, 80)
+    max_col = min(ws.max_column, 20)
+    for row_idx in range(1, max_row + 1):
+        for col_idx in range(1, max_col + 1):
+            if _normalizar(ws.cell(row=row_idx, column=col_idx).value) == "leyenda":
+                inicio = (row_idx, col_idx)
+                break
+        if inicio:
+            break
+
+    if not inicio:
+        return leyenda
+
+    row_inicio, col_inicio = inicio
+    for row_idx in range(row_inicio, max_row + 1):
+        valores = [ws.cell(row=row_idx, column=c).value for c in range(col_inicio, max_col + 1)]
+        texto = " ".join(str(v or "").strip() for v in valores if v is not None).strip()
+        if not texto:
+            if row_idx > row_inicio + 1:
+                break
+            continue
+        match = re.match(r"^(nl|\d{1,2})\s*=\s*(.+)$", texto, re.IGNORECASE)
+        if match:
+            codigo = match.group(1).upper().zfill(2) if match.group(1).isdigit() else match.group(1).upper()
+            leyenda[codigo] = match.group(2).strip()
+            continue
+        if len(valores) >= 2:
+            codigo_raw = _normalizar(valores[0]).upper()
+            descripcion = str(valores[1] or "").strip()
+            if re.fullmatch(r"\d{1,2}|NL", codigo_raw, re.IGNORECASE) and descripcion:
+                codigo = codigo_raw.zfill(2) if codigo_raw.isdigit() else codigo_raw
+                leyenda[codigo] = descripcion
+    return leyenda
+
+
+def _competencias_detectadas(ws, fila_cabecera_idx: int, fila_cabecera: list) -> list[dict]:
+    """Une columnas 01/02/03 con la leyenda visible del archivo SIAGIE."""
+    leyenda = _extraer_leyenda(ws)
+    fila_2 = [ws.cell(row=fila_cabecera_idx + 1, column=c).value for c in range(1, min(ws.max_column, 50) + 1)]
+    comps = []
+    comp_idx = 0
+    for idx, valor in enumerate(fila_cabecera):
+        codigo_norm = _normalizar(valor)
+        if not re.fullmatch(r"0?\d{1,2}", codigo_norm):
+            continue
+        comp_idx += 1
+        codigo = codigo_norm.zfill(2)
+        sub_actual = _normalizar(fila_2[idx] if idx < len(fila_2) else "")
+        sub_siguiente = _normalizar(fila_2[idx + 1] if idx + 1 < len(fila_2) else "")
+        comps.append({
+            "codigo": codigo,
+            "nombre": leyenda.get(codigo, ""),
+            "competencia_default": comp_idx,
+            "campo_nl": f"nota_nl_{comp_idx}" if sub_actual == "nl" else "",
+            "campo_conclusion": f"conclusion_{comp_idx}" if ("conclusion" in sub_siguiente or "descript" in sub_siguiente) else "",
+            "col_nl": idx,
+            "col_conclusion": idx + 1 if ("conclusion" in sub_siguiente or "descript" in sub_siguiente) else None,
+        })
+    return comps
+
+
+def aplicar_mapeo_competencias(mapeo_infos: list[dict], competencias_por_hoja: dict | None = None) -> list[dict]:
+    """Aplica correcciones simples: hoja -> codigo SIAGIE -> competencia EduMWork."""
+    if not competencias_por_hoja:
+        return mapeo_infos
+    ajustadas = []
+    for info in mapeo_infos:
+        hoja = info.get("hoja", "")
+        overrides = competencias_por_hoja.get(hoja) or {}
+        if not overrides:
+            ajustadas.append(info)
+            continue
+        nuevo = {**info, "mapeo": dict(info.get("mapeo", {})), "metodo": "manual"}
+        for comp in info.get("competencias_detectadas", []):
+            codigo = comp.get("codigo")
+            destino = overrides.get(codigo) or overrides.get(str(int(codigo)) if str(codigo).isdigit() else codigo)
+            if destino in (None, "", "ignorar"):
+                continue
+            try:
+                destino_int = int(destino)
+            except (TypeError, ValueError):
+                continue
+            col_nl = comp.get("col_nl")
+            col_conclusion = comp.get("col_conclusion")
+            if col_nl is not None:
+                nuevo["mapeo"][int(col_nl)] = f"nota_nl_{destino_int}"
+            if col_conclusion is not None:
+                nuevo["mapeo"][int(col_conclusion)] = f"conclusion_{destino_int}"
+        ajustadas.append(nuevo)
+    return ajustadas
+
+
 # ─── Rama heurística ─────────────────────────────────────────────────────────
 
 def _mapeo_heuristico(fila_cabecera: list) -> dict:
@@ -121,6 +217,25 @@ def _mapeo_heuristico(fila_cabecera: list) -> dict:
         if len(cols) > 1:
             for i, col_idx in enumerate(cols):
                 mapeo[col_idx] = f"{campo_base}_{i + 1}"
+    return mapeo
+
+
+def _mapeo_heuristico_2_filas(ws, fila_cabecera_idx: int, fila_cabecera: list) -> dict:
+    """Detecta templates SIAGIE reales donde F1 tiene competencias y F2 NL/conclusión."""
+    mapeo = _mapeo_heuristico(fila_cabecera)
+    max_col = min(ws.max_column, 50)
+    fila_2 = [ws.cell(row=fila_cabecera_idx + 1, column=c).value for c in range(1, max_col + 1)]
+    comp_idx = 0
+    for idx, valor in enumerate(fila_cabecera):
+        if not re.fullmatch(r"0?\d{1,2}", _normalizar(valor)):
+            continue
+        comp_idx += 1
+        sub_actual = _normalizar(fila_2[idx] if idx < len(fila_2) else "")
+        sub_siguiente = _normalizar(fila_2[idx + 1] if idx + 1 < len(fila_2) else "")
+        if sub_actual == "nl":
+            mapeo[idx] = f"nota_nl_{comp_idx}"
+        if "conclusion" in sub_siguiente or "descript" in sub_siguiente:
+            mapeo[idx + 1] = f"conclusion_{comp_idx}"
     return mapeo
 
 
@@ -193,13 +308,16 @@ def analizar_hoja(ws, usuario) -> dict:
     from .models import SiagieMapeo
 
     fila_cabecera_idx, fila_cabecera = _detectar_fila_cabecera(ws)
-    fila_datos = fila_cabecera_idx + 1
+    fila_subheader = [ws.cell(row=fila_cabecera_idx + 1, column=c).value for c in range(1, min(ws.max_column, 50) + 1)]
+    usa_subheader = any(_normalizar(v) == "nl" or "conclusion" in _normalizar(v) for v in fila_subheader)
+    fila_datos = fila_cabecera_idx + (2 if usa_subheader else 1)
     hash_h = _hash_fila(fila_cabecera)
     muestra_header = " | ".join(str(v or "")[:30] for v in fila_cabecera if v is not None)
 
     # ── Rama 1: cache ────────────────────────────────────────────────────
-    existente = SiagieMapeo.objects.filter(hash_header=hash_h).first()
+    existente = SiagieMapeo.objects.filter(tipo_template="notas", hash_header=hash_h).first()
     if existente:
+        competencias = _competencias_detectadas(ws, fila_cabecera_idx, fila_cabecera)
         return {
             "hash": hash_h,
             "hoja": ws.title,
@@ -209,6 +327,8 @@ def analizar_hoja(ws, usuario) -> dict:
             "fila_datos": existente.fila_datos,
             "metodo": "cache",
             "muestra_header": existente.muestra_header,
+            "leyenda": _extraer_leyenda(ws),
+            "competencias_detectadas": competencias,
         }
 
     # ── Ramas 2/3: nuevo mapeo ───────────────────────────────────────────
@@ -218,9 +338,10 @@ def analizar_hoja(ws, usuario) -> dict:
     mapeo = _mapeo_con_ia(fila_cabecera, muestra_datos, usuario)
     metodo = "ia" if mapeo else "heuristica"
     if not mapeo:
-        mapeo = _mapeo_heuristico(fila_cabecera)
+        mapeo = _mapeo_heuristico_2_filas(ws, fila_cabecera_idx, fila_cabecera)
 
     SiagieMapeo.objects.create(
+        tipo_template="notas",
         hash_header=hash_h,
         mapeo_json={str(k): v for k, v in mapeo.items()},
         nivel=nivel,
@@ -239,6 +360,8 @@ def analizar_hoja(ws, usuario) -> dict:
         "fila_datos": fila_datos,
         "metodo": metodo,
         "muestra_header": muestra_header,
+        "leyenda": _extraer_leyenda(ws),
+        "competencias_detectadas": _competencias_detectadas(ws, fila_cabecera_idx, fila_cabecera),
     }
 
 
@@ -249,6 +372,8 @@ def analizar_template(archivo_excel, usuario) -> list[dict]:
     wb = load_workbook(archivo_excel, data_only=True)
     resultados = []
     for ws in wb.worksheets:
+        if _normalizar(ws.title) in {"generalidades", "parametros", "parámetros"}:
+            continue
         try:
             resultados.append(analizar_hoja(ws, usuario))
         except Exception as e:
@@ -274,12 +399,12 @@ def preview_relleno(archivo_excel, notas_por_dni: dict, mapeo_infos: list[dict])
         mapeo = info["mapeo"]
         fila_datos = info["fila_datos"]
         campo_a_col = {v: int(k) for k, v in mapeo.items() if v != "ignorar"}
-        col_dni = campo_a_col.get("dni")
-        if col_dni is None:
+        col_identificador = campo_a_col.get("dni", campo_a_col.get("codigo"))
+        if col_identificador is None:
             continue
 
         for row_idx in range(fila_datos, ws.max_row + 1):
-            dni_val = str(ws.cell(row=row_idx, column=col_dni + 1).value or "").strip()
+            dni_val = str(ws.cell(row=row_idx, column=col_identificador + 1).value or "").strip()
             if not dni_val:
                 continue
             dnis_en_template.append(dni_val)
@@ -312,12 +437,12 @@ def rellenar_template(archivo_excel, notas_por_dni: dict, mapeo_infos: list[dict
         mapeo = info["mapeo"]
         fila_datos = info["fila_datos"]
         campo_a_col = {v: int(k) for k, v in mapeo.items() if v != "ignorar"}
-        col_dni = campo_a_col.get("dni")
-        if col_dni is None:
+        col_identificador = campo_a_col.get("dni", campo_a_col.get("codigo"))
+        if col_identificador is None:
             continue
 
         for row_idx in range(fila_datos, ws.max_row + 1):
-            dni_val = str(ws.cell(row=row_idx, column=col_dni + 1).value or "").strip()
+            dni_val = str(ws.cell(row=row_idx, column=col_identificador + 1).value or "").strip()
             if not dni_val or dni_val not in notas_por_dni:
                 continue
             datos = notas_por_dni[dni_val]

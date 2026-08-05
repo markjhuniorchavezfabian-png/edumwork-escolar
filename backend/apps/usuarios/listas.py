@@ -29,7 +29,7 @@ def _datos(seccion_id: int):
         raise ValueError("Sección no encontrada.")
 
     estudiantes = list(
-        Estudiante.objects.filter(seccion_obj=seccion)
+        Estudiante.objects.por_seccion(seccion.pk)
         .select_related("usuario")
         .order_by("usuario__last_name", "usuario__first_name")
     )

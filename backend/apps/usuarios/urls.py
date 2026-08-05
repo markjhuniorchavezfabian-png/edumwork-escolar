@@ -6,6 +6,8 @@ urlpatterns = [
     path("login/", views.login, name="auth-login"),
     path("refresh/", views.refresh, name="auth-refresh"),
     path("me/", views.me, name="auth-me"),
+    path("mi-cuenta/", views_personal.mi_cuenta, name="auth-mi-cuenta"),
+    path("mi-backup/", views_personal.mi_backup, name="auth-mi-backup"),
 
     # ── Invitación e integración de docentes a la I.E. ──────────────────
     path("invitar-docente/", views_personal.invitar_docente, name="auth-invitar-docente"),
