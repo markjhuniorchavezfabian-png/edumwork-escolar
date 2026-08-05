@@ -4,6 +4,7 @@ import Icon from "../ui/Icon";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import OnboardingModoUI from "./OnboardingModoUI";
+import ErrorBoundary from "../ui/ErrorBoundary";
 import AsistenteIA from "../ia/AsistenteIA";
 import { useSidebar } from "../../hooks/useSidebar";
 import { useAuth } from "../../hooks/useAuth";
@@ -48,7 +49,11 @@ export default function Layout() {
           </div>
         )}
         <main className="flex-1 p-4 lg:p-6 overflow-x-auto">
-          <Outlet />
+          {/* Contiene el fallo dentro del área de contenido: el menú sigue
+              usable y la persona puede irse a otra pantalla sin recargar. */}
+          <ErrorBoundary resetKey={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
 

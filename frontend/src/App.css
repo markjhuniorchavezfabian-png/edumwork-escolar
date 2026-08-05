@@ -1763,6 +1763,51 @@ body[data-modo-ui="simple"] .graficos-grid {
 /* Modo oscuro */
 .dark .seccion-card { background: var(--card-bg-dark); }
 
+/* Pantalla de contención cuando una vista falla (ver ui/ErrorBoundary.tsx). */
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: 24px;
+}
+.error-boundary__caja {
+  max-width: 460px;
+  text-align: center;
+}
+.error-boundary__caja h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.error-boundary__caja p {
+  color: var(--texto-suave);
+  font-size: 14px;
+  margin-bottom: 18px;
+}
+.error-boundary__acciones {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.error-boundary__caja details {
+  font-size: 12px;
+  color: var(--texto-suave);
+  text-align: left;
+}
+.error-boundary__caja summary {
+  cursor: pointer;
+}
+.error-boundary__caja code {
+  display: block;
+  margin-top: 6px;
+  padding: 8px;
+  background: var(--slate-100);
+  border-radius: 6px;
+  word-break: break-word;
+}
+
 /* Fallback mientras se descarga el chunk de una vista (rutas lazy en App.tsx).
    En la red de un colegio se ve un instante; conviene que no salte el layout. */
 .cargando-vista {

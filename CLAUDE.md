@@ -12,10 +12,15 @@ Backend: Django 5 + DRF + simplejwt + PostgreSQL 16
 Frontend: React 18 + Vite 5 + TypeScript 5
 Auth: JWT con roles múltiples
 
-## Modelo de usuario — 6 roles (TOGAF Fase B)
-director | docente | admin_tic | padre | estudiante | ugel
-- Fase 1 (demo curso): director + docente + admin_tic
-- Fase 2+ (post-curso): padre + estudiante + ugel
+## Modelo de usuario — roles implementados
+`Rol` en `apps/usuarios/models.py`, 10 valores:
+director | subdirector | docente | admin_tic | secretaria | auxiliar | psicologa | conserje | padre | estudiante
+
+**No existe el rol `ugel`.** Estuvo en el plan TOGAF original y en estos docs,
+pero nunca se implementó: no está en `Rol` ni en el frontend. Si algún día se
+necesita para reportes a la UGEL, hay que crearlo de cero.
+(El campo `ConfiguracionInstitucional.ugel` es otra cosa: la UGEL a la que
+pertenece el colegio.)
 
 ## Comandos frecuentes
 
@@ -59,7 +64,6 @@ bash scripts/qa_instalacion.sh
 | tic1 | tic2026 | Admin TIC |
 | padre1 | padre2026 | Padre |
 | estudiante1 | estu2026 | Estudiante |
-| ugel1 | ugel2026 | UGEL |
 
 ## Reglas
 - NO modificar `~/WORKFULL/dev/p_02_automatizacion/` — solo lectura como referencia

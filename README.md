@@ -55,14 +55,21 @@ pytest
 
 ## Roles del sistema
 
-| Rol | Código | Fase |
-|---|---|---|
-| Director | director | 1 |
-| Docente | docente | 1 |
-| Administrador TIC | admin_tic | 1 |
-| Padre de Familia | padre | 2 |
-| Estudiante | estudiante | 2 |
-| UGEL / DRE | ugel | 2 |
+| Rol | Código |
+|---|---|
+| Director | director |
+| Subdirector | subdirector |
+| Docente | docente |
+| Administrador TIC | admin_tic |
+| Secretaría | secretaria |
+| Auxiliar de educación | auxiliar |
+| Psicólogo/a | psicologa |
+| Portería / Conserjería | conserje |
+| Padre de familia | padre |
+| Estudiante | estudiante |
+
+> El rol **UGEL / DRE** figuraba en el plan original pero no está implementado
+> (no existe en `Rol` ni en el frontend).
 
 ## Instalación en VPS de cliente
 
