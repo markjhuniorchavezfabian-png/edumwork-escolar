@@ -359,6 +359,12 @@ cat > /etc/cron.d/sistematic-tareas <<EOF
 
 # Rotar tokens de QR de campañas de auto-registro
 0 3 1 * * root cd $INSTALL_DIR && docker compose -f docker-compose.prod.yml exec -T backend python manage.py rotar_qr_campanas
+
+# Avisar a dirección si el disco pasa el 80% (si se llena, Postgres deja de escribir)
+30 6 * * * root cd $INSTALL_DIR && docker compose -f docker-compose.prod.yml exec -T backend python manage.py chequear_disco
+
+# Purgar bitácora de auditoría de más de 18 meses (crece ~110 MB/año por colegio)
+0 4 1 * * root cd $INSTALL_DIR && docker compose -f docker-compose.prod.yml exec -T backend python manage.py purgar_auditoria --meses 18 --aplicar
 EOF
 ok "Tareas programadas configuradas."
 

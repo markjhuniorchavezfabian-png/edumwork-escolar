@@ -1,57 +1,75 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Suspense, lazy } from "react";
 import { AuthProvider } from "./context/AuthContext";
-import LoginView from "./views/LoginView";
-import DashboardView from "./views/DashboardView";
-import IncidenciasView from "./views/IncidenciasView";
-import AsistenciaView from "./views/AsistenciaView";
-import ImprimirQRsView from "./views/asistencia/ImprimirQRsView";
-import InventarioView from "./views/InventarioView";
-import VisitasView from "./views/VisitasView";
-import AuditoriaView from "./views/AuditoriaView";
-import UsuariosView from "./views/gestion/UsuariosView";
-import SeccionesView from "./views/gestion/SeccionesView";
-import MiPerfilView from "./views/gestion/MiPerfilView";
-import ImportMasivoView from "./views/gestion/ImportMasivoView";
-import PanelFamiliarView from "./views/PanelFamiliarView";
-import JustificacionesView from "./views/JustificacionesView";
-import CargarNotasView from "./views/CargarNotasView";
-import GestionNotasView from "./views/GestionNotasView";
-import SesionesClaseView from "./views/SesionesClaseView";
-import ComunicadosView from "./views/ComunicadosView";
-import ConvivenciaView from "./views/ConvivenciaView";
-import RegistroVisitaPublicoView from "./views/RegistroVisitaPublicoView";
-import ResetPasswordView from "./views/ResetPasswordView";
-import ReservasView from "./views/ReservasView";
-import AsistenciaPersonalView from "./views/AsistenciaPersonalView";
-import ConfigIAView from "./views/ia/ConfigIAView";
-import CostosIAView from "./views/ia/CostosIAView";
-import MiConfigIAView from "./views/ia/MiConfigIAView";
-import NotFoundView from "./views/NotFoundView";
-import OnboardingView from "./views/OnboardingView";
-import ConfiguracionView from "./views/gestion/ConfiguracionView";
-import VersionesView from "./views/VersionesView";
-import RecuperarConCodigoView from "./views/RecuperarConCodigoView";
-import AceptarInvitacionView from "./views/AceptarInvitacionView";
-import InvitarDocenteView from "./views/InvitarDocenteView";
-import AulaVirtualView from "./views/aula/AulaVirtualView";
-import CursoDetalleView from "./views/aula/CursoDetalleView";
-import AmbientePublicoView from "./views/ambientes/AmbientePublicoView";
-import AmbientesGestionView from "./views/ambientes/AmbientesGestionView";
-import FichaEstudianteView from "./views/gestion/FichaEstudianteView";
-import ListaFichasView from "./views/gestion/ListaFichasView";
-import AsignacionesDocenteView from "./views/gestion/AsignacionesDocenteView";
-import EditarCurriculoView from "./views/EditarCurriculoView";
-import CalendarioView from "./views/CalendarioView";
-import MatriculaView from "./views/MatriculaView";
-import AlertasView from "./views/AlertasView";
-import HorarioView from "./views/HorarioView";
-import InformesView from "./views/InformesView";
 import { ModoUIProvider } from "./hooks/useModoUI";
 import { SidebarProvider } from "./hooks/useSidebar";
 import { InstitucionProvider } from "./context/InstitucionContext";
-import UnauthorizedView from "./views/UnauthorizedView";
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import LoginView from "./views/LoginView";
+
+// Todo lo que no sea el login se carga bajo demanda.
+//
+// Antes las 47 vistas se importaban de forma estática: el primer ingreso bajaba
+// ~1,7 MB de JavaScript —incluidos el escáner QR y las librerías de gráficos—
+// aunque el usuario fuera un padre entrando desde el celular a ver una nota.
+// Con `lazy` cada vista viaja en su propio chunk y solo se descarga al abrirla.
+//
+// Al agregar una vista nueva: sumala acá como `lazy(...)`, no con `import`.
+const DashboardView = lazy(() => import("./views/DashboardView"));
+const IncidenciasView = lazy(() => import("./views/IncidenciasView"));
+const AsistenciaView = lazy(() => import("./views/AsistenciaView"));
+const ImprimirQRsView = lazy(() => import("./views/asistencia/ImprimirQRsView"));
+const InventarioView = lazy(() => import("./views/InventarioView"));
+const VisitasView = lazy(() => import("./views/VisitasView"));
+const AuditoriaView = lazy(() => import("./views/AuditoriaView"));
+const UsuariosView = lazy(() => import("./views/gestion/UsuariosView"));
+const SeccionesView = lazy(() => import("./views/gestion/SeccionesView"));
+const MiPerfilView = lazy(() => import("./views/gestion/MiPerfilView"));
+const ImportMasivoView = lazy(() => import("./views/gestion/ImportMasivoView"));
+const PanelFamiliarView = lazy(() => import("./views/PanelFamiliarView"));
+const JustificacionesView = lazy(() => import("./views/JustificacionesView"));
+const CargarNotasView = lazy(() => import("./views/CargarNotasView"));
+const GestionNotasView = lazy(() => import("./views/GestionNotasView"));
+const SesionesClaseView = lazy(() => import("./views/SesionesClaseView"));
+const ComunicadosView = lazy(() => import("./views/ComunicadosView"));
+const ConvivenciaView = lazy(() => import("./views/ConvivenciaView"));
+const RegistroVisitaPublicoView = lazy(() => import("./views/RegistroVisitaPublicoView"));
+const ResetPasswordView = lazy(() => import("./views/ResetPasswordView"));
+const ReservasView = lazy(() => import("./views/ReservasView"));
+const AsistenciaPersonalView = lazy(() => import("./views/AsistenciaPersonalView"));
+const ConfigIAView = lazy(() => import("./views/ia/ConfigIAView"));
+const CostosIAView = lazy(() => import("./views/ia/CostosIAView"));
+const MiConfigIAView = lazy(() => import("./views/ia/MiConfigIAView"));
+const NotFoundView = lazy(() => import("./views/NotFoundView"));
+const OnboardingView = lazy(() => import("./views/OnboardingView"));
+const ConfiguracionView = lazy(() => import("./views/gestion/ConfiguracionView"));
+const VersionesView = lazy(() => import("./views/VersionesView"));
+const RecuperarConCodigoView = lazy(() => import("./views/RecuperarConCodigoView"));
+const AceptarInvitacionView = lazy(() => import("./views/AceptarInvitacionView"));
+const InvitarDocenteView = lazy(() => import("./views/InvitarDocenteView"));
+const AulaVirtualView = lazy(() => import("./views/aula/AulaVirtualView"));
+const CursoDetalleView = lazy(() => import("./views/aula/CursoDetalleView"));
+const AmbientePublicoView = lazy(() => import("./views/ambientes/AmbientePublicoView"));
+const AmbientesGestionView = lazy(() => import("./views/ambientes/AmbientesGestionView"));
+const FichaEstudianteView = lazy(() => import("./views/gestion/FichaEstudianteView"));
+const ListaFichasView = lazy(() => import("./views/gestion/ListaFichasView"));
+const AsignacionesDocenteView = lazy(() => import("./views/gestion/AsignacionesDocenteView"));
+const EditarCurriculoView = lazy(() => import("./views/EditarCurriculoView"));
+const CalendarioView = lazy(() => import("./views/CalendarioView"));
+const MatriculaView = lazy(() => import("./views/MatriculaView"));
+const AlertasView = lazy(() => import("./views/AlertasView"));
+const HorarioView = lazy(() => import("./views/HorarioView"));
+const InformesView = lazy(() => import("./views/InformesView"));
+const UnauthorizedView = lazy(() => import("./views/UnauthorizedView"));
+
+function Cargando() {
+  return (
+    <div className="cargando-vista" role="status" aria-live="polite">
+      Cargando…
+    </div>
+  );
+}
 
 export default function App() {
   return (
@@ -60,6 +78,7 @@ export default function App() {
       <ModoUIProvider>
       <SidebarProvider>
       <BrowserRouter>
+        <Suspense fallback={<Cargando />}>
         <Routes>
           <Route path="/login" element={<LoginView />} />
           <Route path="/unauthorized" element={<UnauthorizedView />} />
@@ -125,6 +144,7 @@ export default function App() {
           </Route>
           <Route path="*" element={<NotFoundView />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
       </SidebarProvider>
       </ModoUIProvider>

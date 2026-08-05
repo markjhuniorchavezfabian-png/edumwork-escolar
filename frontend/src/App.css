@@ -1762,3 +1762,14 @@ body[data-modo-ui="simple"] .graficos-grid {
 
 /* Modo oscuro */
 .dark .seccion-card { background: var(--card-bg-dark); }
+
+/* Fallback mientras se descarga el chunk de una vista (rutas lazy en App.tsx).
+   En la red de un colegio se ve un instante; conviene que no salte el layout. */
+.cargando-vista {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: var(--texto-suave);
+  font-size: 14px;
+}
