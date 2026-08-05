@@ -326,6 +326,16 @@ class Estudiante(models.Model):
     creado_en = models.DateTimeField(auto_now_add=True, null=True)
     actualizado_en = models.DateTimeField(auto_now=True, null=True)
 
+    # ── Migración desde EduMWork Docente (p_04) ─────────────────────────
+    codigo_migracion = models.UUIDField(
+        null=True, blank=True, unique=True, db_index=True,
+        help_text=(
+            "UUID del estudiante en EduMWork Docente. Lo escribe "
+            "`manage.py importar_docente` y es lo que hace idempotente "
+            "reimportar al mismo docente. NULL en altas normales."
+        ),
+    )
+
     # ── Multi-tenant ────────────────────────────────────────────────────
     owner = models.ForeignKey(
         Usuario, on_delete=models.CASCADE, null=True, blank=True,

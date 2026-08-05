@@ -1,7 +1,7 @@
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
-from .signals import set_actor
+from .signals import clear_actor, set_actor
 
 
 def _ip(request):
@@ -38,4 +38,7 @@ class ActorAuditoriaMiddleware:
                 pass
 
         set_actor(user, ip=ip)
-        return self.get_response(request)
+        try:
+            return self.get_response(request)
+        finally:
+            clear_actor()

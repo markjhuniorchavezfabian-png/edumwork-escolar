@@ -1,0 +1,194 @@
+{
+  "formato": "edumwork.migracion.docente",
+  "version": 1,
+  "generado_en": "2026-08-05T05:24:35.752865+00:00",
+  "origen": {
+    "producto": "p_04_docente_solo",
+    "tenant_slug": "demo-docente",
+    "colegio_texto": "I.E. Demo — Huánuco"
+  },
+  "docente": {
+    "email": "demo@edumwork.pe",
+    "nombre": "Demo",
+    "apellidos": "Docente",
+    "dni": "",
+    "telefono": "999888777"
+  },
+  "clases": [
+    {
+      "codigo_migracion": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "nombre": "1ro A — Comunicación",
+      "nivel": "secundaria",
+      "grado": "1",
+      "seccion_letra": "A",
+      "curso": "Comunicación",
+      "anio_lectivo": 2026,
+      "horarios": [
+        {
+          "dia_semana": "lun",
+          "hora_inicio": "08:00:00",
+          "hora_fin": "09:30:00",
+          "aula": "Aula 3"
+        }
+      ]
+    }
+  ],
+  "estudiantes": [
+    {
+      "codigo_migracion": "0ac877f8-cc72-4d97-a823-cfc907f5aa8b",
+      "nombre": "Luis",
+      "apellidos": "Chávez",
+      "dni": "70000011",
+      "fecha_nacimiento": null,
+      "tutor_nombre": "Tutor de Luis",
+      "tutor_celular": "988000011"
+    },
+    {
+      "codigo_migracion": "feb7ff7a-a246-42d9-be70-3124e15b727b",
+      "nombre": "Camila",
+      "apellidos": "Fernández",
+      "dni": "70000002",
+      "fecha_nacimiento": null,
+      "tutor_nombre": "Tutor de Camila",
+      "tutor_celular": "988000002"
+    }
+  ],
+  "matriculas": [
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "0ac877f8-cc72-4d97-a823-cfc907f5aa8b",
+      "activo": true
+    },
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "feb7ff7a-a246-42d9-be70-3124e15b727b",
+      "activo": true
+    }
+  ],
+  "asistencias": [
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "0ac877f8-cc72-4d97-a823-cfc907f5aa8b",
+      "fecha": "2026-07-22",
+      "estado": "presente",
+      "hora_llegada": null,
+      "justificacion": ""
+    },
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "feb7ff7a-a246-42d9-be70-3124e15b727b",
+      "fecha": "2026-07-22",
+      "estado": "ausente",
+      "hora_llegada": null,
+      "justificacion": ""
+    },
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "0ac877f8-cc72-4d97-a823-cfc907f5aa8b",
+      "fecha": "2026-07-23",
+      "estado": "presente",
+      "hora_llegada": null,
+      "justificacion": ""
+    },
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "feb7ff7a-a246-42d9-be70-3124e15b727b",
+      "fecha": "2026-07-23",
+      "estado": "presente",
+      "hora_llegada": null,
+      "justificacion": ""
+    },
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "feb7ff7a-a246-42d9-be70-3124e15b727b",
+      "fecha": "2026-07-24",
+      "estado": "presente",
+      "hora_llegada": null,
+      "justificacion": ""
+    },
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "0ac877f8-cc72-4d97-a823-cfc907f5aa8b",
+      "fecha": "2026-07-24",
+      "estado": "presente",
+      "hora_llegada": null,
+      "justificacion": ""
+    }
+  ],
+  "notas": [
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "feb7ff7a-a246-42d9-be70-3124e15b727b",
+      "anio_lectivo": 2026,
+      "bimestre": "1",
+      "competencia": 1,
+      "calificacion": "B",
+      "calificacion_numerica": null,
+      "conclusion_descriptiva": "En proceso. El estudiante está en camino de lograr los aprendizajes previstos, para lo cual requiere acompañamiento durante un tiempo razonable para lograrlo.",
+      "observaciones": ""
+    },
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "0ac877f8-cc72-4d97-a823-cfc907f5aa8b",
+      "anio_lectivo": 2026,
+      "bimestre": "1",
+      "competencia": 1,
+      "calificacion": "A",
+      "calificacion_numerica": null,
+      "conclusion_descriptiva": "Logro esperado. El estudiante evidencia el logro de los aprendizajes previstos en el tiempo programado.",
+      "observaciones": ""
+    },
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "0ac877f8-cc72-4d97-a823-cfc907f5aa8b",
+      "anio_lectivo": 2026,
+      "bimestre": "1",
+      "competencia": 2,
+      "calificacion": "C",
+      "calificacion_numerica": null,
+      "conclusion_descriptiva": "En inicio. El estudiante está empezando a desarrollar los aprendizajes previstos o evidencia dificultades para el desarrollo de éstos y necesita mayor tiempo de acompañamiento e intervención del docente de acuerdo con su ritmo y estilo de aprendizaje.",
+      "observaciones": ""
+    },
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "estudiante": "feb7ff7a-a246-42d9-be70-3124e15b727b",
+      "anio_lectivo": 2026,
+      "bimestre": "1",
+      "competencia": 2,
+      "calificacion": "B",
+      "calificacion_numerica": null,
+      "conclusion_descriptiva": "En proceso. El estudiante está en camino de lograr los aprendizajes previstos, para lo cual requiere acompañamiento durante un tiempo razonable para lograrlo.",
+      "observaciones": ""
+    }
+  ],
+  "sesiones": [
+    {
+      "clase": "e1ac8437-f550-4db7-99b0-428ad8db2a7c",
+      "fecha": "2026-07-28",
+      "duracion_minutos": 90,
+      "area": "Comunicación",
+      "grado": "1",
+      "competencia": "Se comunica oralmente",
+      "capacidad": "",
+      "tema": "Los adjetivos calificativos",
+      "titulo": "Descripción con adjetivos calificativos",
+      "desempeno": "",
+      "preparacion": "",
+      "proposito": "Que los estudiantes identifiquen y usen adjetivos calificativos en descripciones breves de personas y objetos.",
+      "inicio": "Motivación con fotos: los estudiantes describen a un compañero usando 3 palabras.",
+      "desarrollo": "1. Presentación del concepto de adjetivo calificativo.\n2. Trabajo grupal: subrayar adjetivos en un texto corto.\n3. Ronda de descripciones: cada estudiante describe un objeto del aula.",
+      "cierre": "Metacognición: ¿qué aprendimos hoy? Cada uno escribe una oración descriptiva.",
+      "materiales": "Textos impresos, pizarra, plumones, objetos del aula.",
+      "evaluacion": "Lista de cotejo: identifica adjetivos, los usa en oraciones propias.",
+      "generada_por_ia": false
+    }
+  ],
+  "resumen": {
+    "clases": 1,
+    "estudiantes": 2,
+    "matriculas": 2,
+    "asistencias": 6,
+    "notas": 4,
+    "sesiones": 1
+  }
+}

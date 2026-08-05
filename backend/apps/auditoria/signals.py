@@ -25,6 +25,19 @@ def set_actor(user, ip=None):
     _local.ip = ip
 
 
+def clear_actor():
+    """Limpia el actor al terminar la request.
+
+    Sin esto el usuario queda pegado al hilo: cualquier cosa que escriba un
+    modelo auditado fuera de una request (management command, cron, tests) en
+    un hilo que antes atendió a alguien, queda registrada a nombre de esa
+    persona — y si además ese usuario ya no existe, la FK de `auditoria`
+    revienta.
+    """
+    _local.user = None
+    _local.ip = None
+
+
 def _actor():
     user = getattr(_local, "user", None)
     ip = getattr(_local, "ip", None)
