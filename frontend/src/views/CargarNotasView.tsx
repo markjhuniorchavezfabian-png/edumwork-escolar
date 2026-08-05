@@ -2121,7 +2121,7 @@ function PanelConclusion({ estudiante, competencia, competenciaNombre, capacidad
           ref={textareaRef}
           value={nota.conclusion_descriptiva}
           onChange={(e) => onConclusion(e.target.value)}
-          placeholder="Se llenará automáticamente al elegir NL. Podés editarla o usar IA."
+          placeholder="Se llenará automáticamente al elegir NL. Puedes editarla o usar IA."
           style={{
             flex: 1, resize: "none", border: "1px solid var(--borde)", borderRadius: 8,
             padding: "10px 12px", fontSize: 13, lineHeight: 1.6,

@@ -242,7 +242,7 @@ function SeccionDatos({ cfg, onSave, saving }: {
           value={f.sigla}
           onChange={(v) => setF({ ...f, sigla: v.toUpperCase() })}
           placeholder="INS"
-          hint="Si la dejás vacía se genera automáticamente desde el nombre." />
+          hint="Si la dejas vacía se genera automáticamente desde el nombre." />
         <Campo label="Email institucional" type="email"
           value={f.email_institucional}
           onChange={(v) => setF({ ...f, email_institucional: v })}
@@ -785,7 +785,7 @@ function SeccionNotas({ cfg, onSave, saving }: {
           <div>
             <div className="text-sm font-semibold">Año lectivo activo</div>
             <div className="text-xs text-muted-foreground">
-              Docentes trabajan en este año. Para abrir el siguiente, usá el botón.
+              Docentes trabajan en este año. Para abrir el siguiente, usa el botón.
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -862,8 +862,8 @@ function SeccionNotas({ cfg, onSave, saving }: {
       <div className="rounded-md bg-blue-500/10 border border-blue-500/30 p-3 flex items-start gap-2 text-xs text-blue-900 dark:text-blue-100">
         <Info size={14} className="mt-0.5 shrink-0" />
         <div>
-          El SIAGIE siempre recibe letras. Si usás escala numérica, la conversión es automática.
-          Podés cambiar esta opción en cualquier momento — las notas ya guardadas no se borran.
+          El SIAGIE siempre recibe letras. Si usas escala numérica, la conversión es automática.
+          Puedes cambiar esta opción en cualquier momento — las notas ya guardadas no se borran.
         </div>
       </div>
 
@@ -872,7 +872,7 @@ function SeccionNotas({ cfg, onSave, saving }: {
         <h3 className="text-base font-semibold mb-1">Plantilla de informes pedagógicos (IA)</h3>
         <p className="text-xs text-muted-foreground mb-3">
           Prompt del sistema que usa la IA al generar informes. Si está vacío, se usa el estándar institucional.
-          Podés personalizar el tono, secciones o énfasis según las necesidades de tu colegio.
+          Puedes personalizar el tono, secciones o énfasis según las necesidades de tu colegio.
         </p>
         <textarea
           value={plantilla}

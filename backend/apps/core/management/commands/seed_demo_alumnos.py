@@ -108,13 +108,20 @@ class Command(BaseCommand):
         nivel = (seccion.nivel or "sn")[:3]
         slug = _ascii(f"{nivel}{seccion.grado}{seccion.letra}")
 
-        creados = 0
-        for i in range(ya, cupo):
+        creados, indice = 0, 0
+        while creados < faltan:
+            indice += 1
+            if indice > cupo + 50:  # red de seguridad, nunca debería pasar
+                break
+
             nombre = rnd.choice(rnd.choice([NOMBRES_F, NOMBRES_M]))
             paterno, materno = rnd.sample(APELLIDOS, 2)
-            username = f"{PREFIJO}{slug}_{i + 1:02d}"
+            username = f"{PREFIJO}{slug}_{indice:02d}"
             dni = f"7{abs(hash(username)) % 10_000_000:07d}"
 
+            # El username puede estar tomado por una corrida anterior: se salta
+            # al siguiente índice en vez de darse por vencido, si no la sección
+            # nunca llega al cupo.
             if Usuario.objects.filter(username=username).exists():
                 continue
 

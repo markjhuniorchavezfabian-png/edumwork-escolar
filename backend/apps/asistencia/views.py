@@ -346,7 +346,12 @@ class RegistroAsistenciaViewSet(viewsets.ModelViewSet):
                 return qs.none()
             qs = qs.filter(estudiante=est)
 
-        # Filtros por query params
+        # Filtros por query params.
+        # OJO: `estudiante` es el id del perfil Estudiante, NO el del Usuario —
+        # son numeraciones distintas. Pasar un Usuario.id acá no da error: filtra
+        # por un id que no existe y devuelve vacío (o, peor, el Estudiante que
+        # casualmente tenga ese pk). El frontend del estudiante mandaba su
+        # Usuario.id y por eso nunca veía su asistencia.
         estudiante = self.request.GET.get("estudiante")
         fecha = self.request.GET.get("fecha")
         desde = self.request.GET.get("desde")

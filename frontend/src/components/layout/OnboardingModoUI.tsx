@@ -1,23 +1,61 @@
+import { useEffect, useRef, useState } from "react";
 import { useModoUI, type ModoUI } from "../../hooks/useModoUI";
 import Icon from "../ui/Icon";
+
+const CLAVE_POSPUESTO = "sistema.modo_ui.pospuesto";
 
 /**
  * Modal que se muestra la primera vez que un usuario entra al sistema.
  * Le pregunta si prefiere una vista simple o completa.
  * El usuario puede cambiar la elección después desde el sidebar.
+ *
+ * Tiene salida: "Decidir después" lo cierra por esta sesión (vuelve a
+ * preguntar en el próximo ingreso) y Esc hace lo mismo. Antes era una decisión
+ * forzada y, como el overlay tapa toda la pantalla sin anunciarse como
+ * diálogo, quien no entendía la pregunta quedaba trabado: los clics en el
+ * menú "no hacían nada" sin ninguna pista de por qué.
  */
 export default function OnboardingModoUI() {
   const { yaEligió, setModo } = useModoUI();
+  const [pospuesto, setPospuesto] = useState(
+    () => sessionStorage.getItem(CLAVE_POSPUESTO) === "1",
+  );
+  const panelRef = useRef<HTMLDivElement>(null);
+  const visible = !yaEligió && !pospuesto;
 
-  if (yaEligió) return null;
+  function posponer() {
+    sessionStorage.setItem(CLAVE_POSPUESTO, "1");
+    setPospuesto(true);
+  }
+
+  // Foco dentro del diálogo al abrir, y Esc para salir.
+  useEffect(() => {
+    if (!visible) return;
+    panelRef.current?.focus();
+    const alTeclado = (e: KeyboardEvent) => {
+      if (e.key === "Escape") posponer();
+    };
+    document.addEventListener("keydown", alTeclado);
+    return () => document.removeEventListener("keydown", alTeclado);
+  }, [visible]);
+
+  if (!visible) return null;
 
   const elegir = (m: ModoUI) => setModo(m);
 
   return (
     <div className="modal-overlay" style={{ zIndex: 3000 }}>
-      <div className="modal-panel modal-panel-lg" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={panelRef}
+        className="modal-panel modal-panel-lg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modo-ui-titulo"
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="modal-header">
-          <h3 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <h3 id="modo-ui-titulo" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{
               width: 32, height: 32, borderRadius: 8,
               background: "var(--azul-100)", color: "var(--azul-600)",
@@ -30,7 +68,7 @@ export default function OnboardingModoUI() {
         </div>
         <div className="modal-body">
           <p style={{ fontSize: 14, color: "var(--texto-mute)", marginBottom: 20 }}>
-            Podés cambiar esta elección cuando quieras desde el botón de tu nombre en el menú lateral.
+            Puedes cambiar esta elección cuando quieras desde el botón de tu nombre en el menú lateral.
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
@@ -107,6 +145,19 @@ export default function OnboardingModoUI() {
             No te preocupes — es sólo la forma de mostrar la información.
             Todas las funciones siguen disponibles en ambos modos.
           </p>
+
+          <div style={{ textAlign: "center", marginTop: 12 }}>
+            <button
+              type="button"
+              onClick={posponer}
+              style={{
+                background: "none", border: "none", cursor: "pointer",
+                fontSize: 12, color: "var(--texto-mute)", textDecoration: "underline",
+              }}
+            >
+              Decidir después
+            </button>
+          </div>
         </div>
       </div>
     </div>

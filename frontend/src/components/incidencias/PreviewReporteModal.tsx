@@ -106,7 +106,7 @@ export default function PreviewReporteModal({ onCerrar }: { onCerrar: () => void
                   </button>
                 </div>
                 <div className="preview-hint">
-                  Podés editar el texto abajo antes de descargar. Los cambios se guardan en el Word final.
+                  Puedes editar el texto abajo antes de descargar. Los cambios se guardan en el Word final.
                 </div>
                 <textarea
                   className="form-input preview-textarea"

@@ -121,7 +121,7 @@ export default function AmbientePublicoView() {
 
       {/* Si tiene sesión abierta */}
       {miAbierta ? (
-        <Card titulo="Tenés una sesión abierta acá">
+        <Card titulo="Tienes una sesión abierta acá">
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <div><strong>Inicio:</strong> {new Date(miAbierta.inicio).toLocaleString("es-PE")}</div>
             {miAbierta.motivo && <div><strong>Motivo:</strong> {miAbierta.motivo}</div>}
@@ -244,7 +244,7 @@ function CerrarSesionModal({ bitacora, onCerrar, onCerrada, irAIncidencia }: {
         </div>
         <div className="modal-body">
           <p style={{ fontSize: 13, color: "var(--texto-mute)", marginBottom: 16 }}>
-            ¿Cómo dejás el ambiente <strong>{bitacora.ambiente_nombre}</strong>?
+            ¿Cómo dejas el ambiente <strong>{bitacora.ambiente_nombre}</strong>?
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 14 }}>
             {[

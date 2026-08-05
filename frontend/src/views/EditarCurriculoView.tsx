@@ -40,7 +40,7 @@ export default function EditarCurriculoView() {
       <h2 className="page-title">Currículo — CNEB</h2>
       <p style={{ color: "var(--muted-foreground)", marginBottom: 16, fontSize: 14 }}>
         Importá el JSON del CNEB para cargar o actualizar competencias, capacidades y desempeños.
-        Cuando MINEDU publique una nueva versión, subís el JSON y listo — sin tocar código.
+        Cuando MINEDU publique una nueva versión, subes el JSON y listo — sin tocar código.
       </p>
 
       <Card titulo="Importar CNEB desde JSON">

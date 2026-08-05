@@ -114,7 +114,7 @@ export default function MiPerfilView() {
               </div>
             )}
             <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 6 }}>
-              Si no reconocés este acceso, cambiá tu contraseña inmediatamente y avisá al director.
+              Si no reconoces este acceso, cambia tu contraseña inmediatamente y avisa al director.
             </div>
           </div>
         )}

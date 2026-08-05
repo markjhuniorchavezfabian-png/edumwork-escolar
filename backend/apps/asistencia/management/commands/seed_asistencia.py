@@ -33,7 +33,12 @@ NOMBRES = [
     ("Andrés", "Pérez"), ("Valeria", "Gómez"),
 ]
 
-SECCIONES = [("1ro", "A"), ("2do", "A"), ("3ro", "A"), ("4to", "A"), ("5to", "A")]
+# Con nivel: sin él, `get_or_create(grado, letra)` explota apenas el colegio
+# tiene "1ro A" en primaria y "1ro A" en secundaria (MultipleObjectsReturned).
+SECCIONES = [
+    ("secundaria", "1ro", "A"), ("secundaria", "2do", "A"), ("secundaria", "3ro", "A"),
+    ("secundaria", "4to", "A"), ("secundaria", "5to", "A"),
+]
 
 
 class Command(BaseCommand):
@@ -62,7 +67,7 @@ class Command(BaseCommand):
             self.stdout.write(f"Creando {faltan} estudiantes...")
             for i in range(faltan):
                 nombre, apellido = rng.choice(NOMBRES)
-                grado, seccion = rng.choice(SECCIONES)
+                nivel, grado, seccion = rng.choice(SECCIONES)
                 username = f"est{estudiantes_existentes + i + 1:03d}"
                 codigo = f"20260{estudiantes_existentes + i + 1:03d}"
 
@@ -85,7 +90,7 @@ class Command(BaseCommand):
                     seccion=seccion,
                 )
                 seccion_obj, _ = Seccion.objects.get_or_create(
-                    grado=grado, letra=seccion,
+                    nivel=nivel, grado=grado, letra=seccion,
                     defaults={"nombre": f"{grado} {seccion}"},
                 )
                 Matricula.objects.create(

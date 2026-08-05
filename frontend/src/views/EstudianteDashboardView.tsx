@@ -52,7 +52,11 @@ export default function EstudianteDashboardView() {
 
   useEffect(() => {
     Promise.all([
-      api.get("/asistencia/registros/?estudiante=" + usuario?.id).catch(() => ({ data: [] })),
+      // Sin filtro: el backend ya limita al estudiante logueado por su rol.
+      // Antes iba `?estudiante=<usuario.id>`, pero ese parámetro espera el id
+      // del perfil Estudiante, que es otro número — el filtro nunca casaba y
+      // el chico veía su asistencia siempre vacía.
+      api.get("/asistencia/registros/").catch(() => ({ data: [] })),
       api.get("/comunicados/").catch(() => ({ data: [] })),
       api.get("/aula-virtual/tareas/pendientes/").catch(() => ({ data: [] })),
     ])
@@ -72,7 +76,11 @@ export default function EstudianteDashboardView() {
   const tardanzas = asistencias.filter((a) => a.estado === "tardanza").length;
   const ausentes = asistencias.filter((a) => a.estado === "ausente").length;
   const justificadas = asistencias.filter((a) => a.estado === "justificado").length;
-  const porcentaje = total > 0 ? Math.round(((presentes + tardanzas + justificadas) / total) * 100) : 0;
+  // `null` cuando todavía no hay registros: mostrar "0%" haría creer al
+  // estudiante que faltó a todo, cuando en realidad nadie marcó asistencia aún.
+  const porcentaje = total > 0
+    ? Math.round(((presentes + tardanzas + justificadas) / total) * 100)
+    : null;
 
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
@@ -111,8 +119,17 @@ export default function EstudianteDashboardView() {
           </div>
           <div className="text-center rounded-xl bg-white/10 backdrop-blur px-5 py-3 ring-1 ring-white/20 min-w-[110px]">
             <div className="text-[10px] uppercase tracking-wide text-primary-foreground/70">Asistencia</div>
-            <div className="text-3xl font-bold">{porcentaje}%</div>
-            <div className="text-[10px] text-primary-foreground/70">últimos 15 días</div>
+            {porcentaje === null ? (
+              <>
+                <div className="text-lg font-bold leading-tight py-1">Sin datos</div>
+                <div className="text-[10px] text-primary-foreground/70">aún no marcada</div>
+              </>
+            ) : (
+              <>
+                <div className="text-3xl font-bold">{porcentaje}%</div>
+                <div className="text-[10px] text-primary-foreground/70">últimos 15 días</div>
+              </>
+            )}
           </div>
         </div>
       </section>

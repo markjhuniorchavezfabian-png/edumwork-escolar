@@ -26,7 +26,7 @@ const PLACEHOLDER_ROL: Record<string, string> = {
   docente: "Ej: Ideas para enseñar fracciones en primaria...",
   admin_tic: "Ej: El proyector no enciende, ¿qué reviso?",
   padre: "Ej: ¿Cómo justificar una falta de mi hijo?",
-  estudiante: "Ej: No entiendo las fracciones, ¿me explicás?",
+  estudiante: "Ej: No entiendo las fracciones, ¿me explicas?",
 };
 
 export default function AsistenteIA() {
@@ -204,7 +204,7 @@ export default function AsistenteIA() {
               }}>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>Sin IA configurada</div>
                 <div style={{ color: "var(--muted-foreground)", marginBottom: 8 }}>
-                  Configurá tu API de IA propia para usar el asistente.
+                  Configura tu API de IA propia para usar el asistente.
                 </div>
                 <Link to="/mi-ia" onClick={() => setAbierto(false)}
                   style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--azul-600)", fontWeight: 600 }}>

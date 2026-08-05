@@ -424,7 +424,7 @@ function SeccionContenido({ sid, datos, setCampo, ficha, editable }: Props) {
 
   if (sid === "apoderados") return (
     ficha.apoderados_detalle.length === 0 ? (
-      <EmptyState icono="usuarios" titulo="Sin apoderados vinculados" descripcion="Podés vincular apoderados desde el módulo de Usuarios." />
+      <EmptyState icono="usuarios" titulo="Sin apoderados vinculados" descripcion="Puedes vincular apoderados desde el módulo de Usuarios." />
     ) : (
       <div style={{ display: "grid", gap: 10 }}>
         {ficha.apoderados_detalle.map((a) => (
