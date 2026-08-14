@@ -11,19 +11,23 @@ const devAllowedHosts = (process.env.VITE_DEV_ALLOWED_HOSTS ?? "")
   .map((h) => h.trim())
   .filter(Boolean);
 
+// Config compartida entre `dev` y `preview`. `preview` sirve el build real
+// (el mismo que ve el cliente) y necesita el mismo proxy de /api, si no las
+// llamadas al backend caen en el 404 del server de estáticos. Es lo que se usa
+// para mostrar la demo por un túnel.
+const servidorLocal = {
+  host: "0.0.0.0",
+  allowedHosts: devAllowedHosts,
+  proxy: {
+    "/api": { target: apiProxyTarget, changeOrigin: true },
+    "/media": { target: apiProxyTarget, changeOrigin: true },
+  },
+};
+
 export default defineConfig({
   plugins: [react()],
-  server: {
-    host: "0.0.0.0",
-    port: 5173,
-    allowedHosts: devAllowedHosts,
-    proxy: {
-      "/api": {
-        target: apiProxyTarget,
-        changeOrigin: true,
-      },
-    },
-  },
+  server: { ...servidorLocal, port: 5173 },
+  preview: { ...servidorLocal, port: 4173 },
   build: {
     minify: "esbuild",
     sourcemap: false,
