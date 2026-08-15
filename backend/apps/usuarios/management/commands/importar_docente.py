@@ -40,7 +40,13 @@ from apps.notas.models import AsignacionDocente, HorarioClase, NotaBimestre
 from apps.usuarios.models import Estudiante, Matricula, Rol, Seccion, Usuario
 
 FORMATO_ESPERADO = "edumwork.migracion.docente"
-VERSIONES_SOPORTADAS = (1,)
+
+# v1: el área de cada nota se deducía del curso de la clase.
+# v2 (2026-08-14): `notas[].area` viene explícita, porque en primaria un mismo
+#   docente califica varias áreas en la misma sección y la deducción las
+#   fusionaba en una sola.
+# Se siguen aceptando paquetes v1: un docente puede haber exportado antes.
+VERSIONES_SOPORTADAS = (1, 2)
 
 # Orden de presencia real: si asistió a alguna clase del día, el día cuenta.
 PRIORIDAD_ASISTENCIA = {"presente": 4, "tardanza": 3, "justificado": 2, "ausente": 1}
@@ -107,7 +113,7 @@ class Command(BaseCommand):
         if paquete.get("version") not in VERSIONES_SOPORTADAS:
             raise CommandError(
                 f"Versión {paquete.get('version')} no soportada (soportadas: "
-                f"{VERSIONES_SOPORTADAS}). Actualizá el sistema institucional."
+                f"{VERSIONES_SOPORTADAS}). Actualiza el sistema institucional."
             )
 
         docente = self._resolver_docente(opts["docente"])
@@ -137,8 +143,8 @@ class Command(BaseCommand):
         )
         if docente is None:
             raise CommandError(
-                f"No encontré al usuario {referencia!r}. Creá primero al docente en el "
-                f"institucional (Gestión → Usuarios) y volvé a correr el comando."
+                f"No encontré al usuario {referencia!r}. Crea primero al docente en el "
+                f"institucional (Gestión → Usuarios) y vuelve a correr el comando."
             )
         if docente.rol != Rol.DOCENTE:
             raise CommandError(
@@ -389,7 +395,11 @@ class Command(BaseCommand):
             if clase is None or est is None:
                 continue
 
-            area = (clase.get("curso") or "").strip() or "Sin área"
+            # v2 manda el área en cada nota. Hasta v1 se deducía del curso de
+            # la clase, que solo es correcto en secundaria: un docente de aula
+            # de primaria califica varias áreas en la misma sección, y deducir
+            # el área del curso fusionaba todas sus notas en una.
+            area = (n.get("area") or clase.get("curso") or "").strip() or "Sin área"
             nota, creada = NotaBimestre.objects.get_or_create(
                 estudiante=est,
                 anio_lectivo=n["anio_lectivo"],

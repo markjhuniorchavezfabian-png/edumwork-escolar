@@ -289,3 +289,45 @@ def test_acepta_al_docente_por_email(db, archivo):
     )
     _importar(archivo, docente="ana@colegio.pe", aplicar=True)
     assert AsignacionDocente.objects.first().docente.username == "ana2"
+
+
+# ── v2: el área viene explícita en cada nota ─────────────────────────────────
+
+
+@pytest.mark.django_db
+def test_acepta_un_paquete_v2(docente, archivo):
+    _editar(archivo, lambda d: d.update(version=2))
+
+    salida = _importar(archivo, aplicar=True)
+
+    assert NotaBimestre.objects.exists(), salida
+
+
+@pytest.mark.django_db
+def test_v2_respeta_el_area_de_cada_nota_en_vez_de_deducirla_del_curso(docente, archivo):
+    """El caso que motivó la v2: un docente de aula de primaria califica varias
+    áreas en la misma sección. Deducir el área del curso de la clase las
+    fusionaba todas en una y le destruía media libreta."""
+    def a_v2(datos):
+        datos["version"] = 2
+        base = datos["notas"][0]
+        datos["notas"] = [
+            {**base, "area": "Matemática", "competencia": 1, "calificacion": "AD"},
+            {**base, "area": "Personal Social", "competencia": 1, "calificacion": "C"},
+        ]
+
+    _editar(archivo, a_v2)
+
+    _importar(archivo, aplicar=True)
+
+    guardadas = {n.area: n.calificacion for n in NotaBimestre.objects.all()}
+    assert guardadas == {"Matemática": "AD", "Personal Social": "C"}
+
+
+@pytest.mark.django_db
+def test_un_paquete_v1_sigue_deduciendo_el_area_del_curso(docente, archivo):
+    """Un docente pudo exportar antes del cambio; ese archivo tiene que seguir
+    entrando igual."""
+    _importar(archivo, aplicar=True)
+
+    assert NotaBimestre.objects.exclude(area="Sin área").exists()
