@@ -87,7 +87,7 @@ export default function AmbientePublicoView() {
     return (
       <div style={{ padding: 24 }}>
         <EmptyState icono="puerta" titulo="Ambiente no encontrado"
-          descripcion={`No hay ambiente con código "${codigo}". Verifica el QR o preguntá al equipo TIC.`}
+          descripcion={`No hay ambiente con código "${codigo}". Verifica el QR o pregunta al equipo TIC.`}
           accion={<Link to="/" className="btn btn-primario btn-icono" style={{ width: "auto" }}>
             <Icon name="casa" /> Ir al inicio
           </Link>} />
@@ -270,7 +270,7 @@ function CerrarSesionModal({ bitacora, onCerrar, onCerrada, irAIncidencia }: {
           {(estado === "observacion" || estado === "incidente") && (
             <div className="form-group">
               <label className="form-label">
-                Contá qué pasó {estado === "incidente" && "(obligatorio)"}
+                Cuenta qué pasó {estado === "incidente" && "(obligatorio)"}
               </label>
               <textarea className="form-input" rows={4}
                 value={observaciones} onChange={(e) => setObservaciones(e.target.value)}

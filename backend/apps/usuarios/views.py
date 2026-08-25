@@ -312,7 +312,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             "ok": True,
             "password_temporal": nueva,
             "aviso": (
-                f"Anotá o comunicale esta contraseña a {usuario.first_name} EN PERSONA — "
+                f"Anota o comunicale esta contraseña a {usuario.first_name} EN PERSONA — "
                 f"no la envíes por WhatsApp ni email. Al entrar, el sistema le pedirá que la cambie."
             ),
         })
@@ -640,7 +640,7 @@ def recuperar_con_codigo(request):
     cod.ip_uso = request.META.get("REMOTE_ADDR")
     cod.save(update_fields=["usado_en", "ip_uso"])
 
-    return Response({"ok": True, "mensaje": "Contraseña actualizada. Ya podés iniciar sesión."})
+    return Response({"ok": True, "mensaje": "Contraseña actualizada. Ya puedes iniciar sesión."})
 
 
 @api_view(["POST"])
@@ -799,7 +799,7 @@ class FichaEstudianteViewSet(viewsets.ModelViewSet):
         obj = self.get_object()
         puede, nivel = self._puede_editar(request, obj)
         if not puede:
-            raise PermissionDenied("No podés editar esta ficha.")
+            raise PermissionDenied("No puedes editar esta ficha.")
 
         if nivel == "medico_emergencia":
             # Padre solo puede tocar campos médicos y de emergencia
@@ -823,7 +823,7 @@ class FichaEstudianteViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         # Los estudiantes se crean vía UsuarioViewSet o import Excel
-        raise PermissionDenied("Usá el módulo de gestión de usuarios o importar Excel para crear estudiantes.")
+        raise PermissionDenied("Usa el módulo de gestión de usuarios o importar Excel para crear estudiantes.")
 
 
 class FichaApoderadoViewSet(viewsets.ModelViewSet):

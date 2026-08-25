@@ -197,7 +197,7 @@ class BitacoraUsoViewSet(viewsets.ModelViewSet):
         ).first()
         if abierta:
             raise PermissionDenied(
-                f"Ya tenés una sesión abierta en este ambiente desde {abierta.inicio:%H:%M}. Cerrala antes."
+                f"Ya tienes una sesión abierta en este ambiente desde {abierta.inicio:%H:%M}. Cerrala antes."
             )
         serializer.save(usuario=user)
 

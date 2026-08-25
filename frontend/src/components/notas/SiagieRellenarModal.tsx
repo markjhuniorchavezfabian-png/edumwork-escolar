@@ -469,7 +469,7 @@ export default function SiagieRellenarModal({ onCerrar, secciones, area = "", nu
               <div style={{ marginBottom: 12 }}>
                 <div style={{ fontWeight: 600, fontSize: 13 }}>Editar mapeo — hoja "{hojaEditando.hoja}"</div>
                 <div style={{ fontSize: 11, color: "var(--muted-foreground)", marginTop: 2 }}>
-                  Asigná cada columna al campo correcto del sistema. Los cambios se guardan y se aplicarán a próximos uploads con este mismo formato.
+                  Asigna cada columna al campo correcto del sistema. Los cambios se guardan y se aplicarán a próximos uploads con este mismo formato.
                 </div>
               </div>
 

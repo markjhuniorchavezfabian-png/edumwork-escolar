@@ -53,7 +53,7 @@ class Command(BaseCommand):
                     return
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(
-                "pg_dump no encontrado. Instalá postgresql-client."
+                "pg_dump no encontrado. Instala postgresql-client."
             ))
             return
 

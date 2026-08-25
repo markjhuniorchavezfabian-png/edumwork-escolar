@@ -118,7 +118,7 @@ class Command(BaseCommand):
                 ))
             except PermissionError:
                 self.stdout.write(self.style.ERROR(
-                    f"No se pudo escribir {salida}. Consultá los passwords manualmente vía shell."
+                    f"No se pudo escribir {salida}. Consulta los passwords manualmente vía shell."
                 ))
 
         estudiantes = list(Estudiante.objects.select_related("usuario"))

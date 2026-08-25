@@ -95,7 +95,7 @@ class CursoViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         if not _es_docente_del_curso(self.request.user, instance):
-            raise PermissionDenied("No podés eliminar este curso.")
+            raise PermissionDenied("No puedes eliminar este curso.")
         instance.activo = False  # soft-delete
         instance.save(update_fields=["activo"])
 

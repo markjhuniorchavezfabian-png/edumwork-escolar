@@ -65,17 +65,17 @@ def _categorizar_error_smtp(exc: Exception, destinatario: str = ""):
     msg = str(exc).lower()
     if any(k in msg for k in ("authentication", "535", "username", "password", "credentials")):
         log.error(
-            f"SMTP: credenciales incorrectas — verificá usuario/contraseña en Configuración → SMTP. "
+            f"SMTP: credenciales incorrectas — verifica usuario/contraseña en Configuración → SMTP. "
             f"Destino: {destinatario} | Error: {exc}"
         )
     elif any(k in msg for k in ("connection refused", "timed out", "network", "timeout", "connect")):
         log.error(
-            f"SMTP: no se pudo conectar al servidor — verificá host y puerto en Configuración → SMTP. "
+            f"SMTP: no se pudo conectar al servidor — verifica host y puerto en Configuración → SMTP. "
             f"Destino: {destinatario} | Error: {exc}"
         )
     elif any(k in msg for k in ("quota", "rate", "too many", "limit", "550")):
         log.warning(
-            f"SMTP: límite de envío alcanzado — esperá o cambiá de proveedor. "
+            f"SMTP: límite de envío alcanzado — espera o cambia de proveedor. "
             f"Destino: {destinatario} | Error: {exc}"
         )
     elif any(k in msg for k in ("recipient", "invalid", "does not exist", "550", "553")):

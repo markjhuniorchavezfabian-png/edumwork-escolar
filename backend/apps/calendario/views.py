@@ -82,7 +82,7 @@ def kpi_cumplimiento(request):
         "cumple_norma": cumple,
         "detalle": (
             f"RM 556-2024-MINEDU exige mínimo 160 días lectivos + 30 días de gestión. "
-            f"Tenés {counts['lectivo']} lectivos + {counts['gestion']} gestión."
+            f"Tienes {counts['lectivo']} lectivos + {counts['gestion']} gestión."
         ),
         "dias_lectivos_actuales": counts["lectivo"],
         "dias_gestion_actuales": counts["gestion"],

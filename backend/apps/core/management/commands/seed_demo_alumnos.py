@@ -80,7 +80,7 @@ class Command(BaseCommand):
         secciones = Seccion.objects.all().order_by("nivel", "grado", "letra")
         if not secciones:
             self.stdout.write(self.style.ERROR(
-                "  No hay secciones. Corré seed_usuarios y seed_alumnos_basico primero."
+                "  No hay secciones. Corre seed_usuarios y seed_alumnos_basico primero."
             ))
             return
 

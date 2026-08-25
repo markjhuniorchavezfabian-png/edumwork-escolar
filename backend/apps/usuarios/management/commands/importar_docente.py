@@ -250,7 +250,7 @@ class Command(BaseCommand):
                     r["avisos"].append(
                         f"{apellidos} {nombre}: sin DNI ni fecha de nacimiento, no hubo con qué "
                         f"cotejarlo contra los alumnos ya cargados. Se creó nuevo — "
-                        f"revisá que no esté duplicado."
+                        f"revisa que no esté duplicado."
                     )
             else:
                 if est.codigo_migracion is None:
@@ -501,6 +501,6 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("  Importación aplicada."))
         else:
             self.stdout.write(self.style.WARNING(
-                "  Nada de esto se guardó. Repetí el comando con --aplicar para escribirlo."
+                "  Nada de esto se guardó. Repite el comando con --aplicar para escribirlo."
             ))
         self.stdout.write("")

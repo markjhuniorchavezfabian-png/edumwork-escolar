@@ -1105,7 +1105,7 @@ export default function CargarNotasView() {
                 ? (esDirector
                     ? "Edición directiva activa — cambios auditados"
                     : "Edición activa")
-                : "Solo lectura — activá edición para modificar notas"}
+                : "Solo lectura — activa edición para modificar notas"}
             </span>
             {modoEdicion ? (
               <button

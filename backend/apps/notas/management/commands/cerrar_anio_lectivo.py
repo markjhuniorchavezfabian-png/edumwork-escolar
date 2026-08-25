@@ -92,7 +92,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"✓ Asignaciones copiadas al {nuevo_anio}: {creadas} (mismas que el año anterior)"
         ))
-        self.stdout.write("  ⚠  Revisá si cambiaron docentes o secciones antes de empezar el año.")
+        self.stdout.write("  ⚠  Revisa si cambiaron docentes o secciones antes de empezar el año.")
 
         # ── 3. Promover estudiantes (opcional) ────────────────────────────────
         if options["promover_estudiantes"]:
@@ -152,7 +152,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(
                 f"✓ Estudiantes promovidos: {promovidos} | Egresados: {egresados}"
             ))
-            self.stdout.write("  ⚠  Verificá manualmente los estudiantes que repiten o cambiaron de sección.")
+            self.stdout.write("  ⚠  Verifica manualmente los estudiantes que repiten o cambiaron de sección.")
 
         self.stdout.write(f"\n{'='*60}")
         self.stdout.write(self.style.SUCCESS(f"  AÑO {nuevo_anio} ACTIVO. ¡El sistema está listo para el nuevo año!"))

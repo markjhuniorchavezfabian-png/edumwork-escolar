@@ -340,7 +340,7 @@ function CursoModal({ cursoInicial, onCerrar, onGuardado }: CursoModalProps) {
                 </div>
               )}
               <p className="form-hint" style={{ fontSize: 11, marginTop: 6 }}>
-                Si dejas vacío, solo vos verás el curso (útil para borradores).
+                Si dejas vacío, solo tú verás el curso (útil para borradores).
               </p>
             </div>
 

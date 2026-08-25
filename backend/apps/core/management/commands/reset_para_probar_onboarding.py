@@ -42,7 +42,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(
                 "\n⚠  Este comando es DESTRUCTIVO.\n"
                 "Borra estudiantes, docentes, secciones, notas, etc.\n"
-                "Para confirmar: agregá --si-estoy-seguro\n"
+                "Para confirmar: agrega --si-estoy-seguro\n"
             ))
             return
 
@@ -57,7 +57,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("\n✓ Reset completo. BD como colegio recién instalado."))
         self.stdout.write("  Login con director / director2026")
         self.stdout.write("  → Al entrar verás el banner 'Termina de configurar tu colegio'")
-        self.stdout.write("  → O andá directo a /onboarding\n")
+        self.stdout.write("  → O anda directo a /onboarding\n")
 
         if opts.get("restaurar_demo"):
             self.stdout.write(self.style.MIGRATE_HEADING("→ Restaurando demo..."))

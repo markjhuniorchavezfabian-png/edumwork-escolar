@@ -193,7 +193,7 @@ export default function AmbientesGestionView() {
             <DoorOpen size={48} className="mx-auto mb-3 text-muted-foreground" />
             <h3 className="text-lg font-semibold">Aún no registraste ningún ambiente</h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-              Empezá por lo principal: <strong>aulas del 1er piso, sala de docentes, dirección</strong>.
+              Empieza por lo principal: <strong>aulas del 1er piso, sala de docentes, dirección</strong>.
               Los demás los puedes ir agregando con el tiempo.
             </p>
             <button
@@ -301,7 +301,7 @@ function NuevoAmbienteModal({ onCerrar, onCreado }: { onCerrar: () => void; onCr
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
             <h3 className="text-lg font-semibold">Nuevo ambiente</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Registrá un espacio físico de tu colegio.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Registra un espacio físico de tu colegio.</p>
           </div>
           <button onClick={onCerrar} className="p-1 rounded-md hover:bg-muted"><X size={18} /></button>
         </div>

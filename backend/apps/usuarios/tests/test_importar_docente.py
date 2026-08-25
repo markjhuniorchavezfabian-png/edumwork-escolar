@@ -149,7 +149,7 @@ def test_avisa_cuando_un_alumno_no_se_puede_cotejar(docente, archivo):
     salida = _importar(archivo, aplicar=True)
 
     assert "sin DNI ni fecha de nacimiento" in salida
-    assert "revisá que no esté duplicado" in salida
+    assert "revisa que no esté duplicado" in salida
 
 
 @pytest.mark.django_db

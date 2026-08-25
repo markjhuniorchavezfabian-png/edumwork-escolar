@@ -60,7 +60,7 @@ class Command(BaseCommand):
         cuerpo = (
             f"Quedan {libre_gb:.1f} GB libres. Si el disco se llena, el sistema deja de "
             f"guardar asistencia, notas y archivos.\n\n"
-            f"Qué hacer: avisá al proveedor del sistema para liberar espacio "
+            f"Qué hacer: avisa al proveedor del sistema para liberar espacio "
             f"(purgar bitácora vieja, revisar backups y archivos adjuntos) o ampliar "
             f"el disco del servidor."
         )

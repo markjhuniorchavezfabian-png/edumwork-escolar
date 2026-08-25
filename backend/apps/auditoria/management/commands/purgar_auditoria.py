@@ -47,7 +47,7 @@ class Command(BaseCommand):
         if meses < 6:
             self.stderr.write(self.style.ERROR(
                 "Menos de 6 meses de bitácora deja al colegio sin respaldo ante un "
-                "reclamo. Si de verdad lo querés, hacelo a mano por el admin."
+                "reclamo. Si de verdad lo quieres, hacelo a mano por el admin."
             ))
             return
 
@@ -66,7 +66,7 @@ class Command(BaseCommand):
 
         if not opts["aplicar"]:
             self.stdout.write(self.style.WARNING(
-                "Preview: no se borró nada. Repetí con --aplicar."
+                "Preview: no se borró nada. Repite con --aplicar."
             ))
             return
 
@@ -88,6 +88,6 @@ class Command(BaseCommand):
         log.info("Auditoría purgada: %s registros anteriores a %s", borrados, corte.date())
         self.stdout.write(self.style.SUCCESS(f"Purgados {borrados:,} registros."))
         self.stdout.write(
-            "El espacio en disco lo recupera el autovacuum de Postgres; si necesitás "
+            "El espacio en disco lo recupera el autovacuum de Postgres; si necesitas "
             "que sea inmediato: VACUUM FULL auditoria (bloquea la tabla)."
         )

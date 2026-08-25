@@ -141,20 +141,20 @@ def template_estudiantes() -> bytes:
     ws2["A1"].font = Font(size=14, bold=True, color="1E3A5F")
     instrucciones = [
         "1. NO borres las filas 1-4 (cabeceras).",
-        "2. Empezá a llenar desde la fila 5. Reemplazá el ejemplo con datos reales.",
+        "2. Empieza a llenar desde la fila 5. Reemplaza el ejemplo con datos reales.",
         "3. Las columnas con asterisco (*) son OBLIGATORIAS. Sin ellas la fila se rechaza.",
         "4. Fecha: formato AAAA-MM-DD (ej: 2010-05-15).",
         "5. Sexo: M para Masculino, F para Femenino.",
         "6. Grupo sanguíneo: O+, O-, A+, A-, B+, B-, AB+, AB-, o NS (no se sabe).",
-        "7. Campos SI/NO: escribí 'SI' o 'NO' en mayúsculas.",
+        "7. Campos SI/NO: escribe 'SI' o 'NO' en mayúsculas.",
         "8. DNI: exactamente 8 dígitos numéricos. Si es CE u otro documento, dejalo vacío.",
-        "9. Grado: usá el formato peruano estándar (1ro, 2do, 3ro, 4to, 5to).",
-        "10. Al guardar, elegí formato 'Excel Workbook (*.xlsx)'. NO .xls antiguo, NO CSV.",
+        "9. Grado: usa el formato peruano estándar (1ro, 2do, 3ro, 4to, 5to).",
+        "10. Al guardar, elige formato 'Excel Workbook (*.xlsx)'. NO .xls antiguo, NO CSV.",
         "",
         "Password inicial de cada estudiante = 6 primeros dígitos del DNI + '2026'.",
         "Ejemplo: DNI 12345678 → contraseña 1234562026.",
         "",
-        "Si tenés dudas escribí a soporte@sistematic.pe",
+        "Si tienes dudas escribe a soporte@sistematic.pe",
     ]
     for i, linea in enumerate(instrucciones, 3):
         ws2.cell(row=i, column=1, value=linea).font = Font(size=11)
@@ -648,7 +648,7 @@ def template_docentes() -> bytes:
     ws2["A1"].font = Font(size=14, bold=True, color="1E3A5F")
     instrucciones = [
         "1. NO borres las filas 1-4 (cabeceras).",
-        "2. Empezá a llenar desde la fila 5. Reemplazá el ejemplo con datos reales.",
+        "2. Empieza a llenar desde la fila 5. Reemplaza el ejemplo con datos reales.",
         "3. Las columnas con asterisco (*) son OBLIGATORIAS.",
         "4. DNI: 8 dígitos exactos. Si es CE, escribe los últimos 8.",
         "5. Fecha: formato AAAA-MM-DD (ej: 2020-03-01).",
@@ -661,7 +661,7 @@ def template_docentes() -> bytes:
         "",
         "Si un DNI ya existe en el sistema, esa fila se OMITE (no duplica).",
         "",
-        "Si tenés dudas escribí a soporte@sistematic.pe",
+        "Si tienes dudas escribe a soporte@sistematic.pe",
     ]
     for i, linea in enumerate(instrucciones, 3):
         ws2.cell(row=i, column=1, value=linea).font = Font(size=11)

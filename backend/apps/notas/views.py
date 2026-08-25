@@ -229,7 +229,7 @@ class NotaViewSet(viewsets.ModelViewSet):
                     "detalle": (
                         f"RVM 048-2024-MINEDU: en {seccion_nivel} la conclusión "
                         f"descriptiva es obligatoria si NL={nl}. "
-                        f"Escribí al menos 20 caracteres explicando el avance del estudiante."
+                        f"Escribe al menos 20 caracteres explicando el avance del estudiante."
                     ),
                 },
                 status=400,
@@ -859,7 +859,7 @@ def siagie_mapeo_editar(request, hash_header):
     # PATCH
     nuevo_mapeo = request.data.get("columnas")
     if not isinstance(nuevo_mapeo, dict):
-        return Response({"error": "Enviá 'columnas' como dict {idx: campo}."}, status=400)
+        return Response({"error": "Envía 'columnas' como dict {idx: campo}."}, status=400)
 
     m.mapeo_json = nuevo_mapeo
     m.metodo_deteccion = "manual"
@@ -1999,7 +1999,7 @@ def boleta_estudiante(request, estudiante_id):
         autorizado = (getattr(user, "perfil_estudiante", None) and user.perfil_estudiante.pk == est.pk)
 
     if not autorizado:
-        raise PermissionDenied("No podés ver esta boleta.")
+        raise PermissionDenied("No puedes ver esta boleta.")
 
     bimestre = str(request.GET.get("bimestre", "1"))
     if bimestre not in ("1", "2", "3", "4"):
@@ -2041,7 +2041,7 @@ def boletas_seccion_zip(request, seccion_id):
             anio_lectivo=_anio_lectivo_activo()
         ).exists()
         if not tiene_asig:
-            raise PermissionDenied("Solo podés generar boletas de tus secciones asignadas.")
+            raise PermissionDenied("Solo puedes generar boletas de tus secciones asignadas.")
 
     if not Seccion.objects.filter(pk=seccion_id).exists():
         return Response({"error": "Sección no encontrada."}, status=404)
@@ -2083,7 +2083,7 @@ def libreta_anual_seccion_zip(request, seccion_id):
             anio_lectivo=_anio_lectivo_activo()
         ).exists()
         if not tiene_asig:
-            raise PermissionDenied("Solo podés generar libretas de tus secciones asignadas.")
+            raise PermissionDenied("Solo puedes generar libretas de tus secciones asignadas.")
 
     if not Seccion.objects.filter(pk=seccion_id).exists():
         return Response({"error": "Sección no encontrada."}, status=404)
@@ -2188,7 +2188,7 @@ def generar_conclusiones_ia(request):
             docente=request.user, seccion=seccion, anio_lectivo=anio
         ).exists()
         if not tiene_asig:
-            raise PermissionDenied("No tenés asignación en esta sección.")
+            raise PermissionDenied("No tienes asignación en esta sección.")
 
     est_qs = Estudiante.objects.por_seccion(seccion.pk, anio)
     if estudiante_id:

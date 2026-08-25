@@ -20,7 +20,7 @@ const SECCIONES: { id: SecId; label: string; icon: typeof Building2; desc: strin
   { id: "email",    label: "Envío de correos",      icon: Mail,      desc: "SMTP para reset, alertas y notificaciones" },
   { id: "notas",    label: "Notas y calificación",  icon: BookOpen,  desc: "Escala de notas: letras AD/A/B/C o numérica 0-20" },
   { id: "modulos",  label: "Módulos activos",       icon: Puzzle,    desc: "Prender o apagar módulos según lo que usa tu I.E." },
-  { id: "backup",   label: "Backup y restauración", icon: Database,  desc: "Descarga una copia de seguridad o restaurá una anterior" },
+  { id: "backup",   label: "Backup y restauración", icon: Database,  desc: "Descarga una copia de seguridad o restaura una anterior" },
 ];
 
 const CFG_VACIO: ConfigInstitucional = {
@@ -664,7 +664,7 @@ function SeccionModulos({ cfg, onSave, saving }: {
       <div>
         <h2 className="text-lg font-semibold">Módulos activos</h2>
         <p className="text-sm text-muted-foreground">
-          Prendé o apagá los módulos según lo que use tu institución. Los que estén apagados
+          Prende o apaga los módulos según lo que use tu institución. Los que estén apagados
           desaparecen del menú lateral y no molestan a los usuarios.
         </p>
       </div>
@@ -950,7 +950,7 @@ function SeccionBackup() {
       <div>
         <h2 className="text-lg font-semibold">Backup y restauración</h2>
         <p className="text-sm text-muted-foreground">
-          Descarga una copia de seguridad completa (BD + estructura) o restaurá una copia anterior.
+          Descarga una copia de seguridad completa (BD + estructura) o restaura una copia anterior.
         </p>
       </div>
 

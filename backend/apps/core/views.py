@@ -114,7 +114,7 @@ def restaurar_backup(request):
     # Confirmación explícita
     if request.data.get("confirmar") != "SI_BORRAR_TODO":
         return Response({
-            "error": "Confirmá con el valor exacto 'SI_BORRAR_TODO' en el campo 'confirmar'."
+            "error": "Confirma con el valor exacto 'SI_BORRAR_TODO' en el campo 'confirmar'."
         }, status=400)
 
     raw = archivo.read()
@@ -205,13 +205,13 @@ def email_test(request):
     except Exception as e:
         msg = str(e).lower()
         if any(k in msg for k in ("authentication", "535", "username", "password")):
-            detalle = "Credenciales incorrectas. Verificá usuario y contraseña SMTP en la configuración."
+            detalle = "Credenciales incorrectas. Verifica usuario y contraseña SMTP en la configuración."
         elif any(k in msg for k in ("connection refused", "timed out", "connect")):
-            detalle = "No se pudo conectar al servidor SMTP. Verificá host y puerto."
+            detalle = "No se pudo conectar al servidor SMTP. Verifica host y puerto."
         elif any(k in msg for k in ("quota", "rate", "too many", "limit")):
-            detalle = "Límite de envío alcanzado. Esperá unas horas o cambiá de proveedor."
+            detalle = "Límite de envío alcanzado. Espera unas horas o cambia de proveedor."
         elif "no smtp" in msg or "backend" in msg:
-            detalle = "SMTP no configurado. Completá los datos en Configuración → Envío de correos."
+            detalle = "SMTP no configurado. Completa los datos en Configuración → Envío de correos."
         else:
             detalle = str(e)
         return Response({"ok": False, "error": detalle}, status=500)

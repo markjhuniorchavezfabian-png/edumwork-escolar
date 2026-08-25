@@ -219,7 +219,7 @@ export default function CursoDetalleView() {
         </div>
       }>
         {avisos.length === 0 ? (
-          <EmptyState icono="megafono" titulo="Sin avisos" descripcion={esDocente ? "Publicá avisos para comunicar novedades a tus estudiantes." : "El docente no ha publicado avisos aún."} />
+          <EmptyState icono="megafono" titulo="Sin avisos" descripcion={esDocente ? "Publica avisos para comunicar novedades a tus estudiantes." : "El docente no ha publicado avisos aún."} />
         ) : (
           avisos.map((a) => (
             <div key={a.id} style={{
