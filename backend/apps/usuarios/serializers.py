@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Docente, Estudiante, Matricula, Padre, Usuario
+from apps.core.archivos import ArchivosFirmadosMixin
 
 
 class UsuarioSerializer(serializers.ModelSerializer):
@@ -112,7 +113,7 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
         return puede_gestionar_usuarios(obj)
 
 
-class FichaEstudianteSerializer(serializers.ModelSerializer):
+class FichaEstudianteSerializer(ArchivosFirmadosMixin, serializers.ModelSerializer):
     """Ficha completa del estudiante — todos los campos oficiales MINEDU/SIAGIE."""
     # Datos del Usuario base (nested)
     dni = serializers.CharField(source="usuario.dni", allow_blank=True, required=False)

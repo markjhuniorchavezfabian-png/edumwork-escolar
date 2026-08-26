@@ -3,6 +3,7 @@ from rest_framework import serializers
 from apps.core.imagenes import validar_upload_serializer
 
 from .models import Curso, Entrega, Leccion, Recurso, Tarea
+from apps.core.archivos import ArchivosFirmadosMixin
 
 
 class RecursoSerializer(serializers.ModelSerializer):
@@ -78,7 +79,7 @@ class TareaSerializer(serializers.ModelSerializer):
         }
 
 
-class CursoSerializer(serializers.ModelSerializer):
+class CursoSerializer(ArchivosFirmadosMixin, serializers.ModelSerializer):
     docente_nombre = serializers.SerializerMethodField()
     lecciones_count = serializers.SerializerMethodField()
     tareas_count = serializers.SerializerMethodField()
@@ -116,7 +117,7 @@ class CursoSerializer(serializers.ModelSerializer):
         return validar_upload_serializer(value, "imagen_portada")
 
 
-class EntregaSerializer(serializers.ModelSerializer):
+class EntregaSerializer(ArchivosFirmadosMixin, serializers.ModelSerializer):
     estudiante_nombre = serializers.SerializerMethodField()
     tarea_titulo = serializers.CharField(source="tarea.titulo", read_only=True)
     estado_label = serializers.CharField(source="get_estado_display", read_only=True)

@@ -2,9 +2,10 @@ from rest_framework import serializers
 
 from apps.core.imagenes import validar_upload_serializer
 from .models import CasoConvivencia, SeguimientoCaso
+from apps.core.archivos import ArchivosFirmadosMixin
 
 
-class SeguimientoCasoSerializer(serializers.ModelSerializer):
+class SeguimientoCasoSerializer(ArchivosFirmadosMixin, serializers.ModelSerializer):
     autor_nombre = serializers.SerializerMethodField(read_only=True)
     accion_label = serializers.CharField(source="get_accion_display", read_only=True)
 

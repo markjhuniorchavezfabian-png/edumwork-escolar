@@ -478,3 +478,44 @@ def versiones_sistema(request):
         "hay_actualizacion": hay_actualizacion,
         "versiones": versiones,
     })
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def servir_archivo(request, token: str):
+    """GET /api/archivos/<token>/ — el archivo de un enlace firmado.
+
+    `AllowAny` a propósito y no por descuido: la autorización la lleva el
+    token, porque un `<img src="...">` no manda el header `Authorization` con
+    el que se autentica esta app. Sólo se puede tener un token válido si el
+    servidor lo emitió dentro de una respuesta que sí exigió sesión.
+
+    Nunca sirve directorios ni rutas de fuera de MEDIA_ROOT: eso lo comprueba
+    `archivos.ruta_de`, que además responde None por igual ante una firma
+    inválida, una vencida y una que apunte afuera — distinguirlas le diría a
+    quien pruebe tokens cuál de las tres falló.
+    """
+    import mimetypes
+
+    from django.http import FileResponse, Http404
+
+    from .archivos import ruta_de
+
+    ruta = ruta_de(token)
+    if ruta is None:
+        raise Http404
+
+    tipo, _ = mimetypes.guess_type(ruta.name)
+    respuesta = FileResponse(
+        ruta.open("rb"), content_type=tipo or "application/octet-stream",
+    )
+    # Que ninguna caché intermedia guarde copia: el agujero anterior servía
+    # esto mismo con `Cache-Control: public` por siete días.
+    respuesta["Cache-Control"] = "private, no-store"
+    respuesta["X-Content-Type-Options"] = "nosniff"
+    # Se descarga, no se ejecuta: un SVG o un HTML subido como adjunto se
+    # abriría en el origen de la app y podría leer el token de localStorage.
+    respuesta["Content-Disposition"] = f'inline; filename="{ruta.name}"'
+    if (tipo or "").startswith(("text/html", "image/svg")):
+        respuesta["Content-Disposition"] = f'attachment; filename="{ruta.name}"'
+    return respuesta

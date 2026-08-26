@@ -3,9 +3,10 @@ from rest_framework import serializers
 from apps.core.imagenes import validar_upload_serializer
 
 from .models import Justificacion
+from apps.core.archivos import ArchivosFirmadosMixin
 
 
-class JustificacionSerializer(serializers.ModelSerializer):
+class JustificacionSerializer(ArchivosFirmadosMixin, serializers.ModelSerializer):
     estudiante_nombre = serializers.SerializerMethodField(read_only=True)
     estudiante_seccion = serializers.SerializerMethodField(read_only=True)
     motivo_label = serializers.CharField(source="get_motivo_display", read_only=True)

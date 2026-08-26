@@ -33,10 +33,34 @@ server {
     }
 
     # Media del backend (uploads) — servido directo desde volumen compartido
-    location /media/ {
-        alias /usr/share/nginx/html/media/;
+    # Media del backend.
+    #
+    # NO se sirve entero, y es lo importante de este bloque: acá adentro viven
+    # fotos de estudiantes, adjuntos de casos de convivencia, justificaciones
+    # de inasistencia y licencias médicas del personal. Servirlas por nginx
+    # significaba que cualquiera con la URL se las bajaba sin sesión, y encima
+    # con `Cache-Control: public` por siete días — o sea también quedaban en
+    # cachés intermedias. El volumen está montado acá por
+    # `docker-compose.prod.yml`, así que no era un riesgo teórico.
+    #
+    # Ahora se piden por `GET /api/archivos/<token>/` con un enlace firmado y
+    # con vencimiento, que emite el backend dentro de respuestas que sí exigen
+    # sesión. Ver `backend/apps/core/archivos.py`.
+    #
+    # Lo único público a propósito es el logo, que es branding y no dato de
+    # nadie. Sólo esa carpeta: así, lo que se guarde mañana en media/ no queda
+    # expuesto por descuido.
+    location /media/logos/ {
+        alias /usr/share/nginx/html/media/logos/;
         expires 7d;
         add_header Cache-Control "public";
+    }
+
+    # El resto no existe para el mundo. Explícito y no por omisión: sin esta
+    # regla caería en el fallback de la SPA y devolvería el index.html con un
+    # 200, que despista a quien depure esto después.
+    location /media/ {
+        return 404;
     }
 
     # Estáticos con cache agresivo (Vite pone hash en el nombre)

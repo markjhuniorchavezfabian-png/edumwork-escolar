@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+
+from apps.core.views import servir_archivo
 from django.urls import include, path
 
 from apps.core.health import health_check
@@ -9,6 +11,9 @@ urlpatterns = [
     path("health/", health_check, name="health"),
     path("admin/", admin.site.urls),
     path("api/core/", include("apps.core.urls")),
+    # Los archivos subidos: se piden por enlace firmado, no por /media/.
+    # Ver `apps/core/archivos.py` para el porqué.
+    path("api/archivos/<str:token>/", servir_archivo, name="servir-archivo"),
     path("api/auth/", include("apps.usuarios.urls")),
     path("api/usuarios/", include("apps.usuarios.urls_usuarios")),
     path("api/incidencias/", include("apps.incidencias.urls")),
@@ -30,6 +35,14 @@ urlpatterns = [
     path("api/calendario/", include("apps.calendario.urls")),
 ]
 
-# Servir MEDIA en dev (fotos subidas por usuarios)
+# En dev sólo los logos, igual que en producción (ver `frontend/nginx.conf.template`).
+#
+# Servía `/media/` entero, así que cualquiera con la URL se bajaba la foto de
+# un estudiante o el adjunto de un caso de convivencia sin sesión. Que dev se
+# comporte igual que producción es parte del arreglo: si acá funcionara el
+# enlace directo, alguien lo usaría en el frontend y se rompería al desplegar.
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(
+        f"{settings.MEDIA_URL}logos/",
+        document_root=settings.MEDIA_ROOT / "logos",
+    )

@@ -4,6 +4,7 @@ from apps.core.imagenes import validar_upload_serializer
 from apps.usuarios.models import Rol
 
 from .models import ComentarioIncidencia, EstadoIncidencia, Incidencia
+from apps.core.archivos import ArchivosFirmadosMixin
 
 
 CAMPOS_SOLO_ADMIN = {"estado", "notas_admin", "asignado_a", "solucion", "prioridad"}
@@ -23,7 +24,7 @@ class ComentarioIncidenciaSerializer(serializers.ModelSerializer):
         return f"{u.first_name} {u.last_name}".strip() or u.username
 
 
-class IncidenciaSerializer(serializers.ModelSerializer):
+class IncidenciaSerializer(ArchivosFirmadosMixin, serializers.ModelSerializer):
     reportado_por_nombre = serializers.SerializerMethodField(read_only=True)
     asignado_a_nombre = serializers.SerializerMethodField(read_only=True)
     estudiante_afectado_nombre = serializers.SerializerMethodField(read_only=True)

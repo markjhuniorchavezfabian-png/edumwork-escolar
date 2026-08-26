@@ -1,8 +1,9 @@
 from rest_framework import serializers
 from .models import RegistroPersonal
+from apps.core.archivos import ArchivosFirmadosMixin
 
 
-class RegistroPersonalSerializer(serializers.ModelSerializer):
+class RegistroPersonalSerializer(ArchivosFirmadosMixin, serializers.ModelSerializer):
     usuario_nombre = serializers.SerializerMethodField(read_only=True)
     usuario_rol = serializers.CharField(source="usuario.rol", read_only=True)
     usuario_rol_label = serializers.CharField(source="usuario.get_rol_display", read_only=True)

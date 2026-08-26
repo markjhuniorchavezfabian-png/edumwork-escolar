@@ -3,9 +3,10 @@ from rest_framework import serializers
 from apps.core.imagenes import validar_upload_serializer
 from apps.usuarios.models import Rol
 from .models import Comunicado, LecturaComunicado
+from apps.core.archivos import ArchivosFirmadosMixin
 
 
-class ComunicadoSerializer(serializers.ModelSerializer):
+class ComunicadoSerializer(ArchivosFirmadosMixin, serializers.ModelSerializer):
     categoria_label = serializers.CharField(source="get_categoria_display", read_only=True)
     alcance_label = serializers.CharField(source="get_alcance_display", read_only=True)
     seccion_nombre = serializers.CharField(source="seccion.nombre", read_only=True, default=None)

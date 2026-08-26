@@ -75,6 +75,8 @@ VOS = re.compile(r"\bvos\b", re.IGNORECASE)
 PERMITIDAS_VS = {
     # terminan en "-ás/-és/-ís" y son castellano correcto
     "además", "atrás", "detrás", "jamás", "quizás", "demás", "compás",
+    # plural de "caché", que ya está permitido en singular más arriba
+    "cachés",
     "después", "través", "interés", "inglés", "francés", "cortés", "revés",
     "estrés", "país", "ciempiés", "marqués",
     # "tú estás" y "vos estás" se escriben igual: no distingue nada
