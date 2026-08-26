@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from apps.usuarios.models import Usuario, Rol, Estudiante, Matricula, Padre, Seccion
 from apps.core.models import ConfiguracionInstitucional
+from apps.core import credenciales
 
 
 USUARIOS_SEED = [
@@ -31,7 +32,14 @@ class Command(BaseCommand):
         parser.add_argument(
             "--produccion",
             action="store_true",
-            help="Genera passwords únicos random en vez de los demo. Exporta a credenciales_seed.csv.",
+            help="Genera passwords únicos random en vez de los demo.",
+        )
+        parser.add_argument(
+            "--csv", default="",
+            help=(
+                "Ruta donde guardar las credenciales iniciales. Sin esto se "
+                "muestran por pantalla y no se escribe ningún archivo."
+            ),
         )
 
     def handle(self, *args, **options):
@@ -87,15 +95,15 @@ class Command(BaseCommand):
                 if est_perfil:
                     padre_perfil.hijos.add(est_perfil)
 
+        # Mismo criterio que en `seed_asistencia`: por defecto no queda un
+        # archivo con contraseñas en texto plano esperando que alguien se
+        # acuerde de borrarlo.
         if creados:
-            salida = Path(settings.BASE_DIR) / "credenciales_seed.csv"
-            with open(salida, "w", newline="", encoding="utf-8") as f:
-                w = csv.writer(f)
-                w.writerow(["username", "rol", "password_inicial"])
-                w.writerows(creados)
-            self.stdout.write(self.style.WARNING(
-                f"\n⚠  Credenciales guardadas en {salida}. "
-                "Distribúyelas de forma segura y BORRA el archivo."
-            ))
+            credenciales.mostrar(
+                self.stdout, self.style,
+                ["username", "rol", "password_inicial"],
+                creados,
+                options.get("csv") or None,
+            )
 
         self.stdout.write(self.style.SUCCESS("\nSeed completado. Usuarios listos para pruebas."))

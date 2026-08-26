@@ -14,6 +14,7 @@ from django.utils import timezone
 from apps.asistencia.models import EstadoAsistencia, RegistroAsistencia
 from apps.core.models import ConfiguracionInstitucional
 from apps.usuarios.models import Estudiante, Matricula, Padre, Rol, Seccion, Usuario
+from apps.core import credenciales
 
 
 def _generar_password_unico(codigo_matricula: str) -> str:
@@ -46,6 +47,13 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--reset", action="store_true", help="Elimina asistencia previa.")
+        parser.add_argument(
+            "--csv", default="",
+            help=(
+                "Ruta donde guardar las credenciales iniciales. Sin esto se "
+                "muestran por pantalla y no se escribe ningún archivo."
+            ),
+        )
 
     def handle(self, *args, **options):
         rng = random.Random(42)
@@ -102,24 +110,21 @@ class Command(BaseCommand):
                 )
                 creados_con_password.append((username, f"{nombre} {apellido}", f"{grado} {seccion}", password))
 
-        # Exportar credenciales a CSV (solo si creamos nuevos) — para entregar impresas
+        # Las credenciales iniciales.
+        #
+        # Antes esto escribía siempre `credenciales_estudiantes.csv` eligiendo
+        # MEDIA_ROOT "porque es writable en Docker" — o sea dejaba nombres y
+        # contraseñas en texto plano en la única carpeta que nginx publicaba,
+        # y el recordatorio de borrarlas era esta misma advertencia en
+        # pantalla. Ahora por defecto no se escribe nada; quien quiera el
+        # listado para imprimir dice dónde con --csv, y así sabe qué creó.
         if creados_con_password:
-            # Preferir MEDIA_ROOT (writable en Docker) sobre BASE_DIR
-            base_out = Path(getattr(settings, "MEDIA_ROOT", settings.BASE_DIR))
-            base_out.mkdir(parents=True, exist_ok=True)
-            salida = base_out / "credenciales_estudiantes.csv"
-            try:
-                with open(salida, "w", newline="", encoding="utf-8") as f:
-                    w = csv.writer(f)
-                    w.writerow(["username", "nombre_completo", "seccion", "password_inicial"])
-                    w.writerows(creados_con_password)
-                self.stdout.write(self.style.WARNING(
-                    f"⚠  Credenciales guardadas en {salida} — entregar a estudiantes y BORRAR el archivo."
-                ))
-            except PermissionError:
-                self.stdout.write(self.style.ERROR(
-                    f"No se pudo escribir {salida}. Consulta los passwords manualmente vía shell."
-                ))
+            credenciales.mostrar(
+                self.stdout, self.style,
+                ["username", "nombre_completo", "seccion", "password_inicial"],
+                creados_con_password,
+                options.get("csv") or None,
+            )
 
         estudiantes = list(Estudiante.objects.select_related("usuario"))
         self.stdout.write(self.style.SUCCESS(f"Total estudiantes: {len(estudiantes)}"))

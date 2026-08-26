@@ -173,3 +173,61 @@ def test_nginx_no_sirve_media_entero():
     )
     assert "alias /usr/share/nginx/html/media/;" not in contenido
     assert "Cache-Control" not in bloque
+
+
+# ── Las contraseñas iniciales de los seeds ─────────────────────────────────
+#
+# Borrar los CSV que había arreglaba el síntoma: `seed_asistencia` los volvía
+# a escribir, y elegía MEDIA_ROOT "porque es writable en Docker" — o sea la
+# única carpeta que nginx publicaba. El recordatorio de borrarlos era una
+# advertencia en pantalla.
+
+
+def test_no_se_pueden_escribir_credenciales_dentro_de_media(tmp_path, settings):
+    """Ni pidiéndolo a mano: es la carpeta que se sirve, y el error que se
+    cometió una vez no debe poder repetirse pasando un argumento."""
+    from apps.core import credenciales
+
+    settings.MEDIA_ROOT = tmp_path / "media"
+    (tmp_path / "media").mkdir()
+
+    with pytest.raises(credenciales.DestinoInseguro):
+        credenciales.escribir_csv(
+            str(tmp_path / "media" / "creds.csv"), ["u"], [["ana"]],
+        )
+    assert not (tmp_path / "media" / "creds.csv").exists()
+
+
+def test_el_csv_de_credenciales_solo_lo_lee_su_dueno(tmp_path, settings):
+    from apps.core import credenciales
+
+    settings.MEDIA_ROOT = tmp_path / "media"
+    ruta = credenciales.escribir_csv(
+        str(tmp_path / "fuera" / "creds.csv"),
+        ["username", "password_inicial"], [["ana", "x7k2"]],
+    )
+    assert oct(ruta.stat().st_mode)[-3:] == "600", "son contraseñas en texto plano"
+
+
+def test_por_defecto_los_seeds_no_dejan_ningun_archivo(tmp_path, settings, capsys):
+    """El default seguro: salen por pantalla, que es donde ya está mirando
+    quien corre el comando."""
+    from django.core.management.color import no_style
+
+    from apps.core import credenciales
+
+    settings.MEDIA_ROOT = tmp_path / "media"
+
+    class Salida:
+        def __init__(self): self.lineas = []
+        def write(self, t): self.lineas.append(str(t))
+
+    salida = Salida()
+    credenciales.mostrar(
+        salida, no_style(), ["username", "password_inicial"],
+        [["ana", "x7k2"]], None,
+    )
+    texto = "\n".join(salida.lineas)
+    assert "x7k2" in texto, "las credenciales tienen que verse en pantalla"
+    assert "No se guardó ningún archivo" in texto
+    assert not list(tmp_path.rglob("*.csv")), "dejó un archivo sin que se lo pidieran"
