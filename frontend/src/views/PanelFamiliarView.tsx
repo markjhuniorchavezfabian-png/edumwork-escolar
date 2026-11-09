@@ -62,7 +62,7 @@ const JUST_BADGE: Record<string, { bg: string; text: string }> = {
 export default function PanelFamiliarView() {
   const institucion = useInstitucion();
   const toast = useToast();
-  const { usuario, refreshUsuario } = useAuth();
+  const { usuario, logout, refreshUsuario } = useAuth();
   const { hijos, hijoActivo, hijoActivoId, seleccionarHijo, cargandoHijos, recargarHijos } = useHijo();
   const [modalConsentimiento, setModalConsentimiento] = useState(false);
   const [guardandoConsentimiento, setGuardandoConsentimiento] = useState(false);
@@ -847,7 +847,7 @@ export default function PanelFamiliarView() {
           nombreInstitucion={institucion.nombre || "la Institución Educativa"}
           hijosNombres={hijos.map((h) => h.nombre).join(", ")}
           onAceptar={handleAceptarConsentimiento}
-          onPosponer={() => setModalConsentimiento(false)}
+          onCerrarSesion={logout}
           cargando={guardandoConsentimiento}
         />
       )}
@@ -1048,17 +1048,17 @@ function ModalConsentimientoDatos({
   nombreInstitucion,
   hijosNombres,
   onAceptar,
-  onPosponer,
+  onCerrarSesion,
   cargando,
 }: {
   nombreInstitucion: string;
   hijosNombres: string;
   onAceptar: () => Promise<void>;
-  onPosponer: () => void;
+  onCerrarSesion: () => void;
   cargando: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
       <div
         className="bg-card w-full max-w-lg rounded-3xl border border-border shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
         role="dialog"
@@ -1069,10 +1069,10 @@ function ModalConsentimientoDatos({
             <ShieldAlert size={24} />
           </div>
           <h3 className="text-lg font-bold tracking-tight text-foreground">
-            Tratamiento de Datos Personales de Menores
+            Consentimiento Requerido — Ley N° 29733
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Consentimiento informado conforme a la Ley N° 29733 (Perú)
+            Tratamiento seguro de datos personales de menores de edad
           </p>
         </div>
 
@@ -1082,9 +1082,7 @@ function ModalConsentimientoDatos({
           </p>
 
           <p>
-            En cumplimiento de la <strong>Ley N° 29733</strong> (Ley de Protección de Datos Personales) y su Reglamento
-            aprobado por D.S. N° 003-2013-JUS, <strong>{nombreInstitucion}</strong> solicita su consentimiento
-            expreso para el tratamiento de los datos personales y académicos de sus hijos vinculados a esta plataforma.
+            En cumplimiento de la <strong>Ley N° 29733</strong> (Ley de Protección de Datos Personales del Perú) y su Reglamento (D.S. N° 003-2013-JUS), <strong>{nombreInstitucion}</strong> requiere su autorización expresa previa para registrar, consultar y procesar digitalmente la información escolar de sus hijos en esta intranet.
           </p>
 
           <div className="rounded-xl border border-border/80 bg-muted/30 p-3.5 space-y-2">
@@ -1104,14 +1102,14 @@ function ModalConsentimientoDatos({
           </p>
         </div>
 
-        <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2 p-5 border-t border-border bg-muted/20">
+        <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-2 p-5 border-t border-border bg-muted/20">
           <button
             type="button"
-            onClick={onPosponer}
+            onClick={onCerrarSesion}
             disabled={cargando}
-            className="w-full sm:w-auto px-4 py-2 text-xs font-medium rounded-xl text-muted-foreground hover:bg-muted transition-colors"
+            className="w-full sm:w-auto px-4 py-2 text-xs font-medium rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
           >
-            Recordarme más tarde
+            No acepto (Cerrar sesión)
           </button>
           <button
             type="button"
@@ -1120,7 +1118,7 @@ function ModalConsentimientoDatos({
             className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {cargando ? <Loader2 size={14} className="animate-spin" /> : <ClipboardCheck size={14} />}
-            {cargando ? "Registrando..." : "Autorizo y doy consentimiento"}
+            {cargando ? "Registrando..." : "Autorizo y acepto los términos"}
           </button>
         </div>
       </div>

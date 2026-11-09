@@ -7,8 +7,6 @@ import {
   Loader2,
   LogIn,
   AlertCircle,
-  GraduationCap,
-  Users,
   Check,
 } from "lucide-react";
 import type { LoginCredentials } from "../../types";
@@ -18,13 +16,10 @@ interface Props {
   error?: string;
 }
 
-type RoleTab = "docente" | "estudiante";
-
 const STORAGE_KEY_USER = "edumwork_saved_username";
 const STORAGE_KEY_REMEMBER = "edumwork_remember_me";
 
 export default function LoginForm({ onSubmit, error }: Props) {
-  const [roleTab, setRoleTab] = useState<RoleTab>("docente");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -45,19 +40,8 @@ export default function LoginForm({ onSubmit, error }: Props) {
     }
   }, []);
 
-  // Limpiar error de validación local al cambiar de perfil o tipear
-  function handleRoleChange(newRole: RoleTab) {
-    setRoleTab(newRole);
-    setValidationError(null);
-  }
-
   function handleUsernameChange(val: string) {
-    // Si son solo dígitos, limitar a 8 dígitos de DNI; si incluye letras permite alias
-    if (roleTab === "estudiante" && /^\d+$/.test(val)) {
-      setUsername(val.slice(0, 8));
-    } else {
-      setUsername(val);
-    }
+    setUsername(val);
     if (validationError) setValidationError(null);
   }
 
@@ -65,12 +49,6 @@ export default function LoginForm({ onSubmit, error }: Props) {
     e.preventDefault();
     const cleanUser = username.trim();
     if (!cleanUser || !password) return;
-
-    // Validación local del DNI sugerida por auditoría Manus
-    if (roleTab === "estudiante" && /^\d+$/.test(cleanUser) && cleanUser.length !== 8) {
-      setValidationError("El número de DNI debe contener exactamente 8 dígitos numéricos.");
-      return;
-    }
 
     try {
       if (rememberMe) {
@@ -96,55 +74,19 @@ export default function LoginForm({ onSubmit, error }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Selector de perfil con áreas táctiles cómodas (Sugerencia Manus/Mobbin) */}
-      <div
-        role="tablist"
-        aria-label="Perfil de acceso"
-        className="p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl grid grid-cols-2 gap-1 border border-slate-200/70 dark:border-slate-700/70"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={roleTab === "docente"}
-          onClick={() => handleRoleChange("docente")}
-          className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
-            roleTab === "docente"
-              ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200/60 dark:border-slate-700"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-          }`}
-        >
-          <Users size={15} />
-          <span>Personal del Colegio</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={roleTab === "estudiante"}
-          onClick={() => handleRoleChange("estudiante")}
-          className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-semibold transition-all ${
-            roleTab === "estudiante"
-              ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200/60 dark:border-slate-700"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
-          }`}
-        >
-          <GraduationCap size={15} />
-          <span>Estudiante / Apoderado</span>
-        </button>
-      </div>
-
-      {/* Campo Identificador: Usuario o DNI */}
+      {/* Campo Identificador: DNI, Usuario o Correo */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <label htmlFor="username" className="text-xs font-medium text-slate-700 dark:text-slate-300">
-            {roleTab === "docente" ? "Usuario o Correo" : "Número de DNI o Usuario"}
+            DNI, Usuario o Correo
           </label>
           <span className="text-[11px] text-slate-500 dark:text-slate-400">
-            {roleTab === "docente" ? "ej. director o lperez" : "DNI 8 dígitos o usuario"}
+            ej. 45678901 o director
           </span>
         </div>
         <div className="relative group">
           <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
-            {roleTab === "docente" ? <User size={16} /> : <GraduationCap size={16} />}
+            <User size={16} />
           </div>
           <input
             id="username"
@@ -156,7 +98,7 @@ export default function LoginForm({ onSubmit, error }: Props) {
             value={username}
             onChange={(e) => handleUsernameChange(e.target.value)}
             required
-            placeholder={roleTab === "docente" ? "director" : "DNI (ej: 45678901) o usuario"}
+            placeholder="DNI, usuario o correo institucional"
             className="w-full h-11 pl-10 pr-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/50 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all shadow-xs"
           />
         </div>
