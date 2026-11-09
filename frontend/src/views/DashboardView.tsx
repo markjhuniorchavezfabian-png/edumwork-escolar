@@ -196,7 +196,7 @@ export default function DashboardView() {
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-900/60">
               <School size={13} />
-              <span>{institucion.nombre || "Colegio César Vallejo"} · Año Lectivo {institucion.anio_lectivo_activo || 2026}</span>
+              <span>{institucion.nombre || "Institución Educativa"} · Año Lectivo {institucion.anio_lectivo_activo || 2026}</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground pt-1">
               {saludo}, {usuario?.first_name} {usuario?.last_name}

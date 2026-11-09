@@ -24,8 +24,8 @@ export interface InstitucionContextType extends Institucion {
 }
 
 const FALLBACK: Institucion = {
-  nombre: "Colegio César Vallejo",
-  sigla: "IE-CV",
+  nombre: "Institución Educativa",
+  sigla: "I.E.",
   codigo_modular: "",
   direccion: "",
   ugel: "",

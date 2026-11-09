@@ -198,7 +198,7 @@ export default function Sidebar() {
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold truncate text-foreground">
-            {institucion.nombre || "Colegio César Vallejo"}
+            {institucion.nombre || "Institución Educativa"}
           </div>
           <div className="text-[11px] text-muted-foreground truncate">
             {institucion.sigla ? `${institucion.sigla} · Año Lectivo 2026` : "Año Lectivo 2026"}

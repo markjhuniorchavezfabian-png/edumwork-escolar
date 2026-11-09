@@ -20,8 +20,8 @@ export default function LoginView() {
   const navigate = useNavigate();
   const [error, setError] = useState("");
 
-  const nombreColegio = institucion.nombre?.trim() || "Colegio César Vallejo";
-  const siglaColegio = institucion.sigla?.trim() || "IE-CV";
+  const nombreColegio = institucion.nombre?.trim() || "Institución Educativa";
+  const siglaColegio = institucion.sigla?.trim() || "I.E.";
   const anioLectivo = institucion.anio_lectivo_activo || new Date().getFullYear();
 
   if (isAuthenticated) {

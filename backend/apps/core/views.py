@@ -368,12 +368,12 @@ def _get_or_create_config():
     cfg = ConfiguracionInstitucional.objects.first()
     if not cfg:
         cfg = ConfiguracionInstitucional.objects.create(
-            nombre_institucion="Colegio César Vallejo",
-            sigla="IE-CV",
+            nombre_institucion="Institución Educativa",
+            sigla="I.E.",
         )
     elif not cfg.nombre_institucion:
-        cfg.nombre_institucion = "Colegio César Vallejo"
-        cfg.sigla = cfg.sigla or "IE-CV"
+        cfg.nombre_institucion = "Institución Educativa"
+        cfg.sigla = cfg.sigla or "I.E."
         cfg.save(update_fields=["nombre_institucion", "sigla"])
     return cfg
 

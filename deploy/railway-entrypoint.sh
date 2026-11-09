@@ -18,10 +18,10 @@ django.setup()
 from apps.core.models import ConfiguracionInstitucional
 cfg = ConfiguracionInstitucional.get_solo()
 if not cfg.nombre_institucion:
-    cfg.nombre_institucion = "Colegio César Vallejo"
-    cfg.sigla = "IE-CV"
+    cfg.nombre_institucion = "Institución Educativa"
+    cfg.sigla = "I.E."
     cfg.save()
-    print("✔ Nombre institucional asegurado: Colegio César Vallejo")
+    print("✔ Nombre institucional asegurado: Institución Educativa")
 EOF
 
 # 2. Archivos estáticos de Django
