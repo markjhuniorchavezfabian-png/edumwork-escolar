@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import TextoExpandible from "../components/ui/TextoExpandible";
 import api from "../services/api";
+import { useAuth } from "../hooks/useAuth";
+import { consentirDatos } from "../services/gestion";
 import { useToast } from "../components/ui/Toast";
 import { useInstitucion } from "../context/InstitucionContext";
 import { useHijo } from "../context/HijoContext";
@@ -60,7 +62,10 @@ const JUST_BADGE: Record<string, { bg: string; text: string }> = {
 export default function PanelFamiliarView() {
   const institucion = useInstitucion();
   const toast = useToast();
+  const { usuario, refreshUsuario } = useAuth();
   const { hijos, hijoActivo, hijoActivoId, seleccionarHijo, cargandoHijos, recargarHijos } = useHijo();
+  const [modalConsentimiento, setModalConsentimiento] = useState(false);
+  const [guardandoConsentimiento, setGuardandoConsentimiento] = useState(false);
   const [justificaciones, setJustificaciones] = useState<Justificacion[]>([]);
   const [notas, setNotas] = useState<Nota[]>([]);
   const [motivos, setMotivos] = useState<Motivo[]>([]);
@@ -81,6 +86,26 @@ export default function PanelFamiliarView() {
       return null;
     }
   });
+
+  useEffect(() => {
+    if (usuario && usuario.rol === "padre" && usuario.consentimiento_datos === false) {
+      setModalConsentimiento(true);
+    }
+  }, [usuario?.consentimiento_datos, usuario?.rol]);
+
+  async function handleAceptarConsentimiento() {
+    setGuardandoConsentimiento(true);
+    try {
+      await consentirDatos();
+      toast.ok("Consentimiento registrado conforme a la Ley N° 29733.");
+      setModalConsentimiento(false);
+      await refreshUsuario();
+    } catch {
+      toast.error("Error al registrar consentimiento. Inténtelo nuevamente.");
+    } finally {
+      setGuardandoConsentimiento(false);
+    }
+  }
 
   useEffect(() => {
     const handleCambiado = (e: any) => {
@@ -275,6 +300,32 @@ export default function PanelFamiliarView() {
         </div>
       </section>
 
+      {/* Banner de Consentimiento Pendiente Ley 29733 */}
+      {usuario?.rol === "padre" && usuario?.consentimiento_datos === false && (
+        <section className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <ShieldAlert size={20} />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-foreground">
+                Autorización de Tratamiento de Datos Personales (Ley N° 29733)
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Para garantizar la privacidad y seguridad pedagógica de sus hijos conforme a ley, requerimos su consentimiento informado digital.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setModalConsentimiento(true)}
+            className="shrink-0 text-xs font-semibold px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white transition-colors shadow-xs flex items-center gap-1.5"
+          >
+            <ShieldAlert size={14} /> Revisar y Autorizar
+          </button>
+        </section>
+      )}
+
       {/* Selector de hijo sincronizado */}
       {hijos.length > 1 && (
         <section className="flex flex-wrap items-center gap-2 pt-1">
@@ -342,7 +393,19 @@ export default function PanelFamiliarView() {
           </section>
 
           {/* Asistencia reciente */}
-          <Panel titulo={`Asistencia reciente de ${hijo.nombre.split(" ")[0]}`} icono={CalendarCheck}>
+          <Panel
+            titulo={`Asistencia reciente de ${hijo.nombre.split(" ")[0]}`}
+            icono={CalendarCheck}
+            accionExtra={
+              <button
+                type="button"
+                onClick={() => setPidiendoJust({ estId: hijo.estudiante_id, fecha: new Date().toISOString().slice(0, 10) })}
+                className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1.5"
+              >
+                <FileText size={12} /> + Justificar fecha
+              </button>
+            }
+          >
             {hijo.ultimos_10.length === 0 ? (
               <EstadoVacio icono={CalendarCheck} titulo="Sin registros" descripcion="Aún no hay marcas de asistencia." />
             ) : (
@@ -374,12 +437,13 @@ export default function PanelFamiliarView() {
                         )}
                       </div>
                       <div className="shrink-0">
-                        {r.estado === "ausente" && !jExiste && (
+                        {(r.estado === "ausente" || r.estado === "tardanza") && !jExiste && (
                           <button
+                            type="button"
                             onClick={() => setPidiendoJust({ estId: hijo.estudiante_id, fecha: r.fecha })}
                             className="text-xs font-medium px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1.5"
                           >
-                            <FileText size={12} /> Justificar
+                            <FileText size={12} /> Justificar {r.estado === "tardanza" ? "tardanza" : "falta"}
                           </button>
                         )}
                         {jExiste && (
@@ -401,8 +465,26 @@ export default function PanelFamiliarView() {
           {/* Grid: Justificaciones + Notas/Boletas */}
           <div className="grid lg:grid-cols-2 gap-4">
             {/* Justificaciones */}
-            {justificacionesHijo.length > 0 && (
-              <Panel titulo={`Justificaciones (${justificacionesHijo.length})`} icono={ClipboardCheck}>
+            <Panel
+              titulo={`Justificaciones (${justificacionesHijo.length})`}
+              icono={ClipboardCheck}
+              accionExtra={
+                <button
+                  type="button"
+                  onClick={() => setPidiendoJust({ estId: hijo.estudiante_id, fecha: new Date().toISOString().slice(0, 10) })}
+                  className="text-xs font-medium px-2.5 py-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1.5"
+                >
+                  <FileText size={12} /> + Nueva
+                </button>
+              }
+            >
+              {justificacionesHijo.length === 0 ? (
+                <EstadoVacio
+                  icono={ClipboardCheck}
+                  titulo="Sin justificaciones registradas"
+                  descripcion="Si su hijo/a tuvo una falta o tardanza, puede reportar aquí la justificación médica o familiar con su constancia."
+                />
+              ) : (
                 <div className="space-y-2">
                   {justificacionesHijo.map((j) => (
                     <div key={j.id} className="p-3 rounded-lg border border-border/60">
@@ -432,8 +514,8 @@ export default function PanelFamiliarView() {
                     </div>
                   ))}
                 </div>
-              </Panel>
-            )}
+              )}
+            </Panel>
 
             {/* Notas + Boletas PDF */}
             {notasAgrupadas.length > 0 ? (
@@ -758,6 +840,17 @@ export default function PanelFamiliarView() {
           }}
         />
       )}
+
+      {/* Modal Consentimiento Ley 29733 */}
+      {modalConsentimiento && (
+        <ModalConsentimientoDatos
+          nombreInstitucion={institucion.nombre || "la Institución Educativa"}
+          hijosNombres={hijos.map((h) => h.nombre).join(", ")}
+          onAceptar={handleAceptarConsentimiento}
+          onPosponer={() => setModalConsentimiento(false)}
+          cargando={guardandoConsentimiento}
+        />
+      )}
     </div>
   );
 }
@@ -787,22 +880,26 @@ function KpiHijo({ label, valor, icon: Icon, color }: {
   );
 }
 
-function Panel({ titulo, icono: Icono, linkTo, linkTexto, children }: {
+function Panel({ titulo, icono: Icono, linkTo, linkTexto, accionExtra, children }: {
   titulo: string; icono: LucideIcon; linkTo?: string; linkTexto?: string;
+  accionExtra?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-card space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Icono size={16} className="text-primary" />
           <h3 className="text-sm font-semibold">{titulo}</h3>
         </div>
-        {linkTo && (
-          <a href={linkTo} className="text-xs text-primary hover:underline flex items-center gap-1">
-            {linkTexto} <ArrowRight size={12} />
-          </a>
-        )}
+        <div className="flex items-center gap-2">
+          {accionExtra}
+          {linkTo && (
+            <a href={linkTo} className="text-xs text-primary hover:underline flex items-center gap-1">
+              {linkTexto} <ArrowRight size={12} />
+            </a>
+          )}
+        </div>
       </div>
       {children}
     </div>
@@ -826,26 +923,29 @@ function JustificacionModal({ estudianteId, fecha, motivos, onCerrar, onEnviada 
   estudianteId: number; fecha: string; motivos: Motivo[]; onCerrar: () => void; onEnviada: () => void;
 }) {
   const toast = useToast();
+  const [fechaFalta, setFechaFalta] = useState(fecha || new Date().toISOString().slice(0, 10));
   const [motivo, setMotivo] = useState(motivos[0]?.codigo ?? "enfermedad");
   const [descripcion, setDescripcion] = useState("");
   const [constancia, setConstancia] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   async function enviar() {
-    if (descripcion.length < 5) { toast.error("Escribe una descripción."); return; }
+    if (!fechaFalta) { toast.error("Selecciona la fecha."); return; }
+    if (descripcion.trim().length < 5) { toast.error("Escribe una descripción de al menos 5 caracteres."); return; }
     setEnviando(true);
     try {
       const fd = new FormData();
       fd.append("estudiante", String(estudianteId));
-      fd.append("fecha_falta", fecha);
+      fd.append("fecha_falta", fechaFalta);
       fd.append("motivo", motivo);
-      fd.append("descripcion", descripcion);
+      fd.append("descripcion", descripcion.trim());
       if (constancia) fd.append("constancia", constancia);
       await api.post("/justificaciones/", fd, { headers: { "Content-Type": "multipart/form-data" } });
       onEnviada();
     } catch (e: unknown) {
-      const err = e as { response?: { data?: unknown } };
-      toast.error(`Error: ${JSON.stringify(err.response?.data)}`);
+      const err = e as { response?: { data?: { error?: string; [key: string]: unknown } } };
+      const mensaje = err.response?.data?.error || "Error al enviar justificación.";
+      toast.error(String(mensaje));
     } finally { setEnviando(false); }
   }
 
@@ -860,9 +960,9 @@ function JustificacionModal({ estudianteId, fecha, motivos, onCerrar, onEnviada 
       >
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div>
-            <h3 className="text-lg font-semibold">Justificar ausencia</h3>
+            <h3 className="text-lg font-semibold">Justificar inasistencia o tardanza</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {parseFecha(fecha)!.toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
+              Reporte oficial ante la I.E. para justificar ausencia o tardanza.
             </p>
           </div>
           <button onClick={onCerrar} className="p-1 rounded-md hover:bg-muted">
@@ -872,7 +972,17 @@ function JustificacionModal({ estudianteId, fecha, motivos, onCerrar, onEnviada 
 
         <div className="p-5 space-y-4">
           <div className="rounded-md bg-blue-500/10 border border-blue-500/30 p-3 text-xs text-blue-800 dark:text-blue-200">
-            Tu justificación será revisada por el/la tutor/a de la sección. Recibirás una notificación cuando sea aprobada o rechazada.
+            Tu justificación será revisada por el/la tutor/a o auxiliar de la sección. Recibirás una notificación cuando sea evaluada.
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Fecha de la falta o tardanza *</label>
+            <input
+              type="date"
+              value={fechaFalta}
+              onChange={(e) => setFechaFalta(e.target.value)}
+              className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -892,7 +1002,7 @@ function JustificacionModal({ estudianteId, fecha, motivos, onCerrar, onEnviada 
               rows={4}
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Explique brevemente la razón de la ausencia."
+              placeholder="Explique brevemente la razón de la ausencia o tardanza."
               className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -906,7 +1016,7 @@ function JustificacionModal({ estudianteId, fecha, motivos, onCerrar, onEnviada 
               className="w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:bg-primary file:text-primary-foreground file:text-xs file:font-medium hover:file:bg-primary/90"
             />
             <div className="text-[11px] text-muted-foreground">
-              Foto o PDF de constancia médica, oficio, etc.
+              Foto o PDF de constancia médica, receta, oficio, etc.
             </div>
           </div>
         </div>
@@ -914,17 +1024,103 @@ function JustificacionModal({ estudianteId, fecha, motivos, onCerrar, onEnviada 
         <div className="flex justify-end gap-2 p-4 border-t border-border">
           <button
             onClick={onCerrar}
-            className="h-9 px-4 rounded-md text-sm font-medium hover:bg-muted"
+            disabled={enviando}
+            className="px-4 py-2 text-xs font-medium rounded-lg text-muted-foreground hover:bg-muted"
           >
             Cancelar
           </button>
           <button
             onClick={enviar}
             disabled={enviando}
-            className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1.5"
           >
-            {enviando ? <Loader2 size={14} className="animate-spin" /> : null}
-            {enviando ? "Enviando..." : "Enviar"}
+            {enviando && <Loader2 size={13} className="animate-spin" />}
+            {enviando ? "Enviando..." : "Enviar justificación"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════ MODAL CONSENTIMIENTO LEY 29733 ═ */
+function ModalConsentimientoDatos({
+  nombreInstitucion,
+  hijosNombres,
+  onAceptar,
+  onPosponer,
+  cargando,
+}: {
+  nombreInstitucion: string;
+  hijosNombres: string;
+  onAceptar: () => Promise<void>;
+  onPosponer: () => void;
+  cargando: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div
+        className="bg-card w-full max-w-lg rounded-3xl border border-border shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="p-6 border-b border-border bg-blue-50/50 dark:bg-blue-950/20">
+          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-3 shadow-sm">
+            <ShieldAlert size={24} />
+          </div>
+          <h3 className="text-lg font-bold tracking-tight text-foreground">
+            Tratamiento de Datos Personales de Menores
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Consentimiento informado conforme a la Ley N° 29733 (Perú)
+          </p>
+        </div>
+
+        <div className="p-6 space-y-4 text-xs text-muted-foreground leading-relaxed max-h-[60vh] overflow-y-auto">
+          <p className="text-foreground font-medium">
+            Estimado/a padre, madre o apoderado/a de <strong>{hijosNombres || "sus menores hijos"}</strong>:
+          </p>
+
+          <p>
+            En cumplimiento de la <strong>Ley N° 29733</strong> (Ley de Protección de Datos Personales) y su Reglamento
+            aprobado por D.S. N° 003-2013-JUS, <strong>{nombreInstitucion}</strong> solicita su consentimiento
+            expreso para el tratamiento de los datos personales y académicos de sus hijos vinculados a esta plataforma.
+          </p>
+
+          <div className="rounded-xl border border-border/80 bg-muted/30 p-3.5 space-y-2">
+            <div className="font-semibold text-foreground">Finalidades pedagógicas e institucionales exclusivas:</div>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>Control diario de asistencia, tardanzas y justificaciones oficiales.</li>
+              <li>Registro y evaluación de competencias CNEB y emisión de boletas de notas (SIAGIE).</li>
+              <li>Seguimiento de convivencia escolar y soporte psicopedagógico (SíseVe).</li>
+              <li>Envío de alertas tempranas, comunicados institucionales y estados de cuenta.</li>
+            </ul>
+          </div>
+
+          <p>
+            <strong>Garantía de privacidad:</strong> Los datos se almacenan bajo estrictos controles de seguridad,
+            cifrado en tránsito y reposo, y <strong>nunca</strong> serán comercializados ni cedidos a terceros
+            ajenos a las obligaciones con el Ministerio de Educación (MINEDU) y UGEL.
+          </p>
+        </div>
+
+        <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2 p-5 border-t border-border bg-muted/20">
+          <button
+            type="button"
+            onClick={onPosponer}
+            disabled={cargando}
+            className="w-full sm:w-auto px-4 py-2 text-xs font-medium rounded-xl text-muted-foreground hover:bg-muted transition-colors"
+          >
+            Recordarme más tarde
+          </button>
+          <button
+            type="button"
+            onClick={onAceptar}
+            disabled={cargando}
+            className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {cargando ? <Loader2 size={14} className="animate-spin" /> : <ClipboardCheck size={14} />}
+            {cargando ? "Registrando..." : "Autorizo y doy consentimiento"}
           </button>
         </div>
       </div>

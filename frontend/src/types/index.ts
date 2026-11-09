@@ -20,6 +20,7 @@ export interface Usuario {
   debe_cambiar_password?: boolean;
   es_docente?: boolean;
   es_administrador?: boolean;
+  consentimiento_datos?: boolean;
 }
 
 export interface AuthTokens {

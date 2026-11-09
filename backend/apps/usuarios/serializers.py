@@ -94,6 +94,7 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
     rol_label = serializers.CharField(source="get_rol_display", read_only=True)
     nombre_completo = serializers.SerializerMethodField(read_only=True)
     puede_gestionar_usuarios = serializers.SerializerMethodField(read_only=True)
+    consentimiento_datos = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Usuario
@@ -103,6 +104,7 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
             "puede_gestionar_usuarios", "debe_cambiar_password", "es_docente",
             "es_administrador",
             "ultimo_acceso_en", "ultimo_acceso_ip",
+            "consentimiento_datos",
         ]
 
     def get_nombre_completo(self, obj):
@@ -111,6 +113,15 @@ class UsuarioMeSerializer(serializers.ModelSerializer):
     def get_puede_gestionar_usuarios(self, obj):
         from apps.usuarios.permissions import puede_gestionar_usuarios
         return puede_gestionar_usuarios(obj)
+
+    def get_consentimiento_datos(self, obj):
+        if obj.rol == "padre":
+            padre = getattr(obj, "perfil_padre", None)
+            if not padre:
+                from apps.usuarios.models import Padre
+                padre = Padre.objects.filter(usuario=obj).first()
+            return bool(padre and padre.consentimiento_datos)
+        return True
 
 
 class FichaEstudianteSerializer(ArchivosFirmadosMixin, serializers.ModelSerializer):
