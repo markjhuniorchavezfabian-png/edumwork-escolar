@@ -351,16 +351,26 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="consentir")
     def consentir(self, request):
-        """El padre autenticado registra su consentimiento Ley 29733."""
+        """El padre autenticado registra su consentimiento Ley 29733 (o ejerce derecho ARCO de revocatoria)."""
         if request.user.rol != Rol.PADRE:
             return Response({"error": "Solo padres pueden consentir."}, status=403)
         padre, _ = Padre.objects.get_or_create(usuario=request.user)
-        padre.consentimiento_datos = True
-        padre.consentimiento_fecha = timezone.now()
-        ip = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR"))
-        padre.consentimiento_ip = ip.split(",")[0].strip() if ip else None
+        revocar = request.data.get("revocar", False)
+        if revocar:
+            padre.consentimiento_datos = False
+            padre.consentimiento_fecha = None
+            padre.consentimiento_ip = None
+        else:
+            padre.consentimiento_datos = True
+            padre.consentimiento_fecha = timezone.now()
+            ip = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR"))
+            padre.consentimiento_ip = ip.split(",")[0].strip() if ip else None
         padre.save(update_fields=["consentimiento_datos", "consentimiento_fecha", "consentimiento_ip"])
-        return Response({"ok": True, "fecha": padre.consentimiento_fecha})
+        return Response({
+            "ok": True,
+            "consentimiento_datos": padre.consentimiento_datos,
+            "fecha": padre.consentimiento_fecha
+        })
 
 
 # ═════════════════════════════════════════════════════════════════════════════
