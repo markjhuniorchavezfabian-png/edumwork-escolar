@@ -33,6 +33,7 @@ urlpatterns = [
     path("api/aula-virtual/", include("apps.aula_virtual.urls")),
     path("api/curricula/", include("apps.curricula.urls")),
     path("api/calendario/", include("apps.calendario.urls")),
+    path("api/finanzas/", include("apps.finanzas.urls")),
 ]
 
 # En dev sólo los logos, igual que en producción (ver `frontend/nginx.conf.template`).

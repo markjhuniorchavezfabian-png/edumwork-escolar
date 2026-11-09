@@ -84,19 +84,20 @@ class CursoSerializer(ArchivosFirmadosMixin, serializers.ModelSerializer):
     lecciones_count = serializers.SerializerMethodField()
     tareas_count = serializers.SerializerMethodField()
     secciones_detalle = serializers.SerializerMethodField()
+    hijos_matriculados = serializers.SerializerMethodField()
 
     class Meta:
         model = Curso
         fields = [
             "id", "titulo", "descripcion", "area", "color",
             "docente", "docente_nombre",
-            "secciones", "secciones_detalle",
+            "secciones", "secciones_detalle", "hijos_matriculados",
             "imagen_portada", "activo",
             "lecciones_count", "tareas_count",
             "creado_en", "actualizado_en",
         ]
         read_only_fields = ["id", "docente", "docente_nombre",
-                            "secciones_detalle",
+                            "secciones_detalle", "hijos_matriculados",
                             "lecciones_count", "tareas_count",
                             "creado_en", "actualizado_en"]
 
@@ -112,6 +113,28 @@ class CursoSerializer(ArchivosFirmadosMixin, serializers.ModelSerializer):
 
     def get_secciones_detalle(self, obj):
         return [{"id": s.id, "nombre": s.nombre or f"{s.grado} {s.letra}".strip()} for s in obj.secciones.all()]
+
+    def get_hijos_matriculados(self, obj):
+        request = self.context.get("request")
+        if request and getattr(request.user, "rol", None) == "padre":
+            try:
+                from apps.usuarios.models import Matricula
+                from apps.core.models import ConfiguracionInstitucional
+                anio = ConfiguracionInstitucional.get_solo().anio_lectivo_activo or 2026
+                hijos = request.user.perfil_padre.hijos.all()
+                matriculas = Matricula.objects.filter(
+                    estudiante__in=hijos,
+                    seccion__in=obj.secciones.all(),
+                    anio_lectivo=anio,
+                ).select_related("estudiante__usuario", "seccion")
+                return [{
+                    "estudiante_id": m.estudiante.id,
+                    "nombre": m.estudiante.usuario.get_full_name(),
+                    "seccion": m.seccion.nombre,
+                } for m in matriculas]
+            except Exception:
+                pass
+        return []
 
     def validate_imagen_portada(self, value):
         return validar_upload_serializer(value, "imagen_portada")

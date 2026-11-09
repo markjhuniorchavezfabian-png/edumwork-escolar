@@ -113,11 +113,21 @@ class Usuario(AbstractUser):
 
 class Docente(models.Model):
     """Perfil extendido para usuarios con rol=DOCENTE."""
+    TURNO_CHOICES = [
+        ("manana", "Mañana"),
+        ("tarde", "Tarde"),
+        ("completa", "Jornada Completa"),
+    ]
     usuario = models.OneToOneField(
         Usuario, on_delete=models.CASCADE, related_name="perfil_docente"
     )
     especialidad = models.CharField(max_length=100, blank=True)
     fecha_ingreso = models.DateField(null=True, blank=True)
+    turno = models.CharField(max_length=15, choices=TURNO_CHOICES, default="manana")
+    hora_entrada_jornada = models.TimeField(
+        null=True, blank=True,
+        help_text="Hora de ingreso esperada si no tiene clase a primera hora (ej. 07:45 o 13:00)",
+    )
 
     class Meta:
         db_table = "docentes"
@@ -134,6 +144,11 @@ class NivelEducativo(models.TextChoices):
 
 class Seccion(models.Model):
     """Sección educativa (ej: '5to A'). Un tutor titular + docentes asignados."""
+    TURNO_CHOICES = [
+        ("manana", "Mañana"),
+        ("tarde", "Tarde"),
+        ("completa", "Jornada Completa"),
+    ]
     nombre = models.CharField(max_length=30, help_text="Ej: '5to A'")
     nivel = models.CharField(
         max_length=15, choices=NivelEducativo.choices, blank=True,
@@ -141,6 +156,15 @@ class Seccion(models.Model):
     )
     grado = models.CharField(max_length=20)
     letra = models.CharField(max_length=5)
+    turno = models.CharField(max_length=15, choices=TURNO_CHOICES, default="manana")
+    hora_inicio = models.TimeField(
+        null=True, blank=True,
+        help_text="Hora de entrada de la sección (ej. 07:45 o 13:00). Si es null se usa la institucional.",
+    )
+    hora_fin = models.TimeField(
+        null=True, blank=True,
+        help_text="Hora de salida de la sección (ej. 13:15 o 18:30).",
+    )
     tutor = models.ForeignKey(
         Usuario,
         on_delete=models.SET_NULL,

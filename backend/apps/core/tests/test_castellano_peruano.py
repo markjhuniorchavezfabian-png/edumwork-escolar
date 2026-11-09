@@ -38,7 +38,7 @@ PERMITIDAS = {
     "extraerá", "generará", "guardará", "habrá", "llenará", "mostrará",
     "pedirá", "perderá", "podrá", "publicará", "quedará", "realizará",
     "rechazará", "recibirá", "rellenará", "revisará", "será", "usará",
-    "vendrá", "volverá", "entregará", "pagará",
+    "validará", "vendrá", "volverá", "entregará", "pagará",
     # sustantivos y abreviaturas
     "caché", "mié", "comité", "josé", "josué",
 }

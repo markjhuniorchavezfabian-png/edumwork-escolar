@@ -38,6 +38,7 @@ export interface Curso {
   docente_nombre: string;
   secciones: number[];
   secciones_detalle: Array<{ id: number; nombre: string }>;
+  hijos_matriculados?: Array<{ estudiante_id: number; nombre: string; seccion: string }>;
   imagen_portada: string | null;
   activo: boolean;
   lecciones_count: number;

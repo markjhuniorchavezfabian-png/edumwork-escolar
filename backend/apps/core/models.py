@@ -118,6 +118,44 @@ class ConfiguracionInstitucional(models.Model):
         help_text="Lista de códigos de módulos habilitados. Si está vacío, se asumen todos activos.",
     )
 
+    # ── Finanzas, Morosidad y Facturación SUNAT ─────────────────────────
+    bloquear_boleta_por_deuda = models.BooleanField(
+        default=False,
+        help_text="Si True, bloquea la descarga de boletas a familias con pensiones vencidas.",
+    )
+    max_cuotas_vencidas_bloqueo = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="Cantidad mínima de cuotas vencidas para activar el bloqueo de boleta.",
+    )
+    facturacion_sunat_habilitada = models.BooleanField(
+        default=False,
+        help_text="Activa la emisión automática de comprobantes a SUNAT al confirmar pagos.",
+    )
+    sunat_api_url = models.CharField(
+        max_length=255, blank=True, default="",
+        help_text="URL del PSE/API (ej: https://api.nubefact.com/api/v1/...).",
+    )
+    sunat_api_token = models.CharField(
+        max_length=255, blank=True, default="",
+        help_text="Token provisto por el PSE para emitir comprobantes.",
+    )
+    sunat_serie_boleta = models.CharField(
+        max_length=10, blank=True, default="B001",
+        help_text="Serie para Boletas de Venta Electrónicas.",
+    )
+    sunat_serie_factura = models.CharField(
+        max_length=10, blank=True, default="F001",
+        help_text="Serie para Facturas Electrónicas.",
+    )
+    cuenta_recaudacion_bcp = models.CharField(
+        max_length=50, blank=True, default="",
+        help_text="Código de servicio o cuenta recaudadora BCP.",
+    )
+    cuenta_recaudacion_bbva = models.CharField(
+        max_length=50, blank=True, default="",
+        help_text="Código de recaudo BBVA Continental.",
+    )
+
     actualizado_en = models.DateTimeField(auto_now=True)
 
     class Meta:

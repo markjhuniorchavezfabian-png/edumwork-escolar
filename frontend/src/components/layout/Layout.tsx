@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import Icon from "../ui/Icon";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import MobileNav from "./MobileNav";
 import OnboardingModoUI from "./OnboardingModoUI";
 import ErrorBoundary from "../ui/ErrorBoundary";
 import AsistenteIA from "../ia/AsistenteIA";
@@ -38,7 +39,7 @@ export default function Layout() {
             <Icon name="candado" size={16} />
             <span style={{ flex: 1 }}>
               <strong>Estás usando la contraseña predeterminada.</strong>{" "}
-              Por seguridad, cambiala antes de continuar.
+              Por seguridad, cámbiala antes de continuar.
             </span>
             <Link to="/mi-perfil" style={{
               background: "#F59E0B", color: "white", fontWeight: 700,
@@ -48,7 +49,7 @@ export default function Layout() {
             </Link>
           </div>
         )}
-        <main className="flex-1 p-4 lg:p-6 overflow-x-auto">
+        <main className="flex-1 p-4 lg:p-6 pb-20 lg:pb-6 overflow-x-auto">
           {/* Contiene el fallo dentro del área de contenido: el menú sigue
               usable y la persona puede irse a otra pantalla sin recargar. */}
           <ErrorBoundary resetKey={location.pathname}>
@@ -57,6 +58,7 @@ export default function Layout() {
         </main>
       </div>
 
+      <MobileNav />
       <OnboardingModoUI />
       <AsistenteIA />
     </div>

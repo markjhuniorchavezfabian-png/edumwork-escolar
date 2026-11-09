@@ -48,6 +48,7 @@ export interface CasoConvivencia {
   descripcion: string;
   estudiantes_afectados: number[];
   afectados_detalle: EstudianteRef[];
+  hijo_afectado?: string | null;
   estudiantes_agresores: number[];
   agresores_detalle: EstudianteRef[];
   reportado_por: number;

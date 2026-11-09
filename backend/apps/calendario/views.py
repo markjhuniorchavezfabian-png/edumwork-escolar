@@ -35,7 +35,7 @@ class AnioEscolarViewSet(viewsets.ModelViewSet):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def kpi_cumplimiento(request):
-    """Verifica cumplimiento RM 556-2024: mínimo 160 días lectivos + 30 días gestión."""
+    """Verifica cumplimiento RM 501-2025-MINEDU (Año Lectivo 2026): mínimo 160 días lectivos + 4 semanas de gestión."""
     anio = int(request.GET.get("anio", date.today().year))
 
     ae = AnioEscolar.objects.filter(anio=anio).first()
@@ -75,21 +75,23 @@ def kpi_cumplimiento(request):
         else:
             counts["otro"] += 1
 
-    cumple = counts["lectivo"] >= 160 and counts["gestion"] >= 30
+    minimo_gestion = 30  # RM 501-2025-MINEDU: mínimo 30 días de gestión (8 semanas hábiles)
+    cumple = counts["lectivo"] >= 160 and counts["gestion"] >= minimo_gestion
 
     return Response({
         "anio": anio,
+        "norma": "RM 501-2025-MINEDU",
         "cumple_norma": cumple,
         "detalle": (
-            f"RM 556-2024-MINEDU exige mínimo 160 días lectivos + 30 días de gestión. "
-            f"Tienes {counts['lectivo']} lectivos + {counts['gestion']} gestión."
+            f"RM 501-2025-MINEDU exige mínimo 160 días lectivos y 30 días de gestión (8 semanas hábiles). "
+            f"Tienes {counts['lectivo']} lectivos + {counts['gestion']} de gestión."
         ),
         "dias_lectivos_actuales": counts["lectivo"],
         "dias_gestion_actuales": counts["gestion"],
         "dias_feriado": counts["feriado"],
         "dias_no_laborables_otros": counts["otro"],
         "minimo_lectivos": 160,
-        "minimo_gestion": 30,
+        "minimo_gestion": minimo_gestion,
         "fecha_inicio": ae.fecha_inicio,
         "fecha_fin": ae.fecha_fin,
     })

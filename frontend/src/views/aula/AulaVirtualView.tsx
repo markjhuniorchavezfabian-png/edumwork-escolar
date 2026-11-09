@@ -1,38 +1,56 @@
-import { useEffect, useState } from "react";
-import { AREAS_CNEB } from "../../constants/curriculo";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { AREAS_CNEB } from "../../constants/curriculo";
 import type { Curso } from "../../types/aula";
 import { listarCursos, crearCurso, actualizarCurso, eliminarCurso } from "../../services/aula";
 import api from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
+import { useHijo } from "../../context/HijoContext";
 import Icon from "../../components/ui/Icon";
 import { EmptyState, Cargando } from "../../components/ui/Spinner";
 import { useToast } from "../../components/ui/Toast";
 import { useConfirm } from "../../components/ui/Confirm";
+import { Users } from "lucide-react";
+import { cn } from "../../lib/utils";
 
 const ROLES_CREADORES = ["docente", "admin_tic", "director", "subdirector", "psicologa"];
-
 const AREAS = [...AREAS_CNEB];
 
 export default function AulaVirtualView() {
   const { usuario } = useAuth();
   const toast = useToast();
   const confirmar = useConfirm();
+  const { hijos, hijoActivo, seleccionarHijo } = useHijo();
+  const [hijoFiltroId, setHijoFiltroId] = useState<number | "todos" | "activo">("activo");
+
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [cargando, setCargando] = useState(true);
   const [q, setQ] = useState("");
   const [creando, setCreando] = useState(false);
   const [editando, setEditando] = useState<Curso | null>(null);
 
+  const esPadre = usuario?.rol === "padre";
   const puedeCrear = usuario ? ROLES_CREADORES.includes(usuario.rol) : false;
 
-  async function cargar() {
+  const estFiltroFinal = esPadre
+    ? (hijoFiltroId === "todos" ? undefined : (hijoActivo?.estudiante_id ?? undefined))
+    : undefined;
+
+  const cargar = useCallback(async () => {
     setCargando(true);
     try {
-      setCursos(await listarCursos(q ? { q } : undefined));
-    } finally { setCargando(false); }
-  }
-  useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [q]);
+      const params: { q?: string; estudiante?: number } = {};
+      if (q) params.q = q;
+      if (estFiltroFinal) params.estudiante = estFiltroFinal;
+      setCursos(await listarCursos(params));
+    } finally {
+      setCargando(false);
+    }
+  }, [q, estFiltroFinal]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
 
   async function handleEliminar(curso: Curso) {
     const ok = await confirmar({
@@ -51,17 +69,62 @@ export default function AulaVirtualView() {
 
   function esPropietario(curso: Curso) {
     if (!usuario || !ROLES_CREADORES.includes(usuario.rol)) return false;
-    if (usuario.rol !== "docente") return true; // director/admin puede editar cualquier curso
+    if (usuario.rol !== "docente") return true;
     const nombreCompleto = `${usuario.first_name} ${usuario.last_name}`.trim();
     return curso.docente_nombre === nombreCompleto || curso.docente_nombre === usuario.username;
   }
 
   return (
-    <div>
+    <div className="space-y-4">
       <div className="dashboard-hero">
         <h2>Aula Virtual</h2>
-        <p>Repositorio de material y tareas de tus cursos.</p>
+        <p>
+          {esPadre
+            ? "Consulta de materiales, lecturas y actividades pedagógicas de tus hijos."
+            : "Repositorio de material y tareas de tus cursos."}
+        </p>
       </div>
+
+      {/* Selector de estudiante para apoderados */}
+      {esPadre && hijos.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl border border-border bg-card">
+          <span className="text-xs font-medium text-muted-foreground mr-1">Filtrar por estudiante:</span>
+          <button
+            type="button"
+            onClick={() => setHijoFiltroId("todos")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg border text-xs transition-colors",
+              hijoFiltroId === "todos"
+                ? "bg-blue-600 text-white border-blue-600 font-semibold"
+                : "border-border text-foreground hover:bg-muted"
+            )}
+          >
+            Toda la familia ({hijos.length} hijos)
+          </button>
+          {hijos.map((h) => {
+            const estaActivo = hijoFiltroId !== "todos" && (hijoActivo?.estudiante_id === h.estudiante_id);
+            return (
+              <button
+                key={h.estudiante_id}
+                type="button"
+                onClick={() => {
+                  setHijoFiltroId(h.estudiante_id);
+                  seleccionarHijo(h.estudiante_id);
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors",
+                  estaActivo
+                    ? "bg-blue-50 border-blue-600 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 font-semibold"
+                    : "border-border text-foreground hover:bg-muted"
+                )}
+              >
+                <Users size={13} className={estaActivo ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"} />
+                <span>{h.nombre.split(" ")[0]} ({h.grado} {h.seccion})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
         <input
@@ -83,15 +146,27 @@ export default function AulaVirtualView() {
           icono="libro"
           titulo="Sin cursos todavía"
           descripcion={
-            puedeCrear
+            esPadre && hijoActivo && hijoFiltroId !== "todos"
+              ? `No hay cursos virtuales disponibles para ${hijoActivo.nombre} (${hijoActivo.grado} ${hijoActivo.seccion}). Los materiales digitales se habilitan progresivamente por nivel escolar.`
+              : puedeCrear
               ? "Crea tu primer curso para compartir material y tareas con tus estudiantes."
-              : "Aún no hay cursos disponibles para tu sección."
+              : "Aún no hay cursos disponibles para esta sección."
           }
-          accion={puedeCrear ? (
-            <button className="btn btn-primario btn-icono" onClick={() => setCreando(true)}>
-              <Icon name="plus" /> Crear curso
-            </button>
-          ) : undefined}
+          accion={
+            esPadre && hijoFiltroId !== "todos" ? (
+              <button
+                className="btn btn-secundario"
+                onClick={() => setHijoFiltroId("todos")}
+                style={{ width: "auto" }}
+              >
+                Ver cursos de toda la familia
+              </button>
+            ) : puedeCrear ? (
+              <button className="btn btn-primario btn-icono" onClick={() => setCreando(true)}>
+                <Icon name="plus" /> Crear curso
+              </button>
+            ) : undefined
+          }
         />
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
@@ -99,6 +174,8 @@ export default function AulaVirtualView() {
             <TarjetaCurso
               key={c.id}
               curso={c}
+              esPadre={esPadre}
+              hijoFiltroId={estFiltroFinal}
               puedeEditar={!!esPropietario(c)}
               onEditar={() => setEditando(c)}
               onEliminar={() => handleEliminar(c)}
@@ -126,12 +203,20 @@ export default function AulaVirtualView() {
 
 interface TarjetaProps {
   curso: Curso;
+  esPadre?: boolean;
+  hijoFiltroId?: number;
   puedeEditar: boolean;
   onEditar: () => void;
   onEliminar: () => void;
 }
 
-function TarjetaCurso({ curso, puedeEditar, onEditar, onEliminar }: TarjetaProps) {
+function TarjetaCurso({ curso, esPadre = false, hijoFiltroId, puedeEditar, onEditar, onEliminar }: TarjetaProps) {
+  const hijosAMostrar = esPadre && curso.hijos_matriculados
+    ? (hijoFiltroId
+        ? curso.hijos_matriculados.filter((h) => h.estudiante_id === hijoFiltroId)
+        : curso.hijos_matriculados)
+    : [];
+
   return (
     <div style={{
       background: "var(--bg-panel)",
@@ -161,6 +246,23 @@ function TarjetaCurso({ curso, puedeEditar, onEditar, onEliminar }: TarjetaProps
           </div>
         </div>
         <div style={{ padding: 14 }}>
+          {esPadre && hijosAMostrar.length > 0 && (
+            <div style={{
+              fontSize: 11,
+              marginBottom: 8,
+              padding: "4px 8px",
+              borderRadius: 6,
+              background: "var(--info-bg-subtle)",
+              color: "var(--info-text)",
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              fontWeight: 600,
+            }}>
+              <Icon name="usuarios" size={11} />
+              <span>Para: {hijosAMostrar.map((h) => `${h.nombre.split(" ")[0]} (${h.seccion})`).join(", ")}</span>
+            </div>
+          )}
           <p style={{ fontSize: 12, color: "var(--texto-mute)", marginBottom: 8, minHeight: 32 }}>
             {curso.descripcion?.slice(0, 100) || "Sin descripción."}
           </p>

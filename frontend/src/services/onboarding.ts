@@ -43,6 +43,15 @@ export interface ConfigInstitucional {
   smtp_from_email: string;
   smtp_configurado?: boolean;
   email_comunicados_habilitado: boolean;
+  bloquear_boleta_por_deuda?: boolean;
+  max_cuotas_vencidas_bloqueo?: number;
+  facturacion_sunat_habilitada?: boolean;
+  sunat_api_url?: string;
+  sunat_api_token?: string;
+  sunat_serie_boleta?: string;
+  sunat_serie_factura?: string;
+  cuenta_recaudacion_bcp?: string;
+  cuenta_recaudacion_bbva?: string;
 }
 
 export async function getConfig(): Promise<ConfigInstitucional> {

@@ -60,7 +60,12 @@ def login(request):
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    usuario = authenticate(request=request, username=username, password=password)
+    auth_username = username
+    user_by_dni = Usuario.objects.filter(dni=username, activo=True).first()
+    if user_by_dni:
+        auth_username = user_by_dni.username
+
+    usuario = authenticate(request=request, username=auth_username, password=password)
     if not usuario:
         return Response(
             {"error": "Credenciales inválidas"},
@@ -372,8 +377,8 @@ class SeccionSerializer(drf_serializers.ModelSerializer):
 
     class Meta:
         model = Seccion
-        fields = ["id", "nombre", "nivel", "grado", "letra", "tutor", "tutor_nombre",
-                  "docentes", "docentes_detalle",
+        fields = ["id", "nombre", "nivel", "grado", "letra", "turno", "hora_inicio", "hora_fin",
+                  "tutor", "tutor_nombre", "docentes", "docentes_detalle",
                   "cantidad_estudiantes", "cantidad_docentes"]
 
     def get_tutor_nombre(self, obj):

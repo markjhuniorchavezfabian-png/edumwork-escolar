@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { AuthProvider } from "./context/AuthContext";
+import { HijoProvider } from "./context/HijoContext";
 import { ModoUIProvider } from "./hooks/useModoUI";
 import { SidebarProvider } from "./hooks/useSidebar";
 import { InstitucionProvider } from "./context/InstitucionContext";
@@ -17,6 +18,8 @@ import LoginView from "./views/LoginView";
 //
 // Al agregar una vista nueva: sumala acá como `lazy(...)`, no con `import`.
 const DashboardView = lazy(() => import("./views/DashboardView"));
+const FinanzasView = lazy(() => import("./views/finanzas/FinanzasView"));
+const CajaChicaView = lazy(() => import("./views/finanzas/CajaChicaView"));
 const IncidenciasView = lazy(() => import("./views/IncidenciasView"));
 const AsistenciaView = lazy(() => import("./views/AsistenciaView"));
 const ImprimirQRsView = lazy(() => import("./views/asistencia/ImprimirQRsView"));
@@ -75,6 +78,7 @@ export default function App() {
   return (
     <AuthProvider>
       <InstitucionProvider>
+      <HijoProvider>
       <ModoUIProvider>
       <SidebarProvider>
       <BrowserRouter>
@@ -102,6 +106,8 @@ export default function App() {
             }
           >
             <Route path="/" element={<DashboardView />} />
+            <Route path="/finanzas" element={<FinanzasView />} />
+            <Route path="/caja" element={<CajaChicaView />} />
             <Route path="/incidencias" element={<IncidenciasView />} />
             <Route path="/asistencia" element={<AsistenciaView />} />
             <Route path="/asistencia/qrs" element={<ImprimirQRsView />} />
@@ -148,6 +154,7 @@ export default function App() {
       </BrowserRouter>
       </SidebarProvider>
       </ModoUIProvider>
+      </HijoProvider>
       </InstitucionProvider>
     </AuthProvider>
   );

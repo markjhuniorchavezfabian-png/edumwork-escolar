@@ -57,6 +57,9 @@ class CursoViewSet(viewsets.ModelViewSet):
             try:
                 anio = ConfiguracionInstitucional.get_solo().anio_lectivo_activo or 2026
                 hijos = user.perfil_padre.hijos.all()
+                est_param = self.request.GET.get("estudiante")
+                if est_param:
+                    hijos = hijos.filter(id=est_param)
                 secciones_ids = list(
                     Matricula.objects.filter(
                         estudiante__in=hijos, anio_lectivo=anio

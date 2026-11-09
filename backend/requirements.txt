@@ -7,7 +7,7 @@ python-dotenv==1.0.1
 gunicorn==22.0.0
 
 # ── IA (BYOK con cifrado, reciclado de p_02) ─────────────────────────────────
-litellm==1.52.10
+litellm==1.53.1
 cryptography==43.0.3
 tenacity==9.0.0
 

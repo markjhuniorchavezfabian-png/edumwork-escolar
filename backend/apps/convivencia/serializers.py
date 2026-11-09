@@ -23,7 +23,7 @@ class SeguimientoCasoSerializer(ArchivosFirmadosMixin, serializers.ModelSerializ
 
 
 class CasoConvivenciaSerializer(serializers.ModelSerializer):
-    tipo_label = serializers.CharField(source="get_tipo_display", read_only=True)
+    tipo_label = serializers.SerializerMethodField(read_only=True)
     gravedad_label = serializers.CharField(source="get_gravedad_display", read_only=True)
     estado_label = serializers.CharField(source="get_estado_display", read_only=True)
     reportado_por_nombre = serializers.SerializerMethodField(read_only=True)
@@ -33,6 +33,15 @@ class CasoConvivenciaSerializer(serializers.ModelSerializer):
     seguimientos = SeguimientoCasoSerializer(many=True, read_only=True)
     afectados_detalle = serializers.SerializerMethodField(read_only=True)
     agresores_detalle = serializers.SerializerMethodField(read_only=True)
+    hijo_afectado = serializers.SerializerMethodField(read_only=True)
+
+    LEGACY_TIPOS = {
+        "estud_fisico": "P1 · Violencia física entre estudiantes",
+        "estud_verbal": "P1 · Violencia verbal / psicológica",
+        "estud_psicologico": "P1 · Violencia psicológica entre estudiantes",
+        "ciber": "P2 · Ciberacoso escolar (ciberbullying)",
+        "ciberbullying": "P2 · Acoso cibernético (ciberbullying)",
+    }
 
     class Meta:
         model = CasoConvivencia
@@ -44,7 +53,7 @@ class CasoConvivenciaSerializer(serializers.ModelSerializer):
             "fecha_hecho", "fecha_reporte", "fecha_limite",
             "dias_restantes", "alerta_plazo",
             "ubicacion", "descripcion",
-            "estudiantes_afectados", "afectados_detalle",
+            "estudiantes_afectados", "afectados_detalle", "hijo_afectado",
             "estudiantes_agresores", "agresores_detalle",
             "reportado_por", "reportado_por_nombre",
             "responsable", "responsable_nombre",
@@ -58,6 +67,12 @@ class CasoConvivenciaSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "codigo", "fecha_reporte", "fecha_limite",
                             "dias_restantes", "alerta_plazo", "reportado_por",
                             "seguimientos", "creado_en", "actualizado_en"]
+
+    def get_tipo_label(self, obj):
+        display = obj.get_tipo_display()
+        if display and display != obj.tipo:
+            return display
+        return self.LEGACY_TIPOS.get(obj.tipo, obj.tipo.replace("_", " ").title())
 
     def get_reportado_por_nombre(self, obj):
         return obj.reportado_por.get_full_name() or obj.reportado_por.username
@@ -76,4 +91,19 @@ class CasoConvivenciaSerializer(serializers.ModelSerializer):
         return self._detalle_est(obj.estudiantes_afectados.all())
 
     def get_agresores_detalle(self, obj):
+        request = self.context.get("request")
+        if request and getattr(request.user, "rol", None) == "padre":
+            return []  # Reserva de confidencialidad estricta para familias (Ley 29719 / RM 383-2025)
         return self._detalle_est(obj.estudiantes_agresores.all())
+
+    def get_hijo_afectado(self, obj):
+        request = self.context.get("request")
+        if request and getattr(request.user, "rol", None) == "padre":
+            try:
+                hijos_ids = set(request.user.perfil_padre.hijos.values_list("id", flat=True))
+                afectados_hijos = obj.estudiantes_afectados.filter(id__in=hijos_ids)
+                if afectados_hijos.exists():
+                    return ", ".join(e.usuario.get_full_name() for e in afectados_hijos)
+            except Exception:
+                pass
+        return None

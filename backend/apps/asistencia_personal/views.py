@@ -26,14 +26,47 @@ ROLES_STAFF = ("director", "subdirector", "docente", "admin_tic", "secretaria",
 ROLES_APROBADORES = ("director", "subdirector", "secretaria", "admin_tic")
 
 
-def _determinar_estado(hora_entrada, config: ConfiguracionInstitucional):
-    """Auto-detecta si es tardanza según hora tope + tolerancia."""
+def _determinar_hora_esperada_personal(usuario, config: ConfiguracionInstitucional, fecha=None):
+    """Calcula la hora de ingreso esperada para el miembro del personal."""
+    from datetime import time
+    hoy = fecha or date.today()
+    dias_map = {0: "lun", 1: "mar", 2: "mie", 3: "jue", 4: "vie", 5: "sab"}
+    dia_codigo = dias_map.get(hoy.weekday())
+
+    # 1. Si es docente y tiene horario de clases hoy
+    if usuario.rol == "docente" and dia_codigo:
+        try:
+            from apps.notas.models import HorarioClase
+            primer_bloque = HorarioClase.objects.filter(
+                asignacion__docente=usuario,
+                dia_semana=dia_codigo,
+            ).order_by("hora_inicio").first()
+            if primer_bloque:
+                return primer_bloque.hora_inicio
+        except Exception:
+            pass
+
+    # 2. Si tiene perfil de docente con turno o jornada individual
+    perfil_doc = getattr(usuario, "perfil_docente", None)
+    if perfil_doc:
+        if perfil_doc.hora_entrada_jornada:
+            return perfil_doc.hora_entrada_jornada
+        if perfil_doc.turno == "tarde":
+            return time(12, 45)
+
+    # 3. Fallback: hora_tope_entrada_personal institucional
+    return config.hora_tope_entrada_personal or time(8, 0)
+
+
+def _determinar_estado(hora_entrada, usuario, config: ConfiguracionInstitucional, fecha=None):
+    """Auto-detecta si es tardanza según hora tope esperada individual + tolerancia."""
     if not hora_entrada:
         return EstadoAsistenciaPersonal.ASISTIO, False
-    hora_tope = config.hora_tope_entrada_personal
+    hoy = fecha or date.today()
+    hora_tope = _determinar_hora_esperada_personal(usuario, config, hoy)
     tolerancia = timedelta(minutes=config.tolerancia_minutos)
-    dt_tope = datetime.combine(date.today(), hora_tope) + tolerancia
-    dt_entrada = datetime.combine(date.today(), hora_entrada)
+    dt_tope = datetime.combine(hoy, hora_tope) + tolerancia
+    dt_entrada = datetime.combine(hoy, hora_entrada)
     if dt_entrada > dt_tope:
         return EstadoAsistenciaPersonal.TARDANZA, True
     return EstadoAsistenciaPersonal.ASISTIO, False
@@ -88,7 +121,7 @@ class RegistroPersonalViewSet(viewsets.ModelViewSet):
 
         config = ConfiguracionInstitucional.get_solo()
         hora = timezone.localtime().time().replace(second=0, microsecond=0)
-        estado, es_tardanza = _determinar_estado(hora, config)
+        estado, es_tardanza = _determinar_estado(hora, request.user, config)
 
         # ── Validación GPS ────────────────────────────────────────────────
         lat = request.data.get("lat")
@@ -96,23 +129,26 @@ class RegistroPersonalViewSet(viewsets.ModelViewSet):
         sin_geo = lat is None or lng is None
         distancia = None
 
-        if sin_geo and config.exigir_geolocalizacion:
+        if sin_geo and config.exigir_geolocalizacion and config.latitud_ie is not None and config.longitud_ie is not None:
             return Response({
                 "error": "La institución exige verificación GPS para marcar asistencia. "
                          "Habilita el permiso de ubicación en tu navegador.",
             }, status=400)
 
         if not sin_geo:
-            try:
-                distancia = _distancia_metros(lat, lng, config.latitud_ie, config.longitud_ie)
-            except (TypeError, ValueError):
-                return Response({"error": "Coordenadas GPS inválidas."}, status=400)
-            if distancia > config.radio_permitido_metros:
-                return Response({
-                    "error": f"Estás a {distancia}m de la I.E. Solo se permite marcar dentro de {config.radio_permitido_metros}m.",
-                    "distancia_metros": distancia,
-                    "radio_permitido": config.radio_permitido_metros,
-                }, status=403)
+            if config.latitud_ie is not None and config.longitud_ie is not None:
+                try:
+                    distancia = _distancia_metros(lat, lng, config.latitud_ie, config.longitud_ie)
+                except (TypeError, ValueError):
+                    return Response({"error": "Coordenadas GPS inválidas."}, status=400)
+                if distancia > config.radio_permitido_metros:
+                    return Response({
+                        "error": f"Estás a {distancia}m de la I.E. Solo se permite marcar dentro de {config.radio_permitido_metros}m.",
+                        "distancia_metros": distancia,
+                        "radio_permitido": config.radio_permitido_metros,
+                    }, status=403)
+            else:
+                distancia = 0  # Coordenadas institucionales pendientes de configurar
 
         registro, creado = RegistroPersonal.objects.update_or_create(
             usuario=request.user,
@@ -160,6 +196,20 @@ class RegistroPersonalViewSet(viewsets.ModelViewSet):
             usuario=request.user, fecha=timezone.localdate()
         ).first()
         if not registro:
+            hoy = timezone.localdate()
+            if hoy.weekday() >= 5:
+                # En fin de semana o día no laborable, permite registrar salida extraordinaria directamente
+                ahora = timezone.localtime().time().replace(second=0, microsecond=0)
+                registro = RegistroPersonal.objects.create(
+                    usuario=request.user,
+                    fecha=hoy,
+                    hora_entrada=ahora,
+                    hora_salida=ahora,
+                    estado=EstadoAsistenciaPersonal.PRESENTE,
+                    metodo=MetodoRegistroPersonal.MANUAL,
+                    observaciones="Jornada extraordinaria fin de semana",
+                )
+                return Response(RegistroPersonalSerializer(registro).data)
             return Response({"error": "No has marcado tu entrada hoy."}, status=400)
         registro.hora_salida = timezone.localtime().time().replace(second=0, microsecond=0)
         registro.save(update_fields=["hora_salida"])
@@ -167,12 +217,25 @@ class RegistroPersonalViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="mi-registro-hoy")
     def mi_registro_hoy(self, request):
+        hoy = timezone.localdate()
+        es_fin_de_semana = hoy.weekday() >= 5
+        config = ConfiguracionInstitucional.get_solo()
+        hora_esperada = _determinar_hora_esperada_personal(request.user, config, hoy)
+
         registro = RegistroPersonal.objects.filter(
-            usuario=request.user, fecha=timezone.localdate()
+            usuario=request.user, fecha=hoy
         ).first()
-        if not registro:
-            return Response({"tiene_registro": False})
-        return Response({"tiene_registro": True, "registro": RegistroPersonalSerializer(registro).data})
+
+        dia_nombre = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"][hoy.weekday()]
+
+        return Response({
+            "tiene_registro": registro is not None,
+            "es_dia_no_laborable": es_fin_de_semana,
+            "motivo_no_laborable": f"Hoy es {dia_nombre} (Día no laborable / Sin jornada programada)" if es_fin_de_semana else "",
+            "hora_esperada_ingreso": hora_esperada.strftime("%H:%M") if hora_esperada else "08:00",
+            "tolerancia_minutos": config.tolerancia_minutos,
+            "registro": RegistroPersonalSerializer(registro).data if registro else None,
+        })
 
     @action(detail=False, methods=["post"], url_path="marcar-por-otro")
     def marcar_por_otro(self, request):
@@ -210,16 +273,21 @@ class RegistroPersonalViewSet(viewsets.ModelViewSet):
             raise PermissionDenied()
         hoy = timezone.localdate()
         mes_inicio = hoy.replace(day=1)
+        es_fin_de_semana = hoy.weekday() >= 5
 
         total_staff = Usuario.objects.filter(activo=True, rol__in=ROLES_STAFF).count()
         qs_hoy = RegistroPersonal.objects.filter(fecha=hoy)
         qs_mes = RegistroPersonal.objects.filter(fecha__gte=mes_inicio)
 
+        sin_marcar_hoy = 0 if (es_fin_de_semana and qs_hoy.count() == 0) else max(0, total_staff - qs_hoy.count())
+
         return Response({
+            "es_dia_no_laborable": es_fin_de_semana,
+            "motivo_no_laborable": "Fin de semana (no laborable)" if es_fin_de_semana else "",
             "total_staff": total_staff,
             "presentes_hoy": qs_hoy.exclude(estado="ausente").count(),
             "tardanzas_hoy": qs_hoy.filter(estado="tardanza").count(),
-            "sin_marcar_hoy": total_staff - qs_hoy.count(),
+            "sin_marcar_hoy": sin_marcar_hoy,
             "tardanzas_mes": qs_mes.filter(estado="tardanza").count(),
             "ausencias_mes": qs_mes.filter(estado="ausente").count(),
             "por_estado_mes": {c: qs_mes.filter(estado=c).count() for c, _ in EstadoAsistenciaPersonal.choices},

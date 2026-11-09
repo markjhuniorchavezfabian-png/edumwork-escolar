@@ -1,16 +1,28 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { School, Shield, Sparkles, GraduationCap, KeyRound, Mail } from "lucide-react";
+import {
+  School,
+  KeyRound,
+  HelpCircle,
+  Sun,
+  Moon,
+} from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { useTheme } from "../hooks/useTheme";
 import { useInstitucion } from "../context/InstitucionContext";
 import LoginForm from "../components/auth/LoginForm";
 import type { LoginCredentials } from "../types";
 
 export default function LoginView() {
   const { login, isAuthenticated } = useAuth();
+  const { theme, toggle } = useTheme();
   const institucion = useInstitucion();
   const navigate = useNavigate();
   const [error, setError] = useState("");
+
+  const nombreColegio = institucion.nombre?.trim() || "Colegio Thales";
+  const siglaColegio = institucion.sigla?.trim() || "THALES";
+  const anioLectivo = institucion.anio_lectivo_activo || new Date().getFullYear();
 
   if (isAuthenticated) {
     navigate("/", { replace: true });
@@ -25,109 +37,110 @@ export default function LoginView() {
     } catch (e: unknown) {
       const status = (e as { response?: { status?: number } })?.response?.status;
       if (status === 403) {
-        setError("Cuenta bloqueada por demasiados intentos fallidos. Espera 5 minutos e intenta de nuevo.");
+        setError(
+          "Por seguridad, el acceso está temporalmente bloqueado tras varios intentos fallidos. Espera 5 minutos o contacta a Secretaría si requieres apoyo."
+        );
       } else {
-        setError("Credenciales inválidas. Verifica tu usuario y contraseña.");
+        setError("Usuario o contraseña incorrectos. Revisa tus credenciales.");
       }
     }
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
-      {/* Panel izquierdo — branding institucional */}
-      <div className="hidden lg:flex relative flex-col justify-between p-10 bg-gradient-to-br from-primary via-primary to-accent text-primary-foreground overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `radial-gradient(circle at 20% 20%, white 1px, transparent 1px), radial-gradient(circle at 80% 60%, white 1px, transparent 1px)`,
-            backgroundSize: "60px 60px, 90px 90px",
-          }}
-        />
-        <div className="relative flex items-center gap-3">
-          <div className="w-12 h-12 rounded-lg bg-white/15 backdrop-blur flex items-center justify-center font-bold text-lg ring-1 ring-white/20">
-            {institucion.sigla || <School size={22} />}
+    <div className="min-h-dvh flex flex-col justify-between bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+      {/* ─────────────────────────────────────────────────────────────
+          Barra Superior: Identidad + Toggle de Tema de 40px (WCAG Touch Target)
+          ───────────────────────────────────────────────────────────── */}
+      <header className="w-full max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
+            {siglaColegio || <School size={19} />}
           </div>
-          <div className="leading-tight">
-            <div className="text-lg font-semibold">
-              {institucion.nombre || "Sistema TIC"}
-            </div>
-            <div className="text-xs text-primary-foreground/70">
-              Plataforma escolar integrada
-            </div>
+          <div>
+            <span className="text-sm font-bold tracking-tight text-slate-900 dark:text-white block sm:inline">
+              {nombreColegio}
+            </span>
+            <span className="hidden sm:inline-block text-xs text-slate-500 dark:text-slate-400 ml-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+              Intranet Académica
+            </span>
           </div>
         </div>
 
-        <div className="relative space-y-6 max-w-md">
-          <h2 className="text-4xl font-bold leading-tight">
-            Gestión escolar moderna, en un solo lugar.
-          </h2>
-          <p className="text-primary-foreground/80 leading-relaxed">
-            Asistencia, notas, boletas, convivencia, aula virtual y comunicación con familias — alineado a normativa MINEDU 2026.
-          </p>
+        <div className="flex items-center gap-2">
+          {/* Badge Año Escolar */}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium">
+            <span>Periodo {anioLectivo}</span>
+          </div>
 
-          <div className="grid gap-3 pt-2">
-            {[
-              { icon: GraduationCap, label: "Boletas PDF oficiales", desc: "Con notas por bimestre y área curricular" },
-              { icon: Shield, label: "Protocolos SíseVe", desc: "Convivencia con plazos legales automáticos" },
-              { icon: Sparkles, label: "Asistente de IA opcional", desc: "Con tu propia clave (BYOK). Los datos no salen del colegio." },
-            ].map((f) => (
-              <div key={f.label} className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-md bg-white/10 backdrop-blur flex items-center justify-center shrink-0 ring-1 ring-white/20">
-                  <f.icon size={16} />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold">{f.label}</div>
-                  <div className="text-xs text-primary-foreground/70">{f.desc}</div>
-                </div>
+          {/* Botón Alternar Tema con área táctil cómoda de 40x40px */}
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors shadow-xs"
+          >
+            {theme === "dark" ? (
+              <Sun size={18} className="text-amber-400" />
+            ) : (
+              <Moon size={18} className="text-slate-600" />
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* ─────────────────────────────────────────────────────────────
+          Cuerpo Central: Tarjeta Centrada Antifatiga Visual
+          ───────────────────────────────────────────────────────────── */}
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 my-auto">
+        <div className="w-full max-w-[460px] space-y-5">
+          {/* Tarjeta de Formulario Principal */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-7 sm:p-9 shadow-md shadow-slate-200/50 dark:shadow-none space-y-6 transition-all">
+            {/* Cabecera del Formulario */}
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-900/60 shadow-xs mb-3">
+                <School size={22} />
               </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="relative text-xs text-primary-foreground/60">
-          <div>© {new Date().getFullYear()} EduMWork · Perú</div>
-          {institucion.email_institucional && (
-            <div className="mt-1 opacity-80">{institucion.email_institucional}</div>
-          )}
-        </div>
-      </div>
-
-      {/* Panel derecho — formulario */}
-      <div className="flex items-center justify-center p-6 sm:p-10">
-        <div className="w-full max-w-sm space-y-6">
-          <div className="lg:hidden flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold">
-              {institucion.sigla || <School size={18} />}
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Iniciar Sesión
+              </h1>
+              <p className="text-sm text-slate-600 dark:text-slate-400 leading-normal">
+                Ingresa con las credenciales entregadas por el colegio.
+              </p>
             </div>
-            <div>
-              <div className="text-sm font-semibold">{institucion.nombre || "Sistema TIC"}</div>
-              <div className="text-xs text-muted-foreground">EduMWork</div>
+
+            {/* Formulario */}
+            <LoginForm onSubmit={handleLogin} error={error} />
+
+            {/* Recuperación de Contraseña Unificada */}
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 text-center">
+              <Link
+                to="/recuperar-con-codigo"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium inline-flex items-center justify-center gap-1.5 py-1"
+              >
+                <KeyRound size={13} />
+                <span>¿Olvidaste tu contraseña?</span>
+              </Link>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold tracking-tight">Bienvenido/a</h1>
-            <p className="text-sm text-muted-foreground">
-              Ingresa con tu usuario institucional.
-            </p>
-          </div>
-
-          <LoginForm onSubmit={handleLogin} error={error} />
-
-          <div className="flex flex-col gap-2 text-center text-xs">
-            <Link to="/recuperar-con-codigo" className="text-primary hover:underline inline-flex items-center justify-center gap-1.5">
-              <KeyRound size={12} /> Recuperar con código de la I.E.
-            </Link>
-            <Link to="/reset-password" className="text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-1.5">
-              <Mail size={11} /> ¿Olvidaste tu contraseña? (por email)
-            </Link>
-          </div>
-
-          <div className="pt-6 border-t border-border text-center text-[11px] text-muted-foreground">
-            ¿Problemas para ingresar? Contacta al Admin TIC del colegio.
+          {/* Reaseguro y Mesa de Ayuda Escolar */}
+          <div className="p-3.5 rounded-2xl bg-white/70 dark:bg-slate-900/50 border border-slate-200/70 dark:border-slate-800/70 flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-400 shadow-2xs">
+            <HelpCircle size={16} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+            <div className="leading-relaxed">
+              ¿Problemas para acceder? Comunícate con la Secretaría del colegio o Coordinación Académica.
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* ─────────────────────────────────────────────────────────────
+          Pie de Página Discreto
+          ───────────────────────────────────────────────────────────── */}
+      <footer className="w-full max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 dark:text-slate-500 gap-2">
+        <div>© {anioLectivo} {nombreColegio} · Sistema de Gestión Escolar</div>
+        <div>Uso exclusivo para la comunidad educativa autorizada</div>
+      </footer>
     </div>
   );
 }

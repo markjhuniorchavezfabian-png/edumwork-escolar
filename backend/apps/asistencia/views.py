@@ -571,13 +571,25 @@ class RegistroAsistenciaViewSet(viewsets.ModelViewSet):
         hora_ahora = timezone.localtime().time().replace(second=0, microsecond=0)
         auto_tardanza = False
 
-        # Auto-detección de tardanza según hora tope institucional
+        # Auto-detección de tardanza según hora tope individual (sección/turno/horario) + tolerancia
         if estado_pedido == "auto":
             from apps.core.models import ConfiguracionInstitucional
-            from datetime import datetime as _dt, timedelta as _td
+            from apps.usuarios.models import Matricula
+            from datetime import datetime as _dt, timedelta as _td, time as _time
             cfg = ConfiguracionInstitucional.get_solo()
             hoy = date.today()
-            dt_tope = _dt.combine(hoy, cfg.hora_tope_entrada_estudiantes) + _td(minutes=cfg.tolerancia_minutos)
+
+            # Resolver hora tope según sección y turno del estudiante
+            hora_tope = cfg.hora_tope_entrada_estudiantes or _time(8, 0)
+            anio_act = cfg.anio_lectivo_activo or fecha.year
+            mat = Matricula.objects.filter(estudiante=est, anio_lectivo=anio_act).select_related("seccion").first()
+            if mat and mat.seccion:
+                if mat.seccion.hora_inicio:
+                    hora_tope = mat.seccion.hora_inicio
+                elif mat.seccion.turno == "tarde":
+                    hora_tope = _time(13, 0)
+
+            dt_tope = _dt.combine(hoy, hora_tope) + _td(minutes=cfg.tolerancia_minutos)
             dt_ahora = _dt.combine(hoy, hora_ahora)
             if dt_ahora > dt_tope:
                 estado = "tardanza"

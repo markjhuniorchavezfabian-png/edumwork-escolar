@@ -39,50 +39,62 @@ interface Atajo {
 
 const ATAJOS_POR_ROL: Record<string, Atajo[]> = {
   docente: [
-    { titulo: "Reportar incidencia", texto: "Cuenta un problema en tus palabras. La IA extrae los detalles.", ruta: "/incidencias", icono: AlertTriangle, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400", badge: "IA" },
-    { titulo: "Marcar asistencia", texto: "Registra la asistencia de tus estudiantes del día.", ruta: "/asistencia", icono: ClipboardCheck, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    { titulo: "Mi asistencia", texto: "Marca tu entrada y salida del día.", ruta: "/asistencia-personal", icono: Clock, color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-    { titulo: "Mis notas", texto: "Cargar notas del bimestre de tus estudiantes.", ruta: "/cargar-notas", icono: BookOpen, color: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
-    { titulo: "Aula Virtual", texto: "Cursos, lecciones y tareas.", ruta: "/aprender", icono: GraduationCap, color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" },
+    { titulo: "Control de Asistencia", texto: "Registra la asistencia diaria por aula y sección asignada.", ruta: "/asistencia", icono: ClipboardCheck, color: "bg-blue-500/10 text-blue-700 dark:text-blue-400" },
+    { titulo: "Registro de Calificaciones", texto: "Ingreso bimestral de competencias CNEB y conclusiones.", ruta: "/cargar-notas", icono: BookOpen, color: "bg-blue-500/10 text-blue-700 dark:text-blue-400" },
+    { titulo: "Sesiones de Aprendizaje", texto: "Planificación curricular, unidades y sesiones de clase.", ruta: "/sesiones-clase", icono: GraduationCap, color: "bg-blue-500/10 text-blue-700 dark:text-blue-400" },
+    { titulo: "Horario Escolar", texto: "Consulta tus horas pedagógicas y distribución de aulas.", ruta: "/horario", icono: Clock, color: "bg-blue-500/10 text-blue-700 dark:text-blue-400" },
+    { titulo: "Comunicados", texto: "Revisa circulares y comunicados institucionales vigentes.", ruta: "/comunicados", icono: BookOpen, color: "bg-blue-500/10 text-blue-700 dark:text-blue-400" },
+    { titulo: "Reportar Incidencia TIC", texto: "Informa sobre desperfectos en proyectores, PCs o red.", ruta: "/incidencias", icono: AlertTriangle, color: "bg-blue-500/10 text-blue-700 dark:text-blue-400" },
   ],
   admin_tic: [
-    { titulo: "Bandeja de incidencias", texto: "Ver, tomar y resolver reportes. Consulta sugerencias de la IA.", ruta: "/incidencias", icono: AlertTriangle, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400", badge: "IA" },
-    { titulo: "Inventario TI", texto: "Alta, baja, edición y control de equipos TIC.", ruta: "/inventario", icono: Package, color: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
-    { titulo: "Asistencia", texto: "Marca asistencia de estudiantes.", ruta: "/asistencia", icono: ClipboardCheck, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    { titulo: "Control de visitas", texto: "Registro con gafete QR imprimible.", ruta: "/visitas", icono: DoorOpen, color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
-    { titulo: "Configurar IA", texto: "Elige proveedor y clave BYOK.", ruta: "/config-ia", icono: Cpu, color: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
+    { titulo: "Bandeja de Incidencias", texto: "Atención, diagnóstico y soporte técnico del colegio.", ruta: "/incidencias", icono: AlertTriangle, color: "bg-amber-500/10 text-amber-700 dark:text-amber-400" },
+    { titulo: "Inventario Tecnológico", texto: "Equipos de cómputo, proyectores, tablets y periféricos.", ruta: "/inventario", icono: Package, color: "bg-sky-500/10 text-sky-700 dark:text-sky-400" },
+    { titulo: "Control de Asistencia", texto: "Monitoreo general y escaneo por código QR.", ruta: "/asistencia", icono: ClipboardCheck, color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+    { titulo: "Control de Portería", texto: "Registro de ingresos y pases de visita al plantel.", ruta: "/visitas", icono: DoorOpen, color: "bg-rose-500/10 text-rose-700 dark:text-rose-400" },
+    { titulo: "Configuración TIC", texto: "Servicios del sistema y proveedores de soporte.", ruta: "/config-ia", icono: Cpu, color: "bg-violet-500/10 text-violet-700 dark:text-violet-400" },
   ],
   director: [
-    { titulo: "Panel de incidencias", texto: "KPIs, gráficos y resumen ejecutivo automático.", ruta: "/incidencias", icono: BarChart3, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400", badge: "IA" },
-    { titulo: "Panel de asistencia", texto: "% de asistencia, distribución y top ausencias.", ruta: "/asistencia", icono: ClipboardCheck, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    { titulo: "Casos SíseVe", texto: "Convivencia con plazos legales automáticos.", ruta: "/convivencia", icono: Shield, color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
-    { titulo: "Gestión de notas", texto: "Cargar Excel de bimestre, generar boletas PDF.", ruta: "/notas", icono: BookOpen, color: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
-    { titulo: "Inventario TI", texto: "Estado y valor total de los activos TIC.", ruta: "/inventario", icono: Package, color: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
-    { titulo: "Configurar IA", texto: "Elige proveedor (DeepSeek, Claude, Ollama...) y clave.", ruta: "/config-ia", icono: Sparkles, color: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" },
+    { titulo: "Supervisión de Asistencia", texto: "Porcentaje de concurrencia diaria de alumnos y personal.", ruta: "/asistencia", icono: ClipboardCheck, color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+    { titulo: "Convivencia Escolar (SíseVe)", texto: "Casos activos, protocolos y plazos normativos MINEDU.", ruta: "/convivencia", icono: Shield, color: "bg-rose-500/10 text-rose-700 dark:text-rose-400" },
+    { titulo: "Notas y Boletas Oficiales", texto: "Consolidados bimestrales y actas de evaluación SIAGIE.", ruta: "/notas", icono: BookOpen, color: "bg-blue-500/10 text-blue-700 dark:text-blue-400" },
+    { titulo: "Padrón de Estudiantes", texto: "Fichas de matrícula y directorio de apoderados.", ruta: "/estudiantes", icono: Users, color: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400" },
+    { titulo: "Gestión Institucional", texto: "Datos del colegio, periodos lectivos y parámetros.", ruta: "/configuracion", icono: BarChart3, color: "bg-slate-500/10 text-slate-700 dark:text-slate-300" },
+    { titulo: "Incidencias TIC", texto: "Estado de la infraestructura digital del colegio.", ruta: "/incidencias", icono: AlertTriangle, color: "bg-amber-500/10 text-amber-700 dark:text-amber-400" },
   ],
   subdirector: [
-    { titulo: "Panel de asistencia", texto: "% de asistencia y ausencias.", ruta: "/asistencia", icono: ClipboardCheck, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    { titulo: "Casos SíseVe", texto: "Convivencia y plazos legales.", ruta: "/convivencia", icono: Shield, color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
-    { titulo: "Notas", texto: "Revisar notas de bimestre.", ruta: "/notas", icono: BookOpen, color: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
+    { titulo: "Supervisión de Asistencia", texto: "Asistencia de secciones y control de ausencias.", ruta: "/asistencia", icono: ClipboardCheck, color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+    { titulo: "Convivencia Escolar", texto: "Casos de aula y seguimiento de protocolos.", ruta: "/convivencia", icono: Shield, color: "bg-rose-500/10 text-rose-700 dark:text-rose-400" },
+    { titulo: "Notas y Rendimiento", texto: "Consolidados bimestrales por grado y sección.", ruta: "/notas", icono: BookOpen, color: "bg-blue-500/10 text-blue-700 dark:text-blue-400" },
   ],
   secretaria: [
-    { titulo: "Fichas de estudiantes", texto: "Ver y editar fichas SIAGIE.", ruta: "/estudiantes", icono: Users, color: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-    { titulo: "Comunicados", texto: "Enviar comunicados a padres y docentes.", ruta: "/comunicados", icono: BookOpen, color: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
-    { titulo: "Visitas", texto: "Control de portería.", ruta: "/visitas", icono: DoorOpen, color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
+    { titulo: "Fichas de Matrícula", texto: "Expedientes de estudiantes y apoderados.", ruta: "/estudiantes", icono: Users, color: "bg-blue-500/10 text-blue-700 dark:text-blue-400" },
+    { titulo: "Comunicados Oficiales", texto: "Publicar avisos a familias y personal docente.", ruta: "/comunicados", icono: BookOpen, color: "bg-violet-500/10 text-violet-700 dark:text-violet-400" },
+    { titulo: "Control de Visitas", texto: "Registro de ingresos a secretaría y dirección.", ruta: "/visitas", icono: DoorOpen, color: "bg-rose-500/10 text-rose-700 dark:text-rose-400" },
   ],
   auxiliar: [
-    { titulo: "Asistencia", texto: "Marcar asistencia de estudiantes.", ruta: "/asistencia", icono: ClipboardCheck, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    { titulo: "Justificaciones", texto: "Revisar justificaciones de faltas.", ruta: "/justificaciones", icono: ClipboardCheck, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-    { titulo: "Convivencia", texto: "Reportar casos SíseVe.", ruta: "/convivencia", icono: Shield, color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
+    { titulo: "Control de Asistencia", texto: "Registro de puntualidad, tardanzas e inasistencias.", ruta: "/asistencia", icono: ClipboardCheck, color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+    { titulo: "Justificaciones", texto: "Recepción y validación de justificaciones médicas.", ruta: "/justificaciones", icono: ClipboardCheck, color: "bg-amber-500/10 text-amber-700 dark:text-amber-400" },
+    { titulo: "Incidencias de Aula", texto: "Anotaciones preventivas de conducta.", ruta: "/convivencia", icono: Shield, color: "bg-rose-500/10 text-rose-700 dark:text-rose-400" },
   ],
   psicologa: [
-    { titulo: "Casos SíseVe", texto: "Gestión de casos de convivencia escolar.", ruta: "/convivencia", icono: Shield, color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
-    { titulo: "Justificaciones", texto: "Revisar justificaciones.", ruta: "/justificaciones", icono: ClipboardCheck, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+    { titulo: "Convivencia Escolar", texto: "Atención psicopedagógica y casos SíseVe.", ruta: "/convivencia", icono: Shield, color: "bg-rose-500/10 text-rose-700 dark:text-rose-400" },
+    { titulo: "Revisión de Casos", texto: "Seguimiento de inasistencias y factores familiares.", ruta: "/justificaciones", icono: ClipboardCheck, color: "bg-amber-500/10 text-amber-700 dark:text-amber-400" },
   ],
   conserje: [
-    { titulo: "Visitas", texto: "Registro de portería.", ruta: "/visitas", icono: DoorOpen, color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
-    { titulo: "Comunicados", texto: "Ver comunicados institucionales.", ruta: "/comunicados", icono: BookOpen, color: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
+    { titulo: "Control de Portería", texto: "Ingreso de visitantes y proveedores.", ruta: "/visitas", icono: DoorOpen, color: "bg-rose-500/10 text-rose-700 dark:text-rose-400" },
+    { titulo: "Comunicados", texto: "Avisos de horario y actividades del colegio.", ruta: "/comunicados", icono: BookOpen, color: "bg-violet-500/10 text-violet-700 dark:text-violet-400" },
   ],
+};
+
+const COLOR_MAP: Record<string, { bg: string; txt: string }> = {
+  emerald: { bg: "bg-emerald-500/10", txt: "text-emerald-700 dark:text-emerald-400" },
+  amber:   { bg: "bg-amber-500/10",   txt: "text-amber-700 dark:text-amber-400" },
+  rose:    { bg: "bg-rose-500/10",    txt: "text-rose-700 dark:text-rose-400" },
+  blue:    { bg: "bg-blue-500/10",    txt: "text-blue-700 dark:text-blue-400" },
+  violet:  { bg: "bg-violet-500/10",  txt: "text-violet-700 dark:text-violet-400" },
+  sky:     { bg: "bg-sky-500/10",     txt: "text-sky-700 dark:text-sky-400" },
+  indigo:  { bg: "bg-indigo-500/10",  txt: "text-indigo-700 dark:text-indigo-400" },
+  slate:   { bg: "bg-slate-500/10",   txt: "text-slate-700 dark:text-slate-300" },
 };
 
 function KpiCard({
@@ -91,31 +103,37 @@ function KpiCard({
   label: string; valor: string; sub: string;
   icono: LucideIcon; color: string; alerta?: boolean;
 }) {
-  const bg = `bg-${color}-500/10`;
-  const txt = `text-${color}-600 dark:text-${color}-400`;
+  const c = COLOR_MAP[color] ?? COLOR_MAP.blue;
   return (
     <div className={cn(
-      "rounded-2xl border bg-card p-5 shadow-card hover:shadow-card-hover transition-shadow",
-      alerta ? "border-rose-400/60" : "border-border/60"
+      "rounded-xl border bg-card p-4 sm:p-5 shadow-xs transition-all",
+      alerta ? "border-rose-300 bg-rose-50/30 dark:border-rose-900 dark:bg-rose-950/20" : "border-border hover:border-slate-300 dark:hover:border-slate-700"
     )}>
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2">
         <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
-        <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center", bg)}>
-          <Icono size={20} className={txt} />
+        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center shrink-0", c.bg)}>
+          <Icono size={18} className={c.txt} />
         </div>
       </div>
-      <div className="text-3xl font-bold tracking-tight">{valor}</div>
-      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1.5">
-        <TrendingUp size={12} /> {sub}
+      <div className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{valor}</div>
+      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+        <TrendingUp size={12} className="shrink-0" /> <span className="truncate">{sub}</span>
       </div>
     </div>
   );
 }
 
 interface KpisData {
-  asistencia_hoy: { pct: number | null; presentes: number | null; total: number; hay_registros: boolean };
+  asistencia_hoy: {
+    pct: number | null;
+    presentes: number | null;
+    total: number;
+    hay_registros: boolean;
+    es_dia_no_lectivo?: boolean;
+    motivo_no_lectivo?: string;
+  };
   incidencias: { abiertas: number; nuevas: number };
-  convivencia: { activos: number; por_vencer: number };
+  convivencia: { activos: number; vencidos?: number; por_vencer: number };
   estudiantes: { total: number; secciones: number };
   riesgo_academico: { en_riesgo: number };
 }
@@ -171,36 +189,29 @@ export default function DashboardView() {
   const saludo = hora < 12 ? "Buenos días" : hora < 19 ? "Buenas tardes" : "Buenas noches";
 
   return (
-    <div className="space-y-6 max-w-6xl">
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary to-accent text-primary-foreground p-6 sm:p-8">
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage: `radial-gradient(circle at 15% 20%, white 1px, transparent 1px), radial-gradient(circle at 85% 60%, white 1px, transparent 1px)`,
-            backgroundSize: "50px 50px, 80px 80px",
-          }}
-        />
-        <div className="relative flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="flex items-center gap-2 text-primary-foreground/80 text-xs font-medium mb-1">
-              <School size={14} /> {institucion.nombre}
+    <div className="space-y-6 w-full max-w-7xl">
+      {/* Hero Institucional Antifatiga */}
+      <section className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-xs relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-900/60">
+              <School size={13} />
+              <span>{institucion.nombre || "Colegio Thales"} · Año Lectivo {institucion.anio_lectivo_activo || 2026}</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              {saludo}, {usuario?.first_name}
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground pt-1">
+              {saludo}, {usuario?.first_name} {usuario?.last_name}
             </h2>
-            <p className="text-primary-foreground/80 text-sm mt-1">
-              {usuario?.rol ? ROL_LABELS[usuario.rol] : ""}
-              {" · "}
-              {new Date().toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              {usuario?.rol ? ROL_LABELS[usuario.rol] : "Personal"} · {new Date().toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
             </p>
           </div>
-          {modo === "completo" && (
-            <div className="flex items-center gap-2 text-xs text-primary-foreground/80">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Sistema operativo
+
+          <div className="flex items-center gap-2 self-start sm:self-center">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-900/60 text-xs font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Plataforma operativa</span>
             </div>
-          )}
+          </div>
         </div>
       </section>
 
@@ -298,18 +309,21 @@ export default function DashboardView() {
             label="Asistencia hoy"
             valor={
               cargandoKpis ? "…"
+              : kpis?.asistencia_hoy.es_dia_no_lectivo ? "Sin jornada"
               : !kpis?.asistencia_hoy.hay_registros ? "Sin datos"
               : kpis.asistencia_hoy.pct !== null ? `${kpis.asistencia_hoy.pct}%`
               : "—"
             }
             sub={
-              kpis?.asistencia_hoy.hay_registros
+              kpis?.asistencia_hoy.es_dia_no_lectivo
+                ? (kpis.asistencia_hoy.motivo_no_lectivo || "Día no lectivo")
+                : kpis?.asistencia_hoy.hay_registros
                 ? `${kpis.asistencia_hoy.presentes ?? 0} de ${kpis.asistencia_hoy.total}`
                 : "Aún no marcada"
             }
             icono={ClipboardCheck}
-            color="emerald"
-            alerta={kpis ? (kpis.asistencia_hoy.pct ?? 100) < 80 : false}
+            color={kpis?.asistencia_hoy.es_dia_no_lectivo ? "slate" : "emerald"}
+            alerta={kpis && !kpis.asistencia_hoy.es_dia_no_lectivo ? (kpis.asistencia_hoy.pct ?? 100) < 80 : false}
           />
           {/* Incidencias */}
           <KpiCard
@@ -324,10 +338,18 @@ export default function DashboardView() {
           <KpiCard
             label="Casos SíseVe"
             valor={cargandoKpis ? "…" : String(kpis?.convivencia.activos ?? 0)}
-            sub={kpis ? `${kpis.convivencia.por_vencer} próximos a vencer` : ""}
+            sub={
+              kpis
+                ? (kpis.convivencia.vencidos ?? 0) > 0
+                  ? `${kpis.convivencia.vencidos} caso(s) vencido(s)`
+                  : (kpis.convivencia.por_vencer ?? 0) > 0
+                  ? `${kpis.convivencia.por_vencer} próximo(s) a vencer`
+                  : "Todos en plazo normativo"
+                : ""
+            }
             icono={Shield}
             color="rose"
-            alerta={kpis ? kpis.convivencia.por_vencer > 0 : false}
+            alerta={kpis ? ((kpis.convivencia.vencidos ?? 0) > 0 || (kpis.convivencia.por_vencer ?? 0) > 0) : false}
           />
           {/* Estudiantes */}
           <KpiCard
@@ -367,22 +389,22 @@ export default function DashboardView() {
                 key={a.ruta}
                 to={a.ruta}
                 className={cn(
-                  "group relative rounded-2xl border border-border/60 bg-card p-5 shadow-card hover:shadow-card-hover hover:border-primary/30 transition-all",
-                  modo === "simple" && "p-5 flex items-center gap-4"
+                  "group relative rounded-xl border border-border bg-card p-4 sm:p-5 shadow-xs hover:border-blue-500/40 hover:shadow-sm transition-all select-none",
+                  modo === "simple" && "flex items-center gap-4"
                 )}
               >
                 <div className={cn(
-                  "rounded-xl flex items-center justify-center shrink-0",
+                  "rounded-lg flex items-center justify-center shrink-0",
                   a.color,
-                  modo === "simple" ? "w-16 h-16" : "w-12 h-12"
+                  modo === "simple" ? "w-14 h-14" : "w-11 h-11"
                 )}>
-                  <a.icono size={modo === "simple" ? 28 : 22} />
+                  <a.icono size={modo === "simple" ? 24 : 20} />
                 </div>
 
                 <div className={cn(modo === "simple" ? "flex-1" : "mt-3")}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className={cn(
-                      "font-semibold text-foreground",
+                      "font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors",
                       modo === "simple" ? "text-base" : "text-sm"
                     )}>
                       {a.titulo}
@@ -401,10 +423,10 @@ export default function DashboardView() {
                 </div>
 
                 {modo === "simple" ? (
-                  <ArrowRight size={20} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                  <ArrowRight size={18} className="text-muted-foreground group-hover:text-blue-600 transition-colors" />
                 ) : (
-                  <div className="mt-3 flex items-center gap-1 text-xs text-primary font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                    Entrar <ArrowRight size={12} />
+                  <div className="mt-3 flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                    Ingresar al módulo <ArrowRight size={12} />
                   </div>
                 )}
               </Link>

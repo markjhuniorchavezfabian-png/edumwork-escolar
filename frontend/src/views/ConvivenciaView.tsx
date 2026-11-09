@@ -53,6 +53,7 @@ const COLOR_ALERTA: Record<string, string> = {
 
 export default function ConvivenciaView() {
   const { usuario } = useAuth();
+  const esPadre = usuario?.rol === "padre";
   const toast = useToast();
 
   const [casos, setCasos] = useState<CasoConvivencia[]>([]);
@@ -84,12 +85,14 @@ export default function ConvivenciaView() {
         <div>
           <h2 className="page-title" style={{ marginBottom: 4 }}>Convivencia escolar</h2>
           <p style={{ fontSize: 12, color: "var(--texto-mute)" }}>
-            Alineado a protocolos SíseVe MINEDU. Plazo legal: 30 días.
+            Protocolos de atención según RM N° 383-2025-MINEDU y portal oficial SíseVe.
           </p>
         </div>
-        <button className="btn btn-primario" onClick={() => setCreando(true)} style={{ padding: "8px 14px", width: "auto" }}>
-          + Iniciar caso
-        </button>
+        {usuario?.rol !== "padre" && (
+          <button className="btn btn-primario" onClick={() => setCreando(true)} style={{ padding: "8px 14px", width: "auto" }}>
+            + Iniciar caso
+          </button>
+        )}
       </div>
 
       {kpis && (
@@ -114,8 +117,7 @@ export default function ConvivenciaView() {
           </div>
           {kpis.vencidos > 0 && (
             <div style={{ padding: "12px 16px", background: "var(--danger-bg-subtle)", border: "1px solid var(--danger-border-subtle)", borderRadius: 8, marginBottom: 20, color: "var(--danger-text)", fontSize: 13.5 }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="alerta" size={14} /> <strong>Atención:</strong></span> Hay {kpis.vencidos} caso{kpis.vencidos === 1 ? "" : "s"} vencido{kpis.vencidos === 1 ? "" : "s"} de plazo legal (30 días).
-              El director/a puede ser responsabilizado civilmente si no se atienden.
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Icon name="alerta" size={14} /> <strong>Atención:</strong></span> Hay {kpis.vencidos} caso{kpis.vencidos === 1 ? "" : "s"} fuera del plazo hábil establecido por el protocolo de la RM 383-2025-MINEDU. Requiere cierre de actuaciones o informe de derivación formal.
             </div>
           )}
         </>
@@ -130,7 +132,9 @@ export default function ConvivenciaView() {
               <table className="tabla-incidencias">
                 <thead>
                   <tr>
-                    <th>Código</th><th>Tipo</th><th>Gravedad</th><th>Estado</th>
+                    <th>Código</th>
+                    {usuario?.rol === "padre" && <th>Estudiante</th>}
+                    <th>Tipo</th><th>Gravedad</th><th>Estado</th>
                     <th>Días restantes</th><th>Reportado</th><th>SíseVe</th>
                   </tr>
                 </thead>
@@ -138,6 +142,11 @@ export default function ConvivenciaView() {
                   {casos.map((c) => (
                     <tr key={c.id} style={{ cursor: "pointer" }} onClick={() => setSeleccionado(c)}>
                       <td><code style={{ fontSize: 12 }}>{c.codigo}</code></td>
+                      {usuario?.rol === "padre" && (
+                        <td style={{ fontSize: 12.5, fontWeight: 600 }}>
+                          {c.hijo_afectado || (c.afectados_detalle?.length ? c.afectados_detalle.map((a) => a.nombre).join(", ") : "Hijo/a")}
+                        </td>
+                      )}
                       <td style={{ fontSize: 12.5 }}>{c.tipo_label}</td>
                       <td>
                         <span className="badge" style={{
@@ -165,6 +174,7 @@ export default function ConvivenciaView() {
       {seleccionado && (
         <DetalleCasoModal
           caso={seleccionado}
+          esPadre={esPadre}
           onCerrar={() => setSeleccionado(null)}
           onActualizado={() => { setSeleccionado(null); cargar(); }}
         />
@@ -251,8 +261,8 @@ function NuevoCasoModal({ onCerrar, onCreado }: { onCerrar: () => void; onCreado
   );
 }
 
-function DetalleCasoModal({ caso, onCerrar, onActualizado }: {
-  caso: CasoConvivencia; onCerrar: () => void; onActualizado: () => void;
+function DetalleCasoModal({ caso, esPadre, onCerrar, onActualizado }: {
+  caso: CasoConvivencia; esPadre?: boolean; onCerrar: () => void; onActualizado: () => void;
 }) {
   const toast = useToast();
   const [nuevoAccion, setNuevoAccion] = useState("nota");
@@ -314,36 +324,38 @@ function DetalleCasoModal({ caso, onCerrar, onActualizado }: {
             <p style={{ fontSize: 13.5, padding: 10, background: "var(--fondo-secundario)", borderRadius: 6 }}>{caso.descripcion}</p>
           </div>
 
-          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
-            <label className="form-label" style={{ margin: 0 }}>Cambiar estado:</label>
-            <select className="form-input" style={{ maxWidth: 200 }} value={estadoLocal} onChange={(e) => cambiarEstado(e.target.value)}>
-              {ESTADOS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            {!caso.reportado_siseve && (
-              <button className="btn-mini" style={{ background: "var(--danger-bg-subtle)", color: "var(--danger-text)", display: "inline-flex", alignItems: "center", gap: 4 }} onClick={marcarS}>
-                <Icon name="alerta" size={13} /> Registrar en SíseVe
-              </button>
-            )}
-            {caso.reportado_siseve && (
-              <span style={{ fontSize: 11, color: "var(--success-text)", background: "var(--success-bg-subtle)", padding: "3px 8px", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--success-text) 45%, transparent)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <Icon name="check" size={11} /> SíseVe {caso.codigo_siseve ? `· ${caso.codigo_siseve}` : ""}
-              </span>
-            )}
-            {!caso.registrado_libro_incidencias && (
-              <button className="btn-mini" style={{ background: "var(--warning-bg-subtle)", color: "var(--warning-text)", display: "inline-flex", alignItems: "center", gap: 4 }}
-                onClick={async () => {
-                  try { await import("../services/convivencia").then(m => m.marcarLibro(caso.id)); toast.ok("Libro marcado."); onActualizado(); }
-                  catch { toast.error("Error."); }
-                }}>
-                <Icon name="pdf" size={13} /> Marcar en Libro de Incidencias
-              </button>
-            )}
-            {caso.registrado_libro_incidencias && (
-              <span style={{ fontSize: 11, color: "var(--success-text)", background: "var(--success-bg-subtle)", padding: "3px 8px", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--success-text) 45%, transparent)", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <Icon name="check" size={11} /> Libro registrado
-              </span>
-            )}
-          </div>
+          {!esPadre && (
+            <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+              <label className="form-label" style={{ margin: 0 }}>Cambiar estado:</label>
+              <select className="form-input" style={{ maxWidth: 200 }} value={estadoLocal} onChange={(e) => cambiarEstado(e.target.value)}>
+                {ESTADOS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              {!caso.reportado_siseve && (
+                <button className="btn-mini" style={{ background: "var(--danger-bg-subtle)", color: "var(--danger-text)", display: "inline-flex", alignItems: "center", gap: 4 }} onClick={marcarS}>
+                  <Icon name="alerta" size={13} /> Registrar en SíseVe
+                </button>
+              )}
+              {caso.reportado_siseve && (
+                <span style={{ fontSize: 11, color: "var(--success-text)", background: "var(--success-bg-subtle)", padding: "3px 8px", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--success-text) 45%, transparent)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Icon name="check" size={11} /> SíseVe {caso.codigo_siseve ? `· ${caso.codigo_siseve}` : ""}
+                </span>
+              )}
+              {!caso.registrado_libro_incidencias && (
+                <button className="btn-mini" style={{ background: "var(--warning-bg-subtle)", color: "var(--warning-text)", display: "inline-flex", alignItems: "center", gap: 4 }}
+                  onClick={async () => {
+                    try { await import("../services/convivencia").then(m => m.marcarLibro(caso.id)); toast.ok("Libro marcado."); onActualizado(); }
+                    catch { toast.error("Error."); }
+                  }}>
+                  <Icon name="pdf" size={13} /> Marcar en Libro de Incidencias
+                </button>
+              )}
+              {caso.registrado_libro_incidencias && (
+                <span style={{ fontSize: 11, color: "var(--success-text)", background: "var(--success-bg-subtle)", padding: "3px 8px", borderRadius: 12, border: "1px solid color-mix(in srgb, var(--success-text) 45%, transparent)", display: "inline-flex", alignItems: "center", gap: 4 }}>
+                  <Icon name="check" size={11} /> Libro registrado
+                </span>
+              )}
+            </div>
+          )}
 
           {/* RM 383-2025 · Pasos oficiales del protocolo */}
           {caso.pasos_protocolo && caso.pasos_protocolo.length > 0 && (
@@ -353,14 +365,19 @@ function DetalleCasoModal({ caso, onCerrar, onActualizado }: {
               </h4>
               {caso.pasos_protocolo.map((paso, idx) => (
                 <div key={idx} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 5, fontSize: 12.5 }}>
-                  <input type="checkbox" checked={paso.completado}
+                  <input
+                    type="checkbox"
+                    checked={paso.completado}
+                    disabled={esPadre}
                     onChange={async (e) => {
+                      if (esPadre) return;
                       try {
                         await import("../services/convivencia").then(m => m.marcarPaso(caso.id, idx, e.target.checked));
                         onActualizado();
                       } catch { toast.error("Error."); }
                     }}
-                    style={{ marginTop: 3 }} />
+                    style={{ marginTop: 3 }}
+                  />
                   <div>
                     <span style={{ fontWeight: 700, color: "var(--warning-text)", marginRight: 5 }}>Día {paso.dia}:</span>
                     <span style={{ textDecoration: paso.completado ? "line-through" : "none", opacity: paso.completado ? 0.7 : 1 }}>{paso.accion}</span>
@@ -392,16 +409,18 @@ function DetalleCasoModal({ caso, onCerrar, onActualizado }: {
             ))}
           </div>
 
-          <div style={{ background: "var(--fondo-secundario)", padding: 12, borderRadius: 8 }}>
-            <h4 style={{ fontSize: 13, marginBottom: 8 }}>Agregar seguimiento</h4>
-            <select className="form-input" value={nuevoAccion} onChange={(e) => setNuevoAccion(e.target.value)} style={{ marginBottom: 8 }}>
-              {ACCIONES.map((a) => <option key={a.codigo} value={a.codigo}>{a.etiqueta}</option>)}
-            </select>
-            <textarea className="form-input" rows={3} placeholder="Detalles..." value={nuevoDetalle} onChange={(e) => setNuevoDetalle(e.target.value)} />
-            <button className="btn btn-primario" onClick={agregarNota} disabled={enviando || !nuevoDetalle.trim()} style={{ marginTop: 8, width: "auto" }}>
-              {enviando ? "Guardando..." : "Agregar"}
-            </button>
-          </div>
+          {!esPadre && (
+            <div style={{ background: "var(--fondo-secundario)", padding: 12, borderRadius: 8 }}>
+              <h4 style={{ fontSize: 13, marginBottom: 8 }}>Agregar seguimiento</h4>
+              <select className="form-input" value={nuevoAccion} onChange={(e) => setNuevoAccion(e.target.value)} style={{ marginBottom: 8 }}>
+                {ACCIONES.map((a) => <option key={a.codigo} value={a.codigo}>{a.etiqueta}</option>)}
+              </select>
+              <textarea className="form-input" rows={3} placeholder="Detalles..." value={nuevoDetalle} onChange={(e) => setNuevoDetalle(e.target.value)} />
+              <button className="btn btn-primario" onClick={agregarNota} disabled={enviando || !nuevoDetalle.trim()} style={{ marginTop: 8, width: "auto" }}>
+                {enviando ? "Guardando..." : "Agregar"}
+              </button>
+            </div>
+          )}
         </div>
         <div className="modal-footer">
           <button className="btn btn-primario" onClick={onCerrar}>Cerrar</button>

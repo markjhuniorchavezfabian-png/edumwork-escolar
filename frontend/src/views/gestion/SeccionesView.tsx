@@ -115,7 +115,15 @@ export default function SeccionesView() {
               <tbody>
                 {secciones.map((s) => (
                   <tr key={s.id} style={{ cursor: "default" }}>
-                    <td><strong>{s.nombre}</strong></td>
+                    <td>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                        <strong>{s.nombre}</strong>
+                        <span style={{ fontSize: 11, color: "var(--texto-mute)" }}>
+                          Turno {s.turno === "tarde" ? "Tarde" : s.turno === "completa" ? "JEC" : "Mañana"}
+                          {s.hora_inicio ? ` · ${s.hora_inicio.slice(0, 5)}` : ""}
+                        </span>
+                      </div>
+                    </td>
                     <td>
                       {s.nivel ? (
                         <span style={{
@@ -363,6 +371,43 @@ function SeccionModal({
           <div className="form-field">
             <label className="form-label">Nombre (opcional)</label>
             <input className="form-input" placeholder="Auto-generado si vacío (ej: '5to A')" value={datos.nombre ?? ""} onChange={(e) => setDatos({ ...datos, nombre: e.target.value })} />
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <div className="form-field" style={{ flex: 1.2 }}>
+              <label className="form-label">Turno escolar</label>
+              <select
+                className="form-input"
+                value={datos.turno ?? "manana"}
+                onChange={(e) => {
+                  const t = e.target.value as "manana" | "tarde" | "completa";
+                  const hIni = t === "tarde" ? "13:00" : t === "completa" ? "07:45" : "08:00";
+                  const hFin = t === "tarde" ? "18:15" : t === "completa" ? "15:30" : "13:30";
+                  setDatos(d => ({ ...d, turno: t, hora_inicio: d.hora_inicio || hIni, hora_fin: d.hora_fin || hFin }));
+                }}
+              >
+                <option value="manana">Mañana (08:00 - 13:30)</option>
+                <option value="tarde">Tarde (13:00 - 18:15)</option>
+                <option value="completa">Jornada Completa / JEC (07:45 - 15:30)</option>
+              </select>
+            </div>
+            <div className="form-field" style={{ flex: 0.9 }}>
+              <label className="form-label">Entrada</label>
+              <input
+                type="time"
+                className="form-input"
+                value={datos.hora_inicio ? datos.hora_inicio.slice(0, 5) : "08:00"}
+                onChange={(e) => setDatos({ ...datos, hora_inicio: e.target.value })}
+              />
+            </div>
+            <div className="form-field" style={{ flex: 0.9 }}>
+              <label className="form-label">Salida</label>
+              <input
+                type="time"
+                className="form-input"
+                value={datos.hora_fin ? datos.hora_fin.slice(0, 5) : "13:30"}
+                onChange={(e) => setDatos({ ...datos, hora_fin: e.target.value })}
+              />
+            </div>
           </div>
           <div className="form-field">
             <label className="form-label">Tutor titular</label>

@@ -2013,6 +2013,22 @@ def boleta_estudiante(request, estudiante_id):
     if user.rol in ("padre", "estudiante") and not _boleta_publicada_para_familia(est.pk, bimestre, anio):
         raise PermissionDenied("La boleta de este bimestre aún está en revisión por la institución.")
 
+    # Control condicional de morosidad
+    from apps.core.models import ConfiguracionInstitucional
+    cfg_inst = ConfiguracionInstitucional.get_solo()
+    if getattr(cfg_inst, "bloquear_boleta_por_deuda", False) and user.rol in ("padre", "estudiante"):
+        from apps.finanzas.models import ObligacionPago, EstadoObligacion
+        from django.utils import timezone
+        deudas_vencidas = ObligacionPago.objects.filter(
+            estudiante=est,
+            estado__in=[EstadoObligacion.PENDIENTE, EstadoObligacion.PARCIAL, EstadoObligacion.VENCIDO],
+            fecha_vencimiento__lt=timezone.now().date(),
+        ).count()
+        if deudas_vencidas >= (cfg_inst.max_cuotas_vencidas_bloqueo or 1):
+            raise PermissionDenied(
+                f"La visualización de la libreta se encuentra restringida por presentar {deudas_vencidas} pensión(es) pendiente(s) de pago. Por favor contacte con administración/tesorería."
+            )
+
     pdf = generar_boleta_pdf(est, bimestre, anio)
     resp = HttpResponse(pdf, content_type="application/pdf")
     nombre = f"boleta_{est.codigo_matricula or est.usuario.dni or est.pk}_B{bimestre}.pdf"

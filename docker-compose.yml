@@ -23,6 +23,8 @@ services:
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - ./backend:/app
+    ports:
+      - "8000:8000"
     environment:
       POSTGRES_HOST: db
       POSTGRES_DB: ${POSTGRES_DB:-edumwork}
@@ -35,6 +37,19 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: p03_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "5173:80"
+    environment:
+      API_UPSTREAM: http://backend:8000
+      PORT: "80"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:

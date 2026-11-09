@@ -2,7 +2,7 @@ import api from "./api";
 import type { Aviso, Curso, Entrega, Leccion, Recurso, Tarea } from "../types/aula";
 
 // ── Cursos ──────────────────────────────────────────────────────────────────
-export async function listarCursos(filtros?: { area?: string; seccion?: string; q?: string }): Promise<Curso[]> {
+export async function listarCursos(filtros?: { area?: string; seccion?: string; q?: string; estudiante?: number }): Promise<Curso[]> {
   const { data } = await api.get<{ results?: Curso[] } | Curso[]>("/aula-virtual/cursos/", { params: filtros });
   return Array.isArray(data) ? data : data.results ?? [];
 }

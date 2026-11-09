@@ -37,9 +37,17 @@ export default function AsistenteIA() {
   const [input, setInput] = useState("");
   const [cargando, setCargando] = useState(false);
   const [sinConfig, setSinConfig] = useState(false);
-  const [pos, setPos] = useState({ bottom: 24, right: 24 });
+  const [pos, setPos] = useState(() => ({
+    bottom: typeof window !== "undefined" && window.innerWidth < 1024 ? 76 : 24,
+    right: 20,
+  }));
   const isDragging = useRef(false);
-  const dragStart = useRef({ mouseX: 0, mouseY: 0, bottom: 24, right: 24 });
+  const dragStart = useRef({
+    mouseX: 0,
+    mouseY: 0,
+    bottom: typeof window !== "undefined" && window.innerWidth < 1024 ? 76 : 24,
+    right: 20,
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -273,15 +281,15 @@ export default function AsistenteIA() {
             onClick={() => setAbierto(v => !v)}
             title={label}
             style={{
-              width: 52, height: 52, borderRadius: "50%", border: "none", cursor: "pointer",
+              width: 42, height: 42, borderRadius: "50%", border: "none", cursor: "pointer",
               background: abierto ? "var(--azul-700)" : "var(--azul-600)",
               color: "white",
               display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 4px 16px rgba(37,99,235,.4)",
+              boxShadow: "0 2px 10px rgba(37,99,235,.25)",
               transition: "all .15s",
             }}
           >
-            {abierto ? <ChevronDown size={22} /> : <Sparkles size={22} />}
+            {abierto ? <ChevronDown size={18} /> : <Sparkles size={18} />}
           </button>
         ) : (
           <button

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Building2, Clock, MapPin, Save, Loader2, CheckCircle2, School, Mail, AlertTriangle,
-  Database, Download, Upload, ShieldAlert, Puzzle, Info, BookOpen,
+  Database, Download, Upload, ShieldAlert, Puzzle, Info, BookOpen, Landmark, FileText,
 } from "lucide-react";
 import { MODULOS_OPCIONALES, moduloActivo } from "../../lib/modulos";
 import {
@@ -11,7 +11,7 @@ import {
 import { cn } from "../../lib/utils";
 import { useInstitucion } from "../../context/InstitucionContext";
 
-type SecId = "datos" | "horarios" | "geoloc" | "email" | "notas" | "modulos" | "backup";
+type SecId = "datos" | "horarios" | "geoloc" | "email" | "notas" | "finanzas" | "modulos" | "backup";
 
 const SECCIONES: { id: SecId; label: string; icon: typeof Building2; desc: string }[] = [
   { id: "datos",    label: "Datos institucionales", icon: Building2, desc: "Nombre, código modular, dirección, UGEL, DRE" },
@@ -19,6 +19,7 @@ const SECCIONES: { id: SecId; label: string; icon: typeof Building2; desc: strin
   { id: "geoloc",   label: "Geolocalización",       icon: MapPin,    desc: "Ubicación GPS del colegio y radio de asistencia" },
   { id: "email",    label: "Envío de correos",      icon: Mail,      desc: "SMTP para reset, alertas y notificaciones" },
   { id: "notas",    label: "Notas y calificación",  icon: BookOpen,  desc: "Escala de notas: letras AD/A/B/C o numérica 0-20" },
+  { id: "finanzas", label: "Facturación y cobranzas", icon: Landmark, desc: "Bloqueo por deuda, emisión SUNAT PSE y cuentas bancarias" },
   { id: "modulos",  label: "Módulos activos",       icon: Puzzle,    desc: "Prender o apagar módulos según lo que usa tu I.E." },
   { id: "backup",   label: "Backup y restauración", icon: Database,  desc: "Descarga una copia de seguridad o restaura una anterior" },
 ];
@@ -39,6 +40,15 @@ const CFG_VACIO: ConfigInstitucional = {
   smtp_configurado: false,
   email_comunicados_habilitado: false,
   primer_anio_lectivo: new Date().getFullYear(),
+  bloquear_boleta_por_deuda: false,
+  max_cuotas_vencidas_bloqueo: 1,
+  facturacion_sunat_habilitada: false,
+  sunat_api_url: "",
+  sunat_api_token: "",
+  sunat_serie_boleta: "B001",
+  sunat_serie_factura: "F001",
+  cuenta_recaudacion_bcp: "",
+  cuenta_recaudacion_bbva: "",
 };
 
 export default function ConfiguracionView() {
@@ -137,6 +147,9 @@ export default function ConfiguracionView() {
           )}
           {sec === "notas" && (
             <SeccionNotas cfg={cfg} onSave={guardar} saving={saving} />
+          )}
+          {sec === "finanzas" && (
+            <SeccionFinanzas cfg={cfg} onSave={guardar} saving={saving} />
           )}
           {sec === "modulos" && (
             <SeccionModulos cfg={cfg} onSave={guardar} saving={saving} />
@@ -344,9 +357,9 @@ function SeccionGeoloc({ cfg, onSave, saving }: {
   return (
     <>
       <div>
-        <h2 className="text-lg font-semibold">Geolocalización de asistencia</h2>
+        <h2 className="text-lg font-semibold">Geolocalización de asistencia personal</h2>
         <p className="text-sm text-muted-foreground">
-          Si está activo, docentes y estudiantes solo pueden marcar asistencia dentro del radio del colegio.
+          Control de perímetro GPS para la marcación laboral de asistencia del personal. La toma de asistencia de estudiantes en aula y por escáner QR queda exenta de esta regla.
         </p>
       </div>
 
@@ -358,41 +371,47 @@ function SeccionGeoloc({ cfg, onSave, saving }: {
           className="mt-0.5 w-4 h-4 accent-primary"
         />
         <div>
-          <div className="text-sm font-medium">Exigir geolocalización para marcar asistencia</div>
+          <div className="text-sm font-medium">Exigir verificación GPS al personal</div>
           <div className="text-xs text-muted-foreground mt-0.5">
-            Recomendado en colegios con problemas de firma remota. Requiere permitir GPS en el navegador/celular.
+            Si está activado, el personal debe autorizar su ubicación para marcar entrada. Si está desactivado, pueden marcar registrándose como excepción justificada en caso de falla de señal.
           </div>
         </div>
       </label>
 
+      {f.exigir_geolocalizacion && (!f.latitud_ie || !f.longitud_ie) && (
+        <div className="p-3 rounded-lg border border-amber-500/40 bg-amber-500/10 text-xs text-amber-800 dark:text-amber-300">
+          ⚠️ <strong>Atención:</strong> Las coordenadas de la I.E. están vacías. Debes definir o capturar la latitud y longitud del colegio para que el radio de asistencia funcione sin rechazar marcas válidas.
+        </div>
+      )}
+
       <div className={cn(
         "grid grid-cols-1 md:grid-cols-3 gap-4 transition-opacity",
-        !f.exigir_geolocalizacion && "opacity-50 pointer-events-none"
+        !f.exigir_geolocalizacion && "opacity-75"
       )}>
         <Campo label="Latitud"
           value={f.latitud_ie}
           onChange={(v) => setF({ ...f, latitud_ie: v })}
-          placeholder="-9.9207" />
+          placeholder="-9.9306" />
         <Campo label="Longitud"
           value={f.longitud_ie}
           onChange={(v) => setF({ ...f, longitud_ie: v })}
-          placeholder="-76.2325" />
-        <Campo label="Radio (metros)"
+          placeholder="-76.2422" />
+        <Campo label="Radio permitido (metros)"
           type="number"
           value={String(f.radio_permitido_metros)}
           onChange={(v) => setF({ ...f, radio_permitido_metros: parseInt(v || "0", 10) })}
-          placeholder="100" />
+          placeholder="150" />
       </div>
 
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={pedirUbicacion}
-          disabled={pidiendo || !f.exigir_geolocalizacion}
+          disabled={pidiendo}
           className="h-10 px-4 rounded-md border border-input bg-background text-sm font-medium hover:bg-muted disabled:opacity-50 flex items-center gap-2"
         >
           {pidiendo ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
-          Usar mi ubicación actual
+          Capturar ubicación de la I.E. desde este equipo
         </button>
         {f.latitud_ie && f.longitud_ie && (
           <a
@@ -1058,6 +1077,166 @@ function SeccionBackup() {
         </ul>
       </div>
     </>
+  );
+}
+
+/* ══════════════════════════════════════════════════════ SECCIÓN FINANZAS ═══ */
+function SeccionFinanzas({ cfg, onSave, saving }: {
+  cfg: ConfigInstitucional;
+  onSave: (patch: Partial<ConfigInstitucional>) => void;
+  saving: boolean;
+}) {
+  const [f, setF] = useState({
+    bloquear_boleta_por_deuda: cfg.bloquear_boleta_por_deuda ?? false,
+    max_cuotas_vencidas_bloqueo: cfg.max_cuotas_vencidas_bloqueo ?? 1,
+    facturacion_sunat_habilitada: cfg.facturacion_sunat_habilitada ?? false,
+    sunat_api_url: cfg.sunat_api_url ?? "",
+    sunat_api_token: cfg.sunat_api_token ?? "",
+    sunat_serie_boleta: cfg.sunat_serie_boleta ?? "B001",
+    sunat_serie_factura: cfg.sunat_serie_factura ?? "F001",
+    cuenta_recaudacion_bcp: cfg.cuenta_recaudacion_bcp ?? "",
+    cuenta_recaudacion_bbva: cfg.cuenta_recaudacion_bbva ?? "",
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Nivel 1: Cobranzas y Bloqueo de Boletas */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <ShieldAlert size={16} className="text-primary" /> Control de Morosidad y Libreta de Notas (Nivel 1)
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Configuración del bloqueo condicional de descarga de boletas a familias con deudas impagas.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-border/70 p-4 space-y-4 bg-muted/20">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={f.bloquear_boleta_por_deuda}
+              onChange={(e) => setF({ ...f, bloquear_boleta_por_deuda: e.target.checked })}
+              className="mt-0.5 rounded border-border text-primary focus:ring-primary w-4 h-4"
+            />
+            <div>
+              <span className="text-sm font-medium text-foreground">Restringir descarga de boletas a deudores</span>
+              <p className="text-xs text-muted-foreground">
+                Si está activo, los padres con pensiones vencidas no podrán descargar las boletas en PDF hasta regularizar sus pagos.
+              </p>
+            </div>
+          </label>
+
+          {f.bloquear_boleta_por_deuda && (
+            <div className="max-w-xs pl-7">
+              <Campo
+                label="Cuotas vencidas mínimas para bloqueo"
+                type="number"
+                value={String(f.max_cuotas_vencidas_bloqueo)}
+                onChange={(v) => setF({ ...f, max_cuotas_vencidas_bloqueo: parseInt(v) || 1 })}
+                hint="Por ejemplo: 1 para bloquear desde la primera cuota vencida, o 2 para dar un mes de gracia."
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Nivel 2: Facturación Electrónica SUNAT / PSE */}
+      <div className="space-y-3 pt-4 border-t border-border">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <FileText size={16} className="text-primary" /> Facturación Electrónica SUNAT / PSE (Nivel 2)
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Integración con Proveedor de Servicios Electrónicos (PSE tipo Nubefact o Facturador.pro). Operación inafecta al IGV (Código 30 - Ley General de Educación).
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-border/70 p-4 space-y-4 bg-muted/20">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={f.facturacion_sunat_habilitada}
+              onChange={(e) => setF({ ...f, facturacion_sunat_habilitada: e.target.checked })}
+              className="mt-0.5 rounded border-border text-primary focus:ring-primary w-4 h-4"
+            />
+            <div>
+              <span className="text-sm font-medium text-foreground">Activar emisión electrónica a SUNAT</span>
+              <p className="text-xs text-muted-foreground">
+                Envía automáticamente el comprobante electrónico al PSE al registrar o validar cada pago.
+              </p>
+            </div>
+          </label>
+
+          {f.facturacion_sunat_habilitada && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-7 pt-2">
+              <Campo
+                label="URL del API PSE (Nubefact / Facturador.pro)"
+                placeholder="https://api.nubefact.com/api/v1/..."
+                value={f.sunat_api_url}
+                onChange={(v) => setF({ ...f, sunat_api_url: v })}
+                span={2}
+                hint="Endpoint provisto por su PSE para la emisión de documentos JSON."
+              />
+              <Campo
+                label="Token de Autenticación PSE"
+                type="password"
+                placeholder={cfg.sunat_api_token ? "••••••••" : "Pegar token del PSE"}
+                value={f.sunat_api_token}
+                onChange={(v) => setF({ ...f, sunat_api_token: v })}
+                span={2}
+                hint="Bearer token provisto en el portal de su facturador electrónico."
+              />
+              <Campo
+                label="Serie Boletas de Venta"
+                placeholder="B001"
+                value={f.sunat_serie_boleta}
+                onChange={(v) => setF({ ...f, sunat_serie_boleta: v })}
+                hint="Serie autorizada para boletas de venta (ej: B001)."
+              />
+              <Campo
+                label="Serie Facturas Electrónicas"
+                placeholder="F001"
+                value={f.sunat_serie_factura}
+                onChange={(v) => setF({ ...f, sunat_serie_factura: v })}
+                hint="Serie autorizada para facturas con RUC (ej: F001)."
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Nivel 3: Cuentas y Recaudación Bancaria */}
+      <div className="space-y-3 pt-4 border-t border-border">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Landmark size={16} className="text-primary" /> Recaudación Bancaria BCP y BBVA (Nivel 3)
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Cuentas y códigos de servicio que se imprimen en los recordatorios y se incluyen en los archivos de Telecrédito.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Campo
+            label="Cuenta o Servicio Recaudador BCP"
+            placeholder="Ej: 193-9876543-0-12 / Convenio 12345"
+            value={f.cuenta_recaudacion_bcp}
+            onChange={(v) => setF({ ...f, cuenta_recaudacion_bcp: v })}
+            hint="Código de servicio BCP o cuenta corriente para abonos Telecrédito."
+          />
+          <Campo
+            label="Código de Recaudo BBVA Continental"
+            placeholder="Ej: 0011-0123-0100012345"
+            value={f.cuenta_recaudacion_bbva}
+            onChange={(v) => setF({ ...f, cuenta_recaudacion_bbva: v })}
+            hint="Número de cuenta recaudadora BBVA para banca por internet y ventanilla."
+          />
+        </div>
+      </div>
+
+      <BotonGuardar onClick={() => onSave(f)} saving={saving} />
+    </div>
   );
 }
 

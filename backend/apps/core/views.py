@@ -307,10 +307,18 @@ def configuracion_institucional(request):
             "smtp_host", "smtp_port", "smtp_user",
             "smtp_password", "smtp_use_tls", "smtp_from_email",
             "email_comunicados_habilitado",
+            "bloquear_boleta_por_deuda", "max_cuotas_vencidas_bloqueo",
+            "facturacion_sunat_habilitada", "sunat_api_url", "sunat_api_token",
+            "sunat_serie_boleta", "sunat_serie_factura",
+            "cuenta_recaudacion_bcp", "cuenta_recaudacion_bbva",
         ]
         for campo in campos_permitidos:
             if campo in request.data:
                 val = request.data[campo]
+                if campo == "sunat_api_token" and (val == "" or (isinstance(val, str) and val.startswith("••"))):
+                    continue
+                if campo == "smtp_password" and val == "":
+                    continue
                 if val == "":
                     val = None if campo in ("latitud_ie", "longitud_ie") else val
                 setattr(cfg, campo, val)
@@ -344,6 +352,15 @@ def configuracion_institucional(request):
         "smtp_from_email": cfg.smtp_from_email or "",
         "smtp_configurado": bool(cfg.smtp_host and cfg.smtp_user and cfg.smtp_password),
         "email_comunicados_habilitado": cfg.email_comunicados_habilitado,
+        "bloquear_boleta_por_deuda": cfg.bloquear_boleta_por_deuda,
+        "max_cuotas_vencidas_bloqueo": cfg.max_cuotas_vencidas_bloqueo or 1,
+        "facturacion_sunat_habilitada": cfg.facturacion_sunat_habilitada,
+        "sunat_api_url": cfg.sunat_api_url or "",
+        "sunat_api_token": "••••••••" if cfg.sunat_api_token else "",
+        "sunat_serie_boleta": cfg.sunat_serie_boleta or "B001",
+        "sunat_serie_factura": cfg.sunat_serie_factura or "F001",
+        "cuenta_recaudacion_bcp": cfg.cuenta_recaudacion_bcp or "",
+        "cuenta_recaudacion_bbva": cfg.cuenta_recaudacion_bbva or "",
     })
 
 
@@ -379,19 +396,22 @@ def kpis_director(request):
 
     hoy = timezone.localdate()
     anio = hoy.year
+    es_fin_de_semana = hoy.weekday() >= 5
 
     # 1. Asistencia hoy
     try:
         from apps.asistencia.models import RegistroAsistencia
         total_est = Estudiante.objects.filter(usuario__activo=True).count()
+        registros_hoy = RegistroAsistencia.objects.filter(fecha=hoy).count()
         presentes_hoy = RegistroAsistencia.objects.filter(
             fecha=hoy, estado__in=("presente", "tardanza")
         ).count()
-        pct_asistencia = round(presentes_hoy / total_est * 100) if total_est else None
-        registros_hoy = RegistroAsistencia.objects.filter(fecha=hoy).count()
+        pct_asistencia = round(presentes_hoy / total_est * 100) if (total_est and registros_hoy > 0) else None
     except Exception:
         pct_asistencia = None
         registros_hoy = 0
+        total_est = 0
+        presentes_hoy = 0
 
     # 2. Incidencias abiertas (no cerradas ni resueltas)
     try:
@@ -404,20 +424,24 @@ def kpis_director(request):
         incidencias_abiertas = 0
         incidencias_nuevas = 0
 
-    # 3. Casos SíseVe activos + próximos a vencer (≤ 7 días)
+    # 3. Casos SíseVe activos, vencidos y próximos a vencer
     try:
         from apps.convivencia.models import CasoConvivencia
         from django.utils.timezone import now as tz_now
         from datetime import timedelta
-        casos_activos = CasoConvivencia.objects.exclude(
+        activos_qs = CasoConvivencia.objects.exclude(
             estado__in=("cerrado", "cerrado_falso")
+        )
+        casos_activos = activos_qs.count()
+        ahora = tz_now()
+        fecha_limite_pronto = ahora + timedelta(days=7)
+        casos_vencidos = activos_qs.filter(fecha_limite__lt=ahora).count()
+        casos_por_vencer = activos_qs.filter(
+            fecha_limite__gte=ahora, fecha_limite__lte=fecha_limite_pronto
         ).count()
-        fecha_limite_pronto = tz_now() + timedelta(days=7)
-        casos_por_vencer = CasoConvivencia.objects.exclude(
-            estado__in=("cerrado", "cerrado_falso")
-        ).filter(fecha_limite__lte=fecha_limite_pronto).count()
     except Exception:
         casos_activos = 0
+        casos_vencidos = 0
         casos_por_vencer = 0
 
     # 4. Totales de estudiantes y secciones
@@ -448,6 +472,8 @@ def kpis_director(request):
             "presentes": presentes_hoy if registros_hoy > 0 else None,
             "total": total_est,
             "hay_registros": registros_hoy > 0,
+            "es_dia_no_lectivo": es_fin_de_semana and registros_hoy == 0,
+            "motivo_no_lectivo": "Fin de semana (no lectivo)" if es_fin_de_semana else "",
         },
         "incidencias": {
             "abiertas": incidencias_abiertas,
@@ -455,6 +481,7 @@ def kpis_director(request):
         },
         "convivencia": {
             "activos": casos_activos,
+            "vencidos": casos_vencidos,
             "por_vencer": casos_por_vencer,
         },
         "estudiantes": {

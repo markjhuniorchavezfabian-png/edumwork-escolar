@@ -40,6 +40,9 @@ export interface Seccion {
   nivel?: "inicial" | "primaria" | "secundaria" | "";
   grado: string;
   letra: string;
+  turno?: "manana" | "tarde" | "completa";
+  hora_inicio?: string | null;
+  hora_fin?: string | null;
   tutor: number | null;
   tutor_nombre: string | null;
   docentes: number[];

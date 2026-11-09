@@ -33,6 +33,12 @@ export default function AsistenciaPersonalView({ modoGestion = false }: { modoGe
   const [registros, setRegistros] = useState<RegistroPersonal[]>([]);
   const [kpis, setKpis] = useState<KPIsPersonal | null>(null);
   const [config, setConfig] = useState<ConfigInstitucional | null>(null);
+  const [infoDia, setInfoDia] = useState<{
+    es_dia_no_laborable?: boolean;
+    motivo_no_laborable?: string;
+    hora_esperada_ingreso?: string;
+    tolerancia_minutos?: number;
+  } | null>(null);
   const [cargando, setCargando] = useState(true);
   const [editandoConfig, setEditandoConfig] = useState(false);
 
@@ -46,8 +52,21 @@ export default function AsistenciaPersonalView({ modoGestion = false }: { modoGe
       setConfig(res[0] as ConfigInstitucional);
       let i = 1;
       if (esStaff && !modoGestion) {
-        const mi = res[i++] as { tiene_registro: boolean; registro?: RegistroPersonal };
+        const mi = res[i++] as {
+          tiene_registro: boolean;
+          registro?: RegistroPersonal;
+          es_dia_no_laborable?: boolean;
+          motivo_no_laborable?: string;
+          hora_esperada_ingreso?: string;
+          tolerancia_minutos?: number;
+        };
         setMiRegistro(mi.tiene_registro ? mi.registro! : null);
+        setInfoDia({
+          es_dia_no_laborable: mi.es_dia_no_laborable,
+          motivo_no_laborable: mi.motivo_no_laborable,
+          hora_esperada_ingreso: mi.hora_esperada_ingreso,
+          tolerancia_minutos: mi.tolerancia_minutos,
+        });
       }
       if (esAprobador && modoGestion) {
         setRegistros(res[i++] as RegistroPersonal[]);
@@ -149,6 +168,12 @@ export default function AsistenciaPersonalView({ modoGestion = false }: { modoGe
 
       {!modoGestion && esStaff && (
         <Card titulo="Mi asistencia de hoy">
+          {infoDia?.hora_esperada_ingreso && (
+            <div style={{ marginBottom: 12, fontSize: 12, color: "var(--texto-mute)" }}>
+              Horario asignado para hoy: <strong style={{ color: "var(--foreground)" }}>{infoDia.hora_esperada_ingreso}</strong>
+              {(infoDia.tolerancia_minutos ?? 0) > 0 && ` (+${infoDia.tolerancia_minutos} min tolerancia)`}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
             {miRegistro?.hora_entrada ? (
               <>
@@ -168,10 +193,29 @@ export default function AsistenciaPersonalView({ modoGestion = false }: { modoGe
                   </div>
                 ) : (
                   <button className="btn btn-primario btn-icono" onClick={salida} style={{ width: "auto" }}>
-                    <Icon name="reloj" /> Marcar mi salida
+                    <Icon name="reloj" /> {infoDia?.es_dia_no_laborable ? "Registrar salida extraordinaria" : "Marcar mi salida"}
                   </button>
                 )}
               </>
+            ) : infoDia?.es_dia_no_laborable ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{
+                  padding: "10px 14px", borderRadius: 8,
+                  background: "var(--muted)", border: "1px solid var(--borde)",
+                  fontSize: 13, color: "var(--foreground)"
+                }}>
+                  📅 <strong>{infoDia.motivo_no_laborable || "Fin de semana"}</strong> · No se exige marcación regular.
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, color: "var(--texto-mute)" }}>¿Asististe a una actividad o jornada especial?</span>
+                  <button className="btn btn-secundario btn-icono" onClick={entrada} disabled={obteniendoGPS} style={{ width: "auto", fontSize: 12, padding: "6px 12px" }}>
+                    {obteniendoGPS ? "Obteniendo ubicación..." : "Registrar ingreso extraordinario"}
+                  </button>
+                  <button className="btn btn-secundario btn-icono" onClick={salida} style={{ width: "auto", fontSize: 12, padding: "6px 12px" }}>
+                    Registrar salida extraordinaria
+                  </button>
+                </div>
+              </div>
             ) : (
               <>
                 <p style={{ fontSize: 14, color: "var(--texto-mute)" }}>Aún no has marcado tu entrada hoy.</p>

@@ -91,6 +91,13 @@ export const MODULOS_OPCIONALES: Modulo[] = [
     defaultActivo: false,
   },
   {
+    id: "finanzas",
+    label: "Administración Financiera",
+    descripcion: "Cobranza de pensiones, recibos internos de caja, morosidad y caja chica.",
+    rutas: ["/finanzas", "/caja"],
+    defaultActivo: true,
+  },
+  {
     id: "tutoria",
     label: "Tutoría",
     descripcion: "Seguimiento de tutoría y orientación educativa por sección.",

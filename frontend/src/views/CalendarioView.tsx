@@ -92,7 +92,7 @@ export default function CalendarioView() {
     <div>
       <h2 className="page-title">Calendario escolar {anio}</h2>
       <p style={{ color: "var(--muted-foreground)", marginBottom: 16, fontSize: 14 }}>
-        Gestión del calendario según <strong>RM 556-2024-MINEDU</strong>: mínimo 160 días lectivos + 30 días de gestión al año.
+        Gestión del calendario según <strong>RM 501-2025-MINEDU</strong>: mínimo 160 días lectivos y 30 días de gestión (8 semanas de gestión distribuidas en el año escolar 2026).
       </p>
 
       {cargando ? <Cargando inline /> : (
@@ -108,7 +108,7 @@ export default function CalendarioView() {
                 <div style={{ flex: "1 0 200px" }}>
                   <div style={{ fontSize: 12, color: "var(--muted-foreground)", textTransform: "uppercase", letterSpacing: 0.5 }}>Estado</div>
                   <div style={{ fontSize: 20, fontWeight: 700, color: kpi.cumple_norma ? "var(--success-text)" : "var(--danger-text)" }}>
-                    {kpi.cumple_norma ? "Cumple RM 556-2024" : "No cumple todavía"}
+                    {kpi.cumple_norma ? "Cumple RM 501-2025-MINEDU" : "No cumple todavía"}
                   </div>
                   <div style={{ fontSize: 12, color: "var(--muted-foreground)", marginTop: 4 }}>{kpi.detalle}</div>
                 </div>

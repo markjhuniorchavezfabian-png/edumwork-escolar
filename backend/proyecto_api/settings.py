@@ -11,7 +11,29 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
+if os.environ.get("RAILWAY_PUBLIC_DOMAIN"):
+    _r_domain = os.environ["RAILWAY_PUBLIC_DOMAIN"].strip()
+    if _r_domain not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_r_domain)
+if ".up.railway.app" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".up.railway.app")
+if ".railway.app" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".railway.app")
+
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if o.strip()
+]
+if os.environ.get("RAILWAY_PUBLIC_DOMAIN"):
+    _r_url = f"https://{os.environ['RAILWAY_PUBLIC_DOMAIN'].strip()}"
+    if _r_url not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_r_url)
+if "https://*.up.railway.app" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("https://*.up.railway.app")
+if "https://*.railway.app" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("https://*.railway.app")
 
 AUTH_USER_MODEL = "usuarios.Usuario"
 
@@ -45,6 +67,7 @@ INSTALLED_APPS = [
     "apps.aula_virtual",
     "apps.curricula",
     "apps.calendario",
+    "apps.finanzas",
 ]
 
 # Email — consola en dev, SMTP en prod

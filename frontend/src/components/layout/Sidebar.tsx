@@ -4,7 +4,7 @@ import {
   Home, GraduationCap, ClipboardCheck, BookOpen, Users, User, UserPlus,
   Megaphone, CalendarDays, DoorOpen, Cpu, Package, AlertTriangle,
   Shield, FileSpreadsheet, Grid3x3, Settings, LogOut,
-  ChevronRight, Sparkles, Wallet, Layers, School, Calendar, ShieldAlert,
+  ChevronRight, Sparkles, Wallet, Layers, School, Calendar, ShieldAlert, Coins,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
@@ -32,7 +32,7 @@ const GRUPOS: Grupo[] = [
       { to: "/sesiones-clase", label: "Sesiones de clase", icon: Layers, roles: ["docente", "auxiliar", "psicologa"] },
       { to: "/alertas", label: "Alertas tempranas", icon: ShieldAlert, roles: ["director", "subdirector", "docente", "auxiliar", "psicologa"] },
       { to: "/horario", label: "Horario semanal", icon: Calendar, roles: ["docente"] },
-      { to: "/aprender", label: "Aula Virtual", icon: BookOpen, roles: ["director", "subdirector", "docente", "admin_tic", "psicologa", "estudiante", "padre"] },
+      { to: "/aprender", label: "Aula Virtual", icon: BookOpen, roles: ["director", "subdirector", "docente", "admin_tic", "psicologa", "estudiante"] },
       { to: "/matricula", label: "Matrícula", icon: UserPlus, roles: ["director", "subdirector", "admin_tic", "secretaria"] },
       { to: "/estudiantes", label: "Fichas de estudiantes", icon: User, roles: ["director", "subdirector", "admin_tic", "secretaria", "docente", "auxiliar", "psicologa"] },
     ],
@@ -43,6 +43,13 @@ const GRUPOS: Grupo[] = [
       { to: "/comunicados", label: "Comunicados", icon: Megaphone, roles: ["director", "subdirector", "docente", "admin_tic", "secretaria", "auxiliar", "psicologa", "conserje", "padre", "estudiante"] },
       { to: "/reservas", label: "Reservas", icon: CalendarDays, roles: ["director", "subdirector", "docente", "auxiliar", "psicologa", "admin_tic", "secretaria"] },
       { to: "/visitas", label: "Visitas", icon: DoorOpen, roles: ["admin_tic", "director", "subdirector", "secretaria", "conserje"] },
+    ],
+  },
+  {
+    titulo: "Finanzas", icono: Wallet,
+    items: [
+      { to: "/finanzas", label: "Gestión de Cobranzas", icon: Wallet, roles: ["director", "subdirector", "secretaria", "admin_tic"] },
+      { to: "/caja", label: "Caja Chica y Flujo", icon: Coins, roles: ["director", "subdirector", "secretaria", "admin_tic"] },
     ],
   },
   {
@@ -72,6 +79,7 @@ const GRUPOS: Grupo[] = [
       { to: "/familia", label: "Mis hijos", icon: User, roles: ["padre"] },
       { to: "/justificaciones", label: "Justificaciones", icon: FileSpreadsheet, roles: ["padre"] },
       { to: "/convivencia", label: "Casos SíseVe", icon: Shield, roles: ["padre"] },
+      { to: "/aprender", label: "Aula Virtual", icon: BookOpen, roles: ["padre"] },
     ],
   },
   {
@@ -89,12 +97,12 @@ const GRUPOS: Grupo[] = [
       { to: "/asignaciones-docentes", label: "Asignaciones de docentes", icon: BookOpen, roles: ["director", "subdirector"] },
       { to: "/invitar-docente", label: "Invitar/integrar docentes", icon: UserPlus, roles: ["director", "subdirector", "admin_tic", "secretaria"] },
       { to: "/editar-curriculo", label: "Editar currículo (CNEB)", icon: BookOpen, roles: ["director", "subdirector", "admin_tic"] },
-      { to: "/calendario", label: "Calendario escolar (RM 556)", icon: BookOpen, roles: ["director", "subdirector", "admin_tic"] },
+      { to: "/calendario", label: "Calendario escolar (RM 501)", icon: BookOpen, roles: ["director", "subdirector", "admin_tic"] },
       { to: "/importar", label: "Importar Excel", icon: FileSpreadsheet, roles: ["director", "subdirector", "admin_tic", "secretaria"] },
       { to: "/ambientes", label: "Ambientes / QR", icon: DoorOpen, roles: ["director", "subdirector", "admin_tic", "secretaria"] },
       { to: "/config-ia", label: "Configurar IA", icon: Sparkles, roles: ["director"] },
       { to: "/costos-ia", label: "Consumo de IA", icon: Wallet, roles: ["director", "admin_tic"] },
-      { to: "/auditoria", label: "Auditoría", icon: FileSpreadsheet, roles: ["director", "subdirector", "admin_tic", "docente"] },
+      { to: "/auditoria", label: "Auditoría", icon: FileSpreadsheet, roles: ["director", "subdirector", "admin_tic"] },
     ],
   },
 ];
@@ -103,9 +111,11 @@ const KEY_ABIERTOS = "sidebar.grupos.abiertos";
 
 const navItemCls = ({ isActive }: { isActive: boolean }) =>
   cn(
-    "flex items-center gap-2.5 px-3 py-2 mx-2 rounded-md text-sm font-medium transition-colors",
-    "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/20",
-    isActive && "bg-sidebar-accent text-sidebar-accent-foreground hover:bg-sidebar-accent"
+    "flex items-center gap-2.5 px-3 py-2 mx-2 rounded-lg text-sm font-medium transition-all select-none",
+    "text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-slate-200/50 dark:hover:bg-slate-800/60",
+    isActive
+      ? "bg-blue-50 text-blue-700 font-semibold border-l-2 border-blue-600 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-500 shadow-xs"
+      : "border-l-2 border-transparent"
   );
 
 export default function Sidebar() {
@@ -178,23 +188,23 @@ export default function Sidebar() {
       )}
     >
       {/* Brand */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border">
-        <div className="w-9 h-9 rounded-md bg-sidebar-accent text-sidebar-accent-foreground flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border bg-sidebar/50">
+        <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden shadow-xs">
           {institucion.logo_url ? (
-            <img src={institucion.logo_url} alt="Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            <img src={institucion.logo_url} alt="Logo" className="w-full h-full object-contain p-0.5" />
           ) : (
             institucion.sigla || <School size={18} />
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-sm font-semibold truncate">
-            {institucion.nombre || "Sistema TIC"}
+          <div className="text-sm font-semibold truncate text-foreground">
+            {institucion.nombre || "Colegio Thales"}
           </div>
-          <div className="text-[11px] text-sidebar-foreground/60 truncate">
-            EduMWork
+          <div className="text-[11px] text-muted-foreground truncate">
+            {institucion.sigla ? `${institucion.sigla} · Año Lectivo 2026` : "Año Lectivo 2026"}
           </div>
           {stats && stats.estudiantes > 0 && (
-            <div className="text-[10px] text-sidebar-foreground/50 truncate mt-0.5">
+            <div className="text-[10px] text-muted-foreground/80 truncate mt-0.5">
               {stats.estudiantes} estudiantes
             </div>
           )}
@@ -215,15 +225,15 @@ export default function Sidebar() {
               <button
                 type="button"
                 onClick={() => setAbiertos((p) => ({ ...p, [g.titulo]: !abiertoGrupo }))}
-                className="w-full flex items-center justify-between px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 hover:text-sidebar-foreground/80 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
               >
                 <span className="flex items-center gap-2">
-                  <Icono size={12} />
+                  <Icono size={13} className="text-muted-foreground" />
                   {g.titulo}
                 </span>
                 <ChevronRight
                   size={12}
-                  className={cn("transition-transform", abiertoGrupo && "rotate-90")}
+                  className={cn("transition-transform text-muted-foreground", abiertoGrupo && "rotate-90")}
                 />
               </button>
               {abiertoGrupo && (
@@ -251,27 +261,27 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer: user + modo + logout */}
-      <div className="border-t border-sidebar-border p-3 space-y-3">
-        <div className="flex items-center gap-2.5 px-1">
-          <div className="w-8 h-8 rounded-full bg-sidebar-accent/20 text-sidebar-accent-foreground flex items-center justify-center text-xs font-semibold shrink-0">
+      <div className="border-t border-sidebar-border p-3 space-y-2.5 bg-sidebar/50">
+        <div className="flex items-center gap-2.5 px-1 py-1">
+          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 flex items-center justify-center text-xs font-semibold shrink-0">
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-xs font-medium truncate">{usuario?.first_name} {usuario?.last_name}</div>
-            <div className="text-[10px] text-sidebar-foreground/60 truncate">@{usuario?.username}</div>
+            <div className="text-xs font-medium truncate text-foreground">{usuario?.first_name} {usuario?.last_name}</div>
+            <div className="text-[10px] text-muted-foreground truncate">@{usuario?.username}</div>
           </div>
         </div>
 
         {esDualRol && (
-          <div className="grid grid-cols-2 gap-1 p-1 rounded-md bg-sidebar-border/40">
+          <div className="grid grid-cols-2 gap-1 p-1 rounded-md bg-slate-200/50 dark:bg-slate-800/60">
             <button
               type="button"
               onClick={() => setModoRol("director")}
               className={cn(
                 "text-[11px] py-1 rounded transition-colors",
                 modoRol === "director"
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                  ? "bg-background text-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               Director
@@ -282,8 +292,8 @@ export default function Sidebar() {
               className={cn(
                 "text-[11px] py-1 rounded transition-colors",
                 modoRol === "docente"
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                  ? "bg-background text-foreground font-semibold shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               Docente
@@ -291,15 +301,15 @@ export default function Sidebar() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-1 p-1 rounded-md bg-sidebar-border/40">
+        <div className="grid grid-cols-2 gap-1 p-1 rounded-md bg-slate-200/50 dark:bg-slate-800/60">
           <button
             type="button"
             onClick={() => setModo("simple")}
             className={cn(
               "text-[11px] py-1 rounded transition-colors",
               modo === "simple"
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                ? "bg-background text-foreground font-semibold shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             Simple
@@ -310,8 +320,8 @@ export default function Sidebar() {
             className={cn(
               "text-[11px] py-1 rounded transition-colors",
               modo === "completo"
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                ? "bg-background text-foreground font-semibold shadow-xs"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             Completo
@@ -320,7 +330,7 @@ export default function Sidebar() {
 
         <button
           onClick={logout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-destructive/20 transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs font-medium text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
         >
           <LogOut size={14} /> Cerrar sesión
         </button>
