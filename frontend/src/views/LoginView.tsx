@@ -19,6 +19,7 @@ export default function LoginView() {
   const institucion = useInstitucion();
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [logoError, setLogoError] = useState(false);
 
   const nombreColegio = institucion.nombre?.trim() || "Institución Educativa";
   const siglaColegio = institucion.sigla?.trim() || "I.E.";
@@ -54,8 +55,13 @@ export default function LoginView() {
       <header className="w-full max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0 overflow-hidden">
-            {institucion.logo_url ? (
-              <img src={institucion.logo_url} alt="Logo" className="w-full h-full object-contain p-0.5 bg-white" />
+            {institucion.logo_url && !logoError ? (
+              <img
+                src={institucion.logo_url}
+                alt="Logo"
+                onError={() => setLogoError(true)}
+                className="w-full h-full object-contain p-0.5 bg-white"
+              />
             ) : (
               siglaColegio || <School size={19} />
             )}
@@ -103,8 +109,13 @@ export default function LoginView() {
             {/* Cabecera del Formulario */}
             <div className="text-center space-y-2">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-white dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-xs mb-3 overflow-hidden p-2">
-                {institucion.logo_url ? (
-                  <img src={institucion.logo_url} alt={nombreColegio} className="w-full h-full object-contain" />
+                {institucion.logo_url && !logoError ? (
+                  <img
+                    src={institucion.logo_url}
+                    alt={nombreColegio}
+                    onError={() => setLogoError(true)}
+                    className="w-full h-full object-contain"
+                  />
                 ) : (
                   <School size={28} className="text-blue-600 dark:text-blue-400" />
                 )}

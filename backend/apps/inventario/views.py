@@ -177,7 +177,9 @@ class EquipoViewSet(viewsets.ModelViewSet):
         ws = wb.active
         ws.title = "Inventario TIC"
 
-        ws["A1"] = "I.E. C.N. CÉSAR VALLEJO DE PAUCARBAMBA"
+        from apps.core.models import ConfiguracionInstitucional
+        cfg = ConfiguracionInstitucional.get_solo()
+        ws["A1"] = (cfg.nombre_institucion or "Institución Educativa").upper()
         ws["A2"] = "Inventario de Activos TIC"
         ws["A3"] = f"Generado: {timezone.now().strftime('%d/%m/%Y %H:%M')}  ·  Total: {qs.count()} equipos"
         ws["A1"].font = Font(size=14, bold=True, color="1E3A5F")

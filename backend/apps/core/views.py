@@ -29,9 +29,12 @@ def info_institucional(request):
     logo_url = None
     if cfg.logo:
         try:
-            logo_url = cfg.logo.url  # URL relativa: /media/logos/...
+            if cfg.logo.storage.exists(cfg.logo.name):
+                logo_url = cfg.logo.url  # URL relativa: /media/logos/...
+            else:
+                logo_url = None
         except Exception:
-            pass
+            logo_url = None
     return Response({
         "nombre": cfg.nombre_institucion,
         "sigla": cfg.sigla or _sigla(cfg.nombre_institucion),

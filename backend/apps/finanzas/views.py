@@ -269,7 +269,7 @@ class ObligacionPagoViewSet(viewsets.ModelViewSet):
         concepto = ob.concepto.nombre
         monto = f"S/ {ob.saldo_pendiente:.2f}"
         fecha_venc = ob.fecha_vencimiento.strftime("%d/%m/%Y")
-        colegio = cfg.nombre_institucion or "I.E. César Vallejo"
+        colegio = cfg.nombre_institucion or "Institución Educativa"
         cuenta = cfg.cuenta_recaudacion_bcp or "Yape / Transferencia BCP"
 
         padre_rel = ob.estudiante.padres.first()

@@ -124,6 +124,7 @@ export default function Sidebar() {
   const { abierta } = useSidebar();
   const institucion = useInstitucion();
   const { rolEfectivo, modoRol, setModoRol, esDualRol } = useModoRol();
+  const [logoError, setLogoError] = useState(false);
 
   const [stats, setStats] = useState<{ estudiantes: number; docentes: number } | null>(null);
 
@@ -190,8 +191,13 @@ export default function Sidebar() {
       {/* Brand */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-sidebar-border bg-sidebar/50">
         <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden shadow-xs">
-          {institucion.logo_url ? (
-            <img src={institucion.logo_url} alt="Logo" className="w-full h-full object-contain p-0.5" />
+          {institucion.logo_url && !logoError ? (
+            <img
+              src={institucion.logo_url}
+              alt="Logo"
+              onError={() => setLogoError(true)}
+              className="w-full h-full object-contain p-0.5"
+            />
           ) : (
             institucion.sigla || <School size={18} />
           )}

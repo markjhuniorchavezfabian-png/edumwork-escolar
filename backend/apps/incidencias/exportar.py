@@ -39,7 +39,9 @@ def exportar_incidencias_excel(queryset) -> bytes:
     ws.title = "Incidencias TIC"
 
     # ── Encabezado institucional ─────────────────────────────────────────────
-    ws["A1"] = "I.E. C.N. CÉSAR VALLEJO DE PAUCARBAMBA"
+    from apps.core.models import ConfiguracionInstitucional
+    cfg = ConfiguracionInstitucional.get_solo()
+    ws["A1"] = (cfg.nombre_institucion or "Institución Educativa").upper()
     ws["A2"] = "Reporte de Incidencias TIC"
     ws["A3"] = f"Generado: {timezone.now().strftime('%d/%m/%Y %H:%M')}  ·  Registros: {queryset.count()}"
 

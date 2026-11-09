@@ -158,7 +158,7 @@ export default function ReciboImprimibleModal({ pagoId, onClose }: Props) {
                   Comprobante emitido para control institucional interno.
                 </p>
                 <p className="text-[9px] text-muted-foreground/80 font-mono">
-                  I.E. César Vallejo • Sistema EduMWork
+                  {data.institucion.nombre || "Institución Educativa"} • Sistema EduMWork
                 </p>
               </div>
             </div>

@@ -10,6 +10,7 @@ import {
   urlGafeteQR,
 } from "../services/visitas";
 import { useAuth } from "../hooks/useAuth";
+import { useInstitucion } from "../context/InstitucionContext";
 import api from "../services/api";
 import Card from "../components/ui/Card";
 import { EmptyState, Cargando } from "../components/ui/Spinner";
@@ -236,6 +237,7 @@ function NuevaVisitaModal({ motivos, onCerrar, onCreada }: { motivos: MotivoInfo
 
 // ── Modal: gafete imprimible ─────────────────────────────────────────────────
 function GafeteModal({ visita, onCerrar }: { visita: Visita; onCerrar: () => void }) {
+  const institucion = useInstitucion();
   const [qrBlob, setQrBlob] = useState<string | null>(null);
 
   useEffect(() => {
@@ -243,6 +245,8 @@ function GafeteModal({ visita, onCerrar }: { visita: Visita; onCerrar: () => voi
       setQrBlob(URL.createObjectURL(r.data));
     });
   }, [visita.id]);
+
+  const nombreEncabezado = (institucion.nombre || "Institución Educativa").toUpperCase();
 
   return (
     <div className="modal-overlay" onClick={onCerrar}>
@@ -253,7 +257,7 @@ function GafeteModal({ visita, onCerrar }: { visita: Visita; onCerrar: () => voi
         </div>
         <div className="modal-body" id="gafete-imprimible">
           <div className="gafete">
-            <div className="gafete-header">I.E. C.N. CÉSAR VALLEJO</div>
+            <div className="gafete-header">{nombreEncabezado}</div>
             <div className="gafete-tipo">VISITANTE</div>
             {qrBlob && <img src={qrBlob} alt="QR gafete" className="gafete-qr" />}
             <div className="gafete-nombre">{visita.nombre_completo}</div>
