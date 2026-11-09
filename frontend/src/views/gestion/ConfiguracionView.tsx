@@ -71,6 +71,7 @@ export default function ConfiguracionView() {
     try {
       const nuevo = await patchConfig(patch);
       setCfg(nuevo);
+      window.dispatchEvent(new CustomEvent("edumwork_institucion_cambiada"));
       setOk(true);
       setTimeout(() => setOk(false), 3000);
     } catch {

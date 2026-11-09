@@ -223,7 +223,7 @@ export default function Topbar() {
               {title}
             </h1>
             <span className="hidden xl:inline-flex items-center text-xs text-muted-foreground border-l border-border pl-2.5 font-normal truncate">
-              {institucion.nombre || "Colegio Thales"} · Año {institucion.anio_lectivo_activo || 2026}
+              {institucion.nombre || "Colegio César Vallejo"} · Año {institucion.anio_lectivo_activo || 2026}
             </span>
           </div>
         </div>

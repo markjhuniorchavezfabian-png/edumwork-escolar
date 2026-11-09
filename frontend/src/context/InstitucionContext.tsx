@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "../constants/env";
 
@@ -19,9 +19,13 @@ export interface Institucion {
   edicion: Edicion;
 }
 
+export interface InstitucionContextType extends Institucion {
+  recargar: () => Promise<void>;
+}
+
 const FALLBACK: Institucion = {
-  nombre: "Mi Institución Educativa",
-  sigla: "IE",
+  nombre: "Colegio César Vallejo",
+  sigla: "IE-CV",
   codigo_modular: "",
   direccion: "",
   ugel: "",
@@ -36,20 +40,36 @@ const FALLBACK: Institucion = {
 
 const BASE = API_BASE_URL;
 
-const Ctx = createContext<Institucion>(FALLBACK);
+const Ctx = createContext<InstitucionContextType>({
+  ...FALLBACK,
+  recargar: async () => {},
+});
 
 export function InstitucionProvider({ children }: { children: ReactNode }) {
   const [info, setInfo] = useState<Institucion>(FALLBACK);
 
-  useEffect(() => {
-    axios.get<Institucion>(`${BASE}/core/info/`)
-      .then(({ data }) => setInfo({ ...FALLBACK, ...data }))
-      .catch(() => setInfo(FALLBACK));
+  const recargar = useCallback(async () => {
+    try {
+      const { data } = await axios.get<Institucion>(`${BASE}/core/info/?_t=${Date.now()}`);
+      setInfo({ ...FALLBACK, ...data });
+    } catch {
+      setInfo(FALLBACK);
+    }
   }, []);
 
-  return <Ctx.Provider value={info}>{children}</Ctx.Provider>;
+  useEffect(() => {
+    recargar();
+    const handleUpdate = () => { recargar(); };
+    window.addEventListener("edumwork_institucion_cambiada", handleUpdate);
+    return () => {
+      window.removeEventListener("edumwork_institucion_cambiada", handleUpdate);
+    };
+  }, [recargar]);
+
+  return <Ctx.Provider value={{ ...info, recargar }}>{children}</Ctx.Provider>;
 }
 
-export function useInstitucion(): Institucion {
+export function useInstitucion(): InstitucionContextType {
   return useContext(Ctx);
 }
+

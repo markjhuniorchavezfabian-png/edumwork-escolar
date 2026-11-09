@@ -367,7 +367,14 @@ def configuracion_institucional(request):
 def _get_or_create_config():
     cfg = ConfiguracionInstitucional.objects.first()
     if not cfg:
-        cfg = ConfiguracionInstitucional.objects.create()
+        cfg = ConfiguracionInstitucional.objects.create(
+            nombre_institucion="Colegio César Vallejo",
+            sigla="IE-CV",
+        )
+    elif not cfg.nombre_institucion:
+        cfg.nombre_institucion = "Colegio César Vallejo"
+        cfg.sigla = cfg.sigla or "IE-CV"
+        cfg.save(update_fields=["nombre_institucion", "sigla"])
     return cfg
 
 

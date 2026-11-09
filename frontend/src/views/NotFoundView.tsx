@@ -40,7 +40,7 @@ export default function NotFoundView() {
       </div>
 
       <p className="text-xs text-muted-foreground mt-8">
-        {institucion.nombre || "Colegio Thales"} · Sistema de Gestión Escolar
+        {institucion.nombre || "Colegio César Vallejo"} · Sistema de Gestión Escolar
       </p>
     </div>
   );
