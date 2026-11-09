@@ -17,7 +17,12 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "proyecto_api.settings")
 django.setup()
 from apps.core.models import ConfiguracionInstitucional
 cfg = ConfiguracionInstitucional.get_solo()
-if not cfg.nombre_institucion:
+nombres_piloto = {
+    "thales", "colegio thales", "césar vallejo", "cesar vallejo",
+    "colegio césar vallejo", "colegio cesar vallejo",
+    "i.e. césar vallejo", "i.e. cesar vallejo",
+}
+if not cfg.nombre_institucion or cfg.nombre_institucion.strip().lower() in nombres_piloto:
     cfg.nombre_institucion = "Institución Educativa"
     cfg.sigla = "I.E."
     cfg.save()

@@ -80,7 +80,7 @@ export default function PanelFamiliarView() {
   const [modalVoucher, setModalVoucher] = useState<{ open: boolean; obligacionId?: number } | null>(null);
   const [hijoIdForzado, setHijoIdForzado] = useState<number | null>(() => {
     try {
-      const g = localStorage.getItem("thales_hijo_activo");
+      const g = localStorage.getItem("edumwork_hijo_activo") || localStorage.getItem("thales_hijo_activo");
       return g ? Number(g) : null;
     } catch {
       return null;
@@ -116,17 +116,17 @@ export default function PanelFamiliarView() {
       }
     };
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === "thales_hijo_activo" && e.newValue) {
+      if ((e.key === "edumwork_hijo_activo" || e.key === "thales_hijo_activo") && e.newValue) {
         const num = Number(e.newValue);
         if (!isNaN(num) && num > 0) {
           setHijoIdForzado(num);
         }
       }
     };
-    window.addEventListener("thales_hijo_cambiado", handleCambiado as EventListener);
+    window.addEventListener("edumwork_hijo_cambiado", handleCambiado as EventListener);
     window.addEventListener("storage", handleStorage);
     return () => {
-      window.removeEventListener("thales_hijo_cambiado", handleCambiado as EventListener);
+      window.removeEventListener("edumwork_hijo_cambiado", handleCambiado as EventListener);
       window.removeEventListener("storage", handleStorage);
     };
   }, []);

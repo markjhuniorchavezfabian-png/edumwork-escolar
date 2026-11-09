@@ -8,13 +8,25 @@ import Icon from "../../components/ui/Icon";
 import api from "../../services/api";
 
 export default function MiPerfilView() {
-  const { usuario } = useAuth();
+  const { usuario, refreshUsuario, logout } = useAuth();
   const institucion = useInstitucion();
   const toast = useToast();
 
   const [modoCuenta, setModoCuenta] = useState<string>("");
   const [integradoEn, setIntegradoEn] = useState<string | null>(null);
   const [descargando, setDescargando] = useState(false);
+  const [consentido, setConsentido] = useState<boolean>(Boolean(usuario?.consentimiento_datos));
+
+  useEffect(() => {
+    if (usuario?.consentimiento_datos !== undefined) {
+      setConsentido(Boolean(usuario.consentimiento_datos));
+    }
+  }, [usuario?.consentimiento_datos]);
+
+  const nombreColegio = (
+    institucion.nombre &&
+    !["thales", "colegio thales", "césar vallejo", "cesar vallejo"].includes(institucion.nombre.toLowerCase().trim())
+  ) ? institucion.nombre.trim() : "la Institución Educativa";
 
   useEffect(() => {
     api.get<{ modo_cuenta: string; integrado_a_ie_en: string | null }>("/auth/mi-cuenta/")
@@ -74,10 +86,32 @@ export default function MiPerfilView() {
   async function consentir() {
     setConsintiendo(true);
     try {
-      await consentirDatos();
-      toast.ok("Consentimiento registrado.");
+      await consentirDatos(false);
+      setConsentido(true);
+      await refreshUsuario();
+      toast.ok("Consentimiento registrado conforme a la Ley N° 29733.");
     } catch {
       toast.error("Error al registrar consentimiento.");
+    } finally {
+      setConsintiendo(false);
+    }
+  }
+
+  async function revocar() {
+    if (!window.confirm("¿Está seguro de revocar su consentimiento? Por cumplimiento de la Ley N° 29733, al revocar la autorización se cerrará su sesión y no podrá consultar los datos del estudiante en línea hasta que vuelva a otorgarlo.")) {
+      return;
+    }
+    setConsintiendo(true);
+    try {
+      await consentirDatos(true);
+      setConsentido(false);
+      await refreshUsuario();
+      toast.ok("Consentimiento revocado.");
+      setTimeout(() => {
+        logout();
+      }, 1000);
+    } catch {
+      toast.error("Error al revocar consentimiento.");
     } finally {
       setConsintiendo(false);
     }
@@ -172,25 +206,74 @@ export default function MiPerfilView() {
 
       {usuario?.rol === "padre" && (
         <Card titulo="Consentimiento — Ley 29733">
-          <p style={{ fontSize: 13, lineHeight: 1.6 }}>
-            Como padre/madre/tutor, autoriza usted el tratamiento de los datos personales de sus hijos
-            para fines educativos exclusivos de {institucion.nombre}, conforme a la Ley N° 29733
-            (Ley de Protección de Datos Personales) y su reglamento.
-          </p>
-          <p style={{ fontSize: 12, color: "var(--texto-mute)", marginTop: 8 }}>
-            Los datos serán utilizados exclusivamente para: asistencia, calificaciones, comunicaciones
-            institucionales, seguimiento pedagógico y reportes a UGEL.
-            {institucion.email_institucional && (
-              <span style={{ display: "block", marginTop: 6 }}>
-                Consultas: <a href={`mailto:${institucion.email_institucional}`}>{institucion.email_institucional}</a>
-              </span>
-            )}
-          </p>
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-            <button className="btn btn-primario" onClick={consentir} disabled={consintiendo} style={{ width: "auto" }}>
-              {consintiendo ? "Registrando..." : "Otorgar consentimiento"}
-            </button>
-          </div>
+          {consentido ? (
+            <div>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "10px 14px",
+                background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 8,
+                color: "#065F46", fontSize: 13, fontWeight: 600, marginBottom: 12,
+              }}>
+                <Icon name="check" size={16} />
+                <span>Consentimiento otorgado y activo</span>
+              </div>
+              <p style={{ fontSize: 13, lineHeight: 1.6 }}>
+                Usted ha autorizado a <strong>{nombreColegio}</strong> el tratamiento digital de los datos
+                personales de sus hijos exclusivamente para fines pedagógicos, asistencia, calificaciones y reportes oficiales.
+              </p>
+              <div style={{
+                display: "flex", justifyContent: "space-between", alignItems: "center",
+                marginTop: 16, paddingTop: 12, borderTop: "1px solid var(--borde)", flexWrap: "wrap", gap: 8,
+              }}>
+                <span style={{ fontSize: 11, color: "var(--muted-foreground)" }}>
+                  Derecho ARCO de Revocatoria (Art. 20 Ley 29733)
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-peligro"
+                  onClick={revocar}
+                  disabled={consintiendo}
+                  style={{ width: "auto", fontSize: 12 }}
+                >
+                  {consintiendo ? "Revocando..." : "Revocar consentimiento"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "10px 14px",
+                background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 8,
+                color: "#92400E", fontSize: 13, fontWeight: 600, marginBottom: 12,
+              }}>
+                <Icon name="alerta" size={16} />
+                <span>Pendiente de autorización</span>
+              </div>
+              <p style={{ fontSize: 13, lineHeight: 1.6 }}>
+                Como padre/madre/tutor, autoriza usted el tratamiento de los datos personales de sus hijos
+                para fines educativos exclusivos de <strong>{nombreColegio}</strong>, conforme a la Ley N° 29733
+                (Ley de Protección de Datos Personales) y su reglamento.
+              </p>
+              <p style={{ fontSize: 12, color: "var(--texto-mute)", marginTop: 8 }}>
+                Los datos serán utilizados exclusivamente para: asistencia, calificaciones, comunicaciones
+                institucionales, seguimiento pedagógico y reportes a UGEL.
+                {institucion.email_institucional && (
+                  <span style={{ display: "block", marginTop: 6 }}>
+                    Consultas: <a href={`mailto:${institucion.email_institucional}`}>{institucion.email_institucional}</a>
+                  </span>
+                )}
+              </p>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+                <button
+                  className="btn btn-primario"
+                  onClick={consentir}
+                  disabled={consintiendo}
+                  style={{ width: "auto" }}
+                >
+                  {consintiendo ? "Registrando..." : "Otorgar consentimiento"}
+                </button>
+              </div>
+            </div>
+          )}
         </Card>
       )}
     </div>

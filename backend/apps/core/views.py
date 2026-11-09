@@ -367,6 +367,13 @@ def configuracion_institucional(request):
     })
 
 
+NOMBRES_PILOTO = {
+    "thales", "colegio thales", "césar vallejo", "cesar vallejo",
+    "colegio césar vallejo", "colegio cesar vallejo",
+    "i.e. césar vallejo", "i.e. cesar vallejo",
+}
+
+
 def _get_or_create_config():
     cfg = ConfiguracionInstitucional.objects.first()
     if not cfg:
@@ -374,9 +381,9 @@ def _get_or_create_config():
             nombre_institucion="Institución Educativa",
             sigla="I.E.",
         )
-    elif not cfg.nombre_institucion:
+    elif not cfg.nombre_institucion or cfg.nombre_institucion.strip().lower() in NOMBRES_PILOTO:
         cfg.nombre_institucion = "Institución Educativa"
-        cfg.sigla = cfg.sigla or "I.E."
+        cfg.sigla = "I.E."
         cfg.save(update_fields=["nombre_institucion", "sigla"])
     return cfg
 

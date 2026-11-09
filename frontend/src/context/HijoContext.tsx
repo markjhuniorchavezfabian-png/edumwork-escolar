@@ -37,7 +37,7 @@ interface HijoContextValue {
   recargarHijos: () => Promise<void>;
 }
 
-const STORAGE_KEY = "thales_hijo_activo";
+const STORAGE_KEY = "edumwork_hijo_activo";
 
 const HijoContext = createContext<HijoContextValue>({
   hijos: [],
@@ -108,7 +108,7 @@ export function HijoProvider({ children }: { children: ReactNode }) {
         /* no-op */
       }
       if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("thales_hijo_cambiado", { detail: num }));
+        window.dispatchEvent(new CustomEvent("edumwork_hijo_cambiado", { detail: num }));
       }
     },
     []
@@ -130,10 +130,10 @@ export function HijoProvider({ children }: { children: ReactNode }) {
         }
       }
     };
-    window.addEventListener("thales_hijo_cambiado", handleCambiado as EventListener);
+    window.addEventListener("edumwork_hijo_cambiado", handleCambiado as EventListener);
     window.addEventListener("storage", handleStorage);
     return () => {
-      window.removeEventListener("thales_hijo_cambiado", handleCambiado as EventListener);
+      window.removeEventListener("edumwork_hijo_cambiado", handleCambiado as EventListener);
       window.removeEventListener("storage", handleStorage);
     };
   }, [hijoActivoId]);
@@ -141,7 +141,7 @@ export function HijoProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       (window as any).seleccionarHijo = seleccionarHijo;
-      (window as any).thalesHijoActivoId = hijoActivoId;
+      (window as any).edumworkHijoActivoId = hijoActivoId;
     }
   }, [seleccionarHijo, hijoActivoId]);
 

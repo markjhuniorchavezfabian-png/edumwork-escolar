@@ -54,8 +54,8 @@ export async function vincularHijos(idPadre: number, hijosIds: number[]) {
   return data;
 }
 
-export async function consentirDatos() {
-  const { data } = await api.post("/usuarios/consentir/");
+export async function consentirDatos(revocar: boolean = false) {
+  const { data } = await api.post("/usuarios/consentir/", { revocar });
   return data;
 }
 
