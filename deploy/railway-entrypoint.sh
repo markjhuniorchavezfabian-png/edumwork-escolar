@@ -9,6 +9,21 @@ cd /app/backend
 echo "▶ Aplicando migraciones de base de datos..."
 python manage.py migrate --noinput
 
+echo "▶ Verificando parámetros institucionales..."
+python - <<'EOF'
+import os
+import django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "proyecto_api.settings")
+django.setup()
+from apps.core.models import ConfiguracionInstitucional
+cfg = ConfiguracionInstitucional.get_solo()
+if not cfg.nombre_institucion:
+    cfg.nombre_institucion = "Colegio César Vallejo"
+    cfg.sigla = "IE-CV"
+    cfg.save()
+    print("✔ Nombre institucional asegurado: Colegio César Vallejo")
+EOF
+
 # 2. Archivos estáticos de Django
 echo "▶ Recolectando archivos estáticos de Django..."
 python manage.py collectstatic --noinput
